@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard,
   ArrowLeftRight,
