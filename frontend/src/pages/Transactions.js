@@ -22,7 +22,7 @@ const Transactions = () => {
   
   const [formData, setFormData] = useState({
     customer_id: '',
-    transaction_type: 'sell',
+    transaction_type: 'jual',
     currency_id: '',
     amount: '',
     exchange_rate: '',
