@@ -328,8 +328,10 @@ const Transactions = () => {
             <thead className="bg-white/5">
               <tr>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">No. Transaksi</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">No. Voucher</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tanggal</th>
-                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Nasabah</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Kode Nasabah</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Nama Nasabah</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tipe</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Mata Uang</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Jumlah</th>
