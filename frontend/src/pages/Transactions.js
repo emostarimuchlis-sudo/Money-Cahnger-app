@@ -348,7 +348,7 @@ const Transactions = () => {
                     </td>
                     <td className="py-4 px-4 text-[#FEF3C7]">{transaction.customer_name}</td>
                     <td className="py-4 px-4">
-                      {transaction.transaction_type === 'buy' ? (
+                      {transaction.transaction_type === 'beli' ? (
                         <span className="flex items-center gap-1 text-blue-400">
                           <ArrowDownRight size={16} /> Beli
                         </span>
