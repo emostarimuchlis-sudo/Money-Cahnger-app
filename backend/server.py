@@ -466,6 +466,8 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
         exchange_rate=transaction_data.exchange_rate,
         total_idr=total_idr,
         notes=transaction_data.notes,
+        delivery_channel=transaction_data.delivery_channel,
+        payment_method=transaction_data.payment_method,
         transaction_date=transaction_data.transaction_date or datetime.now(timezone.utc)
     )
     
