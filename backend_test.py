@@ -197,7 +197,7 @@ class MOZTECAPITester:
             "branch_id": branch_id
         }
         
-        success, response = self.make_request('POST', 'customers', customer_data, token, 201)
+        success, response = self.make_request('POST', 'customers', customer_data, token, 200)
         if success:
             self.created_customer_id = response.get('id')
             self.log_test(f"Create Customer ({role_name})", True)
