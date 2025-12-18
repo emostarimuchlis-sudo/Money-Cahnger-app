@@ -345,10 +345,16 @@ const Transactions = () => {
                 filteredTransactions.map((transaction) => (
                   <tr key={transaction.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
                     <td className="py-4 px-4">
-                      <span className="mono text-[#6EE7B7]">{transaction.transaction_number}</span>
+                      <span className="mono text-[#6EE7B7] text-xs">{transaction.transaction_number}</span>
                     </td>
-                    <td className="py-4 px-4 text-[#FEF3C7]">
+                    <td className="py-4 px-4">
+                      <span className="mono text-[#FEF3C7] text-xs">{transaction.voucher_number || '-'}</span>
+                    </td>
+                    <td className="py-4 px-4 text-[#FEF3C7] text-sm">
                       {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: localeId })}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="mono text-[#D4AF37] font-semibold">{transaction.customer_code || '-'}</span>
                     </td>
                     <td className="py-4 px-4 text-[#FEF3C7]">{transaction.customer_name}</td>
                     <td className="py-4 px-4">
