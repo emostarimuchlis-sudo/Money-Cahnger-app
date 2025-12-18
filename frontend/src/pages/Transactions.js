@@ -436,6 +436,18 @@ const Transactions = () => {
               </div>
 
               <div>
+                <Label htmlFor="voucher_number" className="text-[#FEF3C7]">No. Voucher (Opsional)</Label>
+                <Input
+                  data-testid="transaction-voucher-input"
+                  type="text"
+                  value={formData.voucher_number}
+                  onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  placeholder="Kosongkan jika tidak ada"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="transaction_type" className="text-[#FEF3C7]">Tipe Transaksi</Label>
                 <Select
                   value={formData.transaction_type}
