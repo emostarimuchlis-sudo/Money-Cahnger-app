@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-12-18T10:56:13.569662+00:00",
-  "total_tests": 14,
-  "passed_tests": 10,
-  "success_rate": 71.42857142857143,
+  "timestamp": "2025-12-18T10:56:37.060909+00:00",
+  "total_tests": 19,
+  "passed_tests": 18,
+  "success_rate": 94.73684210526315,
   "test_details": [
     {
       "test": "Login Admin",
@@ -37,12 +37,17 @@
     {
       "test": "Create Branch",
       "success": false,
-      "details": "Expected 201, got 200: {\"id\":\"aa382651-669f-41ff-b743-d00b93f9c9d7\",\"name\":\"Test Branch\",\"code\":\"TST001\",\"address\":\"Test Address\",\"phone\":\"081234567890\",\"is_headquarters\":false,\"is_active\":true,\"created_at\":\"2025-12-18T10:56:13.098645Z\"}"
+      "details": "Expected 200, got 400: {\"detail\":\"Branch code already exists\"}"
     },
     {
       "test": "Create Currency",
-      "success": false,
-      "details": "Expected 201, got 200: {\"id\":\"26021258-2374-4e1b-a309-4a184f18b003\",\"code\":\"TST\",\"name\":\"Test Currency\",\"symbol\":\"T$\",\"is_active\":true,\"created_at\":\"2025-12-18T10:56:13.173958Z\"}"
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Currencies",
+      "success": true,
+      "details": ""
     },
     {
       "test": "Get Users",
@@ -51,13 +56,33 @@
     },
     {
       "test": "Create Customer (Admin)",
-      "success": false,
-      "details": "Expected 201, got 200: {\"id\":\"9b9b3124-a09a-47a1-a5dc-005cfe4c02d7\",\"name\":\"Test Customer\",\"identity_number\":\"1234567890123456\",\"phone\":\"081234567890\",\"email\":\"test@customer.com\",\"address\":\"Test Address\",\"branch_id\":\"fe5e943f-a878-467d-bbf3-4b271b3147d8\",\"created_at\":\"2025-12-18T10:56:13.336425Z\"}"
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Customers (Admin)",
+      "success": true,
+      "details": ""
     },
     {
       "test": "Create Customer (Teller)",
-      "success": false,
-      "details": "Expected 201, got 200: {\"id\":\"84c713a4-9cd4-425c-a3a8-d67404d5a7ee\",\"name\":\"Test Customer\",\"identity_number\":\"1234567890123456\",\"phone\":\"081234567890\",\"email\":\"test@customer.com\",\"address\":\"Test Address\",\"branch_id\":\"fe5e943f-a878-467d-bbf3-4b271b3147d8\",\"created_at\":\"2025-12-18T10:56:13.454276Z\"}"
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Customers (Teller)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Create Transaction (Admin)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Transactions (Admin)",
+      "success": true,
+      "details": ""
     },
     {
       "test": "Get Cashbook (Admin)",
