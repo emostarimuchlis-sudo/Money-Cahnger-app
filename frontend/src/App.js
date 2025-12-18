@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Customers from './pages/CustomersNew';
 import CashBook from './pages/CashBook';
-import MutasiValas from './pages/MutasiValas';
+import MutasiValas from './pages/MutasiValasNew';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
