@@ -96,21 +96,76 @@ class CurrencyCreate(BaseModel):
 class Customer(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    identity_number: str
-    phone: str
-    email: Optional[str] = None
-    address: Optional[str] = None
+    customer_type: str  # "perorangan" or "badan_usaha"
+    
+    # Common fields
     branch_id: str
+    
+    # Perorangan fields
+    name: Optional[str] = None
+    gender: Optional[str] = None
+    identity_type: Optional[str] = None
+    identity_number: Optional[str] = None
+    birth_place: Optional[str] = None
+    birth_date: Optional[str] = None
+    identity_address: Optional[str] = None
+    domicile_address: Optional[str] = None
+    phone: Optional[str] = None
+    occupation: Optional[str] = None
+    fund_source: Optional[str] = None
+    transaction_purpose: Optional[str] = None
+    is_pep: Optional[bool] = False
+    pep_relation: Optional[str] = None
+    beneficial_owner_name: Optional[str] = None
+    beneficial_owner_id: Optional[str] = None
+    
+    # Badan Usaha fields
+    entity_type: Optional[str] = None
+    entity_name: Optional[str] = None
+    license_number: Optional[str] = None
+    npwp: Optional[str] = None
+    license_issue_place: Optional[str] = None
+    license_issue_date: Optional[str] = None
+    entity_address: Optional[str] = None
+    pic_name: Optional[str] = None
+    pic_phone: Optional[str] = None
+    pic_id_number: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CustomerCreate(BaseModel):
-    name: str
-    identity_number: str
-    phone: str
-    email: Optional[str] = None
-    address: Optional[str] = None
+    customer_type: str
     branch_id: str
+    
+    # Perorangan fields
+    name: Optional[str] = None
+    gender: Optional[str] = None
+    identity_type: Optional[str] = None
+    identity_number: Optional[str] = None
+    birth_place: Optional[str] = None
+    birth_date: Optional[str] = None
+    identity_address: Optional[str] = None
+    domicile_address: Optional[str] = None
+    phone: Optional[str] = None
+    occupation: Optional[str] = None
+    fund_source: Optional[str] = None
+    transaction_purpose: Optional[str] = None
+    is_pep: Optional[bool] = False
+    pep_relation: Optional[str] = None
+    beneficial_owner_name: Optional[str] = None
+    beneficial_owner_id: Optional[str] = None
+    
+    # Badan Usaha fields
+    entity_type: Optional[str] = None
+    entity_name: Optional[str] = None
+    license_number: Optional[str] = None
+    npwp: Optional[str] = None
+    license_issue_place: Optional[str] = None
+    license_issue_date: Optional[str] = None
+    entity_address: Optional[str] = None
+    pic_name: Optional[str] = None
+    pic_phone: Optional[str] = None
+    pic_id_number: Optional[str] = None
 
 class Transaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
