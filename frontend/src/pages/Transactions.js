@@ -26,6 +26,7 @@ const Transactions = () => {
     currency_id: '',
     amount: '',
     exchange_rate: '',
+    voucher_number: '',
     notes: '',
     delivery_channel: 'kantor_kupva',
     payment_method: 'cash'
