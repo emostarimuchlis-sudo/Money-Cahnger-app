@@ -70,6 +70,7 @@ class Branch(BaseModel):
     phone: str
     is_headquarters: bool = False
     is_active: bool = True
+    opening_balance: float = 0.0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class BranchCreate(BaseModel):
@@ -78,6 +79,7 @@ class BranchCreate(BaseModel):
     address: str
     phone: str
     is_headquarters: bool = False
+    opening_balance: float = 0.0
 
 class Currency(BaseModel):
     model_config = ConfigDict(extra="ignore")
