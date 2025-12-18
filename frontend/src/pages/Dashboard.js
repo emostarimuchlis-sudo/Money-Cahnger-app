@@ -197,6 +197,9 @@ const Dashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Advanced Analytics */}
+      <AdvancedAnalytics />
     </div>
   );
 };
