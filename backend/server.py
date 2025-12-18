@@ -709,6 +709,177 @@ async def get_transaction_report(
         }
     }
 
+# ============= ADVANCED ANALYTICS =============
+
+@api_router.get("/analytics/trends")
+async def get_analytics_trends(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    
+    # Last 7 days trend
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    seven_days_ago = today - timedelta(days=7)
+    
+    daily_data = []
+    for i in range(7):
+        day = seven_days_ago + timedelta(days=i)
+        next_day = day + timedelta(days=1)
+        
+        day_transactions = await db.transactions.find({
+            **query,
+            "transaction_date": {
+                "$gte": day.isoformat(),
+                "$lt": next_day.isoformat()
+            }
+        }, {"_id": 0}).to_list(10000)
+        
+        revenue = sum(t.get("total_idr", 0) for t in day_transactions if t.get("transaction_type") == "sell")
+        count = len(day_transactions)
+        
+        daily_data.append({
+            "date": day.strftime("%Y-%m-%d"),
+            "revenue": revenue,
+            "transactions": count
+        })
+    
+    # Top currencies
+    all_transactions = await db.transactions.find(query, {"_id": 0}).to_list(10000)
+    currency_stats = {}
+    for t in all_transactions:
+        code = t.get("currency_code", "Unknown")
+        if code not in currency_stats:
+            currency_stats[code] = {"count": 0, "total": 0}
+        currency_stats[code]["count"] += 1
+        currency_stats[code]["total"] += t.get("total_idr", 0)
+    
+    top_currencies = sorted(
+        [{"currency": k, "count": v["count"], "total": v["total"]} for k, v in currency_stats.items()],
+        key=lambda x: x["total"],
+        reverse=True
+    )[:5]
+    
+    # Peak hours
+    hour_stats = {}
+    for t in all_transactions:
+        if isinstance(t.get("transaction_date"), str):
+            dt = datetime.fromisoformat(t["transaction_date"])
+        else:
+            dt = t.get("transaction_date")
+        
+        if dt:
+            hour = dt.hour
+            hour_stats[hour] = hour_stats.get(hour, 0) + 1
+    
+    peak_hours = sorted([{"hour": k, "count": v} for k, v in hour_stats.items()], key=lambda x: x["count"], reverse=True)[:5]
+    
+    # Current vs previous period comparison
+    current_period_start = today - timedelta(days=30)
+    current_transactions = await db.transactions.find({
+        **query,
+        "transaction_date": {"$gte": current_period_start.isoformat()}
+    }, {"_id": 0}).to_list(10000)
+    
+    previous_period_start = current_period_start - timedelta(days=30)
+    previous_transactions = await db.transactions.find({
+        **query,
+        "transaction_date": {
+            "$gte": previous_period_start.isoformat(),
+            "$lt": current_period_start.isoformat()
+        }
+    }, {"_id": 0}).to_list(10000)
+    
+    current_revenue = sum(t.get("total_idr", 0) for t in current_transactions if t.get("transaction_type") == "sell")
+    previous_revenue = sum(t.get("total_idr", 0) for t in previous_transactions if t.get("transaction_type") == "sell")
+    
+    revenue_change = ((current_revenue - previous_revenue) / previous_revenue * 100) if previous_revenue > 0 else 0
+    transaction_change = ((len(current_transactions) - len(previous_transactions)) / len(previous_transactions) * 100) if len(previous_transactions) > 0 else 0
+    
+    return {
+        "daily_trend": daily_data,
+        "top_currencies": top_currencies,
+        "peak_hours": peak_hours,
+        "comparison": {
+            "current_revenue": current_revenue,
+            "previous_revenue": previous_revenue,
+            "revenue_change_percent": round(revenue_change, 2),
+            "current_transactions": len(current_transactions),
+            "previous_transactions": len(previous_transactions),
+            "transaction_change_percent": round(transaction_change, 2)
+        }
+    }
+
+# ============= NOTIFICATIONS =============
+
+@api_router.get("/notifications/recent")
+async def get_recent_notifications(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    
+    # Get large transactions (> 50 million IDR) from last 24 hours
+    yesterday = datetime.now(timezone.utc) - timedelta(hours=24)
+    
+    large_transactions = await db.transactions.find({
+        **query,
+        "total_idr": {"$gte": 50000000},
+        "transaction_date": {"$gte": yesterday.isoformat()}
+    }, {"_id": 0}).sort("transaction_date", -1).limit(10).to_list(10)
+    
+    notifications = []
+    for t in large_transactions:
+        if isinstance(t.get("transaction_date"), str):
+            t["transaction_date"] = datetime.fromisoformat(t["transaction_date"])
+        
+        notifications.append({
+            "id": t["id"],
+            "type": "large_transaction",
+            "title": "Transaksi Besar",
+            "message": f"Transaksi {t['currency_code']} senilai {t['total_idr']:,.0f} IDR oleh {t['customer_name']}",
+            "transaction_id": t["id"],
+            "amount": t["total_idr"],
+            "timestamp": t["transaction_date"].isoformat()
+        })
+    
+    return notifications
+
+# ============= DATABASE BACKUP =============
+
+@api_router.get("/backup/download")
+async def download_backup(current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can download backup")
+    
+    import json
+    from fastapi.responses import StreamingResponse
+    import io
+    
+    # Export all collections
+    backup_data = {
+        "backup_date": datetime.now(timezone.utc).isoformat(),
+        "users": await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(10000),
+        "branches": await db.branches.find({}, {"_id": 0}).to_list(10000),
+        "currencies": await db.currencies.find({}, {"_id": 0}).to_list(10000),
+        "customers": await db.customers.find({}, {"_id": 0}).to_list(10000),
+        "transactions": await db.transactions.find({}, {"_id": 0}).to_list(10000),
+        "cashbook_entries": await db.cashbook_entries.find({}, {"_id": 0}).to_list(10000),
+        "mutasi_valas": await db.mutasi_valas.find({}, {"_id": 0}).to_list(10000)
+    }
+    
+    # Convert to JSON
+    json_data = json.dumps(backup_data, indent=2, default=str)
+    
+    # Create file stream
+    file_stream = io.BytesIO(json_data.encode())
+    
+    filename = f"moztec_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    
+    return StreamingResponse(
+        file_stream,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 app.include_router(api_router)
 
 app.add_middleware(
