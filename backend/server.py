@@ -199,6 +199,7 @@ class TransactionCreate(BaseModel):
     currency_id: str
     amount: float
     exchange_rate: float
+    voucher_number: Optional[str] = None  # Manual input, optional
     notes: Optional[str] = None
     delivery_channel: Optional[str] = None
     payment_method: Optional[str] = None
