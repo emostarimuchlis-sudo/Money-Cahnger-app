@@ -510,9 +510,60 @@ const Transactions = () => {
               />
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="delivery_channel" className="text-[#FEF3C7]">Delivery Channel</Label>
+                <Select
+                  value={formData.delivery_channel}
+                  onValueChange={(value) => setFormData({ ...formData, delivery_channel: value })}
+                >
+                  <SelectTrigger data-testid="transaction-delivery-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    <SelectItem value="kantor_kupva" className="text-[#FEF3C7]">Kantor Kupva</SelectItem>
+                    <SelectItem value="online_merchant" className="text-[#FEF3C7]">Online Merchant</SelectItem>
+                    <SelectItem value="delivery_service" className="text-[#FEF3C7]">Delivery Service</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="payment_method" className="text-[#FEF3C7]">Metode Pembayaran</Label>
+                <Select
+                  value={formData.payment_method}
+                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                >
+                  <SelectTrigger data-testid="transaction-payment-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    <SelectItem value="cash" className="text-[#FEF3C7]">Cash</SelectItem>
+                    <SelectItem value="transfer" className="text-[#FEF3C7]">Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-4">
-              <Button type="submit" data-testid="transaction-submit-button" className="btn-primary flex-1">
-                Simpan Transaksi
+              <Button 
+                type="button"
+                onClick={(e) => handleSubmit(e, false)}
+                data-testid="transaction-save-button" 
+                className="btn-primary flex-1"
+              >
+                Simpan
+              </Button>
+              <Button 
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
+                data-testid="transaction-print-save-button" 
+                className="btn-primary flex-1 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Cetak dan Simpan
               </Button>
               <Button type="button" onClick={() => { setShowDialog(false); resetForm(); }} className="btn-secondary flex-1">
                 Batal
