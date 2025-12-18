@@ -258,7 +258,7 @@ const CustomersNew = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center py-12 text-[#6EE7B7]">
+                  <td colSpan="6" className="text-center py-12 text-[#6EE7B7]">
                     {searchTerm ? 'Tidak ada nasabah yang ditemukan' : 'Belum ada nasabah'}
                   </td>
                 </tr>
