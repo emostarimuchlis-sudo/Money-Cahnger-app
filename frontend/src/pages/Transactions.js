@@ -1,0 +1,404 @@
+import React, { useEffect, useState } from 'react';
+import api from '../utils/api';
+import { toast } from 'sonner';
+import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+
+const Transactions = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showDialog, setShowDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const [formData, setFormData] = useState({
+    customer_id: '',
+    transaction_type: 'sell',
+    currency_id: '',
+    amount: '',
+    exchange_rate: '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [transactionsRes, customersRes, currenciesRes] = await Promise.all([
+        api.get('/transactions'),
+        api.get('/customers'),
+        api.get('/currencies')
+      ]);
+      setTransactions(transactionsRes.data);
+      setCustomers(customersRes.data);
+      setCurrencies(currenciesRes.data);
+    } catch (error) {
+      toast.error('Gagal memuat data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/transactions', {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        exchange_rate: parseFloat(formData.exchange_rate)
+      });
+      toast.success('Transaksi berhasil dibuat');
+      setShowDialog(false);
+      resetForm();
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal membuat transaksi');
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      customer_id: '',
+      transaction_type: 'sell',
+      currency_id: '',
+      amount: '',
+      exchange_rate: '',
+      notes: ''
+    });
+  };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const filteredTransactions = transactions.filter(t => 
+    t.transaction_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const viewDetail = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDetailDialog(true);
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="text-[#D4AF37] text-xl">Memuat...</div></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+            Transaksi
+          </h1>
+          <p className="text-[#D1FAE5] mt-2">Kelola transaksi money changer</p>
+        </div>
+        <Button
+          data-testid="create-transaction-button"
+          onClick={() => setShowDialog(true)}
+          className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
+        >
+          <Plus size={20} />
+          <span>Transaksi Baru</span>
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="glass-card rounded-xl p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6EE7B7]" size={20} />
+          <Input
+            data-testid="search-transaction-input"
+            type="text"
+            placeholder="Cari berdasarkan nomor transaksi atau nama nasabah..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
+          />
+        </div>
+      </div>
+
+      {/* Transactions Table */}
+      <div className="glass-card rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-white/5">
+              <tr>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">No. Transaksi</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tanggal</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Nasabah</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tipe</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Mata Uang</th>
+                <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Jumlah</th>
+                <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Kurs</th>
+                <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Total (IDR)</th>
+                <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((transaction) => (
+                  <tr key={transaction.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
+                    <td className="py-4 px-4">
+                      <span className="mono text-[#6EE7B7]">{transaction.transaction_number}</span>
+                    </td>
+                    <td className="py-4 px-4 text-[#FEF3C7]">
+                      {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: localeId })}
+                    </td>
+                    <td className="py-4 px-4 text-[#FEF3C7]">{transaction.customer_name}</td>
+                    <td className="py-4 px-4">
+                      {transaction.transaction_type === 'buy' ? (
+                        <span className="flex items-center gap-1 text-blue-400">
+                          <ArrowDownRight size={16} /> Beli
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-emerald-400">
+                          <ArrowUpRight size={16} /> Jual
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="mono text-[#D4AF37] font-semibold">{transaction.currency_code}</span>
+                    </td>
+                    <td className="py-4 px-4 text-right mono text-[#FEF3C7]">
+                      {transaction.amount.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-4 px-4 text-right mono text-[#FEF3C7]">
+                      {transaction.exchange_rate.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-4 px-4 text-right mono text-[#D4AF37] font-semibold">
+                      {formatCurrency(transaction.total_idr)}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <button
+                        data-testid={`view-transaction-${transaction.id}`}
+                        onClick={() => viewDetail(transaction)}
+                        className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" className="text-center py-12 text-[#6EE7B7]">
+                    {searchTerm ? 'Tidak ada transaksi yang ditemukan' : 'Belum ada transaksi'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Create Transaction Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Transaksi Baru
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="customer" className="text-[#FEF3C7]">Nasabah</Label>
+                <Select
+                  value={formData.customer_id}
+                  onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                >
+                  <SelectTrigger data-testid="transaction-customer-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue placeholder="Pilih nasabah" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id} className="text-[#FEF3C7]">
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="transaction_type" className="text-[#FEF3C7]">Tipe Transaksi</Label>
+                <Select
+                  value={formData.transaction_type}
+                  onValueChange={(value) => setFormData({ ...formData, transaction_type: value })}
+                >
+                  <SelectTrigger data-testid="transaction-type-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    <SelectItem value="sell" className="text-[#FEF3C7]">Jual (Customer Jual ke Kami)</SelectItem>
+                    <SelectItem value="buy" className="text-[#FEF3C7]">Beli (Customer Beli dari Kami)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="currency" className="text-[#FEF3C7]">Mata Uang</Label>
+                <Select
+                  value={formData.currency_id}
+                  onValueChange={(value) => setFormData({ ...formData, currency_id: value })}
+                >
+                  <SelectTrigger data-testid="transaction-currency-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue placeholder="Pilih mata uang" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    {currencies.map((currency) => (
+                      <SelectItem key={currency.id} value={currency.id} className="text-[#FEF3C7]">
+                        {currency.code} - {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="amount" className="text-[#FEF3C7]">Jumlah</Label>
+                <Input
+                  data-testid="transaction-amount-input"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="exchange_rate" className="text-[#FEF3C7]">Kurs (IDR)</Label>
+                <Input
+                  data-testid="transaction-rate-input"
+                  type="number"
+                  step="0.01"
+                  value={formData.exchange_rate}
+                  onChange={(e) => setFormData({ ...formData, exchange_rate: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label className="text-[#FEF3C7]">Total (IDR)</Label>
+                <div className="px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-[#D4AF37] font-semibold mono">
+                  {formData.amount && formData.exchange_rate
+                    ? formatCurrency(parseFloat(formData.amount) * parseFloat(formData.exchange_rate))
+                    : 'Rp 0'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="notes" className="text-[#FEF3C7]">Catatan</Label>
+              <Input
+                data-testid="transaction-notes-input"
+                type="text"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                placeholder="Catatan tambahan (opsional)"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" data-testid="transaction-submit-button" className="btn-primary flex-1">
+                Simpan Transaksi
+              </Button>
+              <Button type="button" onClick={() => { setShowDialog(false); resetForm(); }} className="btn-secondary flex-1">
+                Batal
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Detail Transaksi
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">No. Transaksi</p>
+                  <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.transaction_number}</p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Tanggal</p>
+                  <p className="text-[#FEF3C7] font-semibold">
+                    {format(new Date(selectedTransaction.transaction_date), 'dd MMMM yyyy', { locale: localeId })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Nasabah</p>
+                  <p className="text-[#FEF3C7] font-semibold">{selectedTransaction.customer_name}</p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Tipe Transaksi</p>
+                  <p className="text-[#FEF3C7] font-semibold capitalize">
+                    {selectedTransaction.transaction_type === 'buy' ? 'Beli' : 'Jual'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Mata Uang</p>
+                  <p className="text-[#D4AF37] font-bold mono text-xl">{selectedTransaction.currency_code}</p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Jumlah</p>
+                  <p className="text-[#FEF3C7] font-semibold mono">
+                    {selectedTransaction.amount.toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Kurs (IDR)</p>
+                  <p className="text-[#FEF3C7] font-semibold mono">
+                    {selectedTransaction.exchange_rate.toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Total (IDR)</p>
+                  <p className="text-[#D4AF37] font-bold mono text-xl">
+                    {formatCurrency(selectedTransaction.total_idr)}
+                  </p>
+                </div>
+              </div>
+              {selectedTransaction.notes && (
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-[#6EE7B7] text-sm mb-2">Catatan</p>
+                  <p className="text-[#FEF3C7]">{selectedTransaction.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Transactions;
