@@ -220,6 +220,9 @@ const CustomersNew = () => {
                 filteredCustomers.map((customer) => (
                   <tr key={customer.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
                     <td className="py-4 px-4">
+                      <span className="mono text-[#D4AF37] font-bold">{customer.customer_code || '-'}</span>
+                    </td>
+                    <td className="py-4 px-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         customer.customer_type === 'perorangan' 
                           ? 'bg-blue-500/20 text-blue-400' 
