@@ -508,17 +508,31 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     if not currency:
         raise HTTPException(status_code=404, detail="Currency not found")
     
+    branch = await db.branches.find_one({"id": customer["branch_id"]}, {"_id": 0})
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
     if current_user.role != UserRole.ADMIN and customer["branch_id"] != current_user.branch_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
     total_idr = transaction_data.amount * transaction_data.exchange_rate
     
+    # Generate customer code (first 3 letters of name + last 4 digits of ID)
+    customer_name = customer.get("name") or customer.get("entity_name", "")
+    customer_identity = customer.get("identity_number") or customer.get("npwp", "XXXX")
+    customer_code = (customer_name[:3].upper() if customer_name else "CUS") + customer_identity[-4:]
+    
     transaction = Transaction(
         transaction_number=generate_transaction_number(),
+        voucher_number=f"VC{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
         customer_id=transaction_data.customer_id,
-        customer_name=customer["name"],
+        customer_code=customer_code,
+        customer_name=customer_name,
+        customer_identity_type=customer.get("identity_type", customer.get("entity_type", "")),
         branch_id=customer["branch_id"],
+        branch_name=branch["name"],
         user_id=current_user.id,
+        accountant_name=current_user.name,
         transaction_type=transaction_data.transaction_type,
         currency_id=transaction_data.currency_id,
         currency_code=currency["code"],
