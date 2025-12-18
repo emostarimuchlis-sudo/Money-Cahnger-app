@@ -246,7 +246,7 @@ const Transactions = () => {
   const resetForm = () => {
     setFormData({
       customer_id: '',
-      transaction_type: 'sell',
+      transaction_type: 'jual',
       currency_id: '',
       amount: '',
       exchange_rate: '',
