@@ -607,7 +607,7 @@ const Transactions = () => {
                 <div>
                   <p className="text-[#6EE7B7] text-sm">Tipe Transaksi</p>
                   <p className="text-[#FEF3C7] font-semibold capitalize">
-                    {selectedTransaction.transaction_type === 'buy' ? 'Beli' : 'Jual'}
+                    {selectedTransaction.transaction_type === 'beli' ? 'Beli (Kami Beli)' : 'Jual (Kami Jual)'}
                   </p>
                 </div>
                 <div>
