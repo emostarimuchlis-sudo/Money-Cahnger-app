@@ -207,6 +207,7 @@ const CustomersNew = () => {
           <table className="w-full">
             <thead className="bg-white/5">
               <tr>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Kode</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Jenis</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Nama</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">No. Identitas</th>
