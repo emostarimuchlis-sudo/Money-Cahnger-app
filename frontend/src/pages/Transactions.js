@@ -62,21 +62,185 @@ const Transactions = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, shouldPrint = false) => {
     e.preventDefault();
     try {
-      await api.post('/transactions', {
+      const response = await api.post('/transactions', {
         ...formData,
         amount: parseFloat(formData.amount),
         exchange_rate: parseFloat(formData.exchange_rate)
       });
+      
       toast.success('Transaksi berhasil dibuat');
+      
+      if (shouldPrint) {
+        printTransaction(response.data);
+      }
+      
       setShowDialog(false);
       resetForm();
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Gagal membuat transaksi');
     }
+  };
+  
+  const handleQuickCustomerSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Get current user's branch or use first branch
+      const branchId = quickCustomerForm.branch_id || customers[0]?.branch_id;
+      
+      const response = await api.post('/customers', {
+        ...quickCustomerForm,
+        branch_id: branchId
+      });
+      
+      toast.success('Nasabah berhasil ditambahkan');
+      
+      // Update customers list
+      await fetchData();
+      
+      // Set as selected customer
+      setFormData({ ...formData, customer_id: response.data.id });
+      
+      // Close dialog and reset
+      setShowQuickCustomerDialog(false);
+      setQuickCustomerForm({
+        name: '',
+        identity_number: '',
+        phone: '',
+        email: '',
+        address: '',
+        branch_id: ''
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal menambahkan nasabah');
+    }
+  };
+  
+  const printTransaction = (transaction) => {
+    const printWindow = window.open('', '_blank');
+    const customer = customers.find(c => c.id === transaction.customer_id);
+    const currency = currencies.find(c => c.id === transaction.currency_id);
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Struk Transaksi - ${transaction.transaction_number}</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 20px; font-family: 'Courier New', monospace; }
+          }
+          body { 
+            max-width: 300px; 
+            margin: 0 auto; 
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+          }
+          .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+          .header h1 { margin: 0; font-size: 20px; }
+          .header p { margin: 5px 0; font-size: 10px; }
+          .row { display: flex; justify-content: space-between; margin: 5px 0; }
+          .label { font-weight: bold; }
+          .divider { border-top: 1px dashed #000; margin: 10px 0; }
+          .total { font-size: 16px; font-weight: bold; margin-top: 10px; }
+          .footer { text-align: center; margin-top: 20px; border-top: 2px dashed #000; padding-top: 10px; font-size: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>MOZTEC</h1>
+          <p>Money Changer - Bali, Indonesia</p>
+          <p>Jl. Sunset Road No. 123, Denpasar</p>
+          <p>Telp: +62 361 123456</p>
+        </div>
+        
+        <div class="row">
+          <span class="label">No. Transaksi:</span>
+          <span>${transaction.transaction_number}</span>
+        </div>
+        <div class="row">
+          <span class="label">Tanggal:</span>
+          <span>${format(new Date(transaction.transaction_date || new Date()), 'dd/MM/yyyy HH:mm')}</span>
+        </div>
+        <div class="row">
+          <span class="label">Nasabah:</span>
+          <span>${customer?.name || transaction.customer_name}</span>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="row">
+          <span class="label">Tipe:</span>
+          <span>${transaction.transaction_type === 'buy' ? 'BELI' : 'JUAL'}</span>
+        </div>
+        <div class="row">
+          <span class="label">Mata Uang:</span>
+          <span>${currency?.code || transaction.currency_code}</span>
+        </div>
+        <div class="row">
+          <span class="label">Jumlah:</span>
+          <span>${parseFloat(formData.amount).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</span>
+        </div>
+        <div class="row">
+          <span class="label">Kurs:</span>
+          <span>Rp ${parseFloat(formData.exchange_rate).toLocaleString('id-ID')}</span>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="row total">
+          <span class="label">TOTAL:</span>
+          <span>Rp ${(parseFloat(formData.amount) * parseFloat(formData.exchange_rate)).toLocaleString('id-ID', { minimumFractionDigits: 0 })}</span>
+        </div>
+        
+        ${formData.delivery_channel ? `
+        <div class="divider"></div>
+        <div class="row">
+          <span class="label">Delivery:</span>
+          <span>${formData.delivery_channel === 'kantor_kupva' ? 'Kantor Kupva' : formData.delivery_channel === 'online_merchant' ? 'Online Merchant' : 'Delivery Service'}</span>
+        </div>
+        ` : ''}
+        
+        ${formData.payment_method ? `
+        <div class="row">
+          <span class="label">Pembayaran:</span>
+          <span>${formData.payment_method === 'cash' ? 'Cash' : 'Transfer'}</span>
+        </div>
+        ` : ''}
+        
+        ${formData.notes ? `
+        <div class="divider"></div>
+        <div class="row">
+          <span class="label">Catatan:</span>
+        </div>
+        <div style="margin-top: 5px;">${formData.notes}</div>
+        ` : ''}
+        
+        <div class="footer">
+          <p>Terima kasih atas kepercayaan Anda</p>
+          <p>MOZTEC Money Changer</p>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() {
+                window.close();
+              }, 100);
+            }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
   };
 
   const resetForm = () => {
