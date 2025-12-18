@@ -1,53 +1,96 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from './components/ui/sonner';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Transactions from './pages/Transactions';
+import Customers from './pages/Customers';
+import CashBook from './pages/CashBook';
+import MutasiValas from './pages/MutasiValas';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
+import Layout from './components/Layout';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#064E3B] to-[#022C22]">
+        <div className="text-[#D4AF37] text-2xl" style={{ fontFamily: 'Playfair Display, serif' }}>
+          Memuat...
+        </div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  return user ? children : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#064E3B] to-[#022C22]">
+        <div className="text-[#D4AF37] text-2xl" style={{ fontFamily: 'Playfair Display, serif' }}>
+          Memuat...
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  
+  return children;
+};
+
+function AppContent() {
+  const { user } = useAuth();
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
+    <>
+      <Toaster position="top-right" richColors />
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
         >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="cashbook" element={<CashBook />} />
+          <Route path="mutasi-valas" element={<MutasiValas />} />
+          <Route path="reports" element={<Reports />} />
+          <Route
+            path="settings"
+            element={
+              <AdminRoute>
+                <Settings />
+              </AdminRoute>
+            }
+          />
+        </Route>
+      </Routes>
+    </>
   );
-};
+}
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
