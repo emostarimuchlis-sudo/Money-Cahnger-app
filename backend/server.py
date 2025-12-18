@@ -135,7 +135,7 @@ class Customer(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CustomerCreate(BaseModel):
-    customer_type: str
+    customer_type: str = "perorangan"
     branch_id: str
     
     # Perorangan fields
