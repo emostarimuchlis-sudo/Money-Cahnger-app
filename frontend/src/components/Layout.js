@@ -21,6 +21,7 @@ import {
 
 const Layout = () => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,13 +32,13 @@ const Layout = () => {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['admin', 'teller', 'kasir'] },
-    { icon: ArrowLeftRight, label: 'Transaksi', path: '/transactions', roles: ['admin', 'teller', 'kasir'] },
-    { icon: Users, label: 'Data Nasabah', path: '/customers', roles: ['admin', 'teller', 'kasir'] },
-    { icon: BookOpen, label: 'Buku Kas', path: '/cashbook', roles: ['admin', 'teller', 'kasir'] },
-    { icon: Coins, label: 'Mutasi Valas', path: '/mutasi-valas', roles: ['admin', 'teller', 'kasir'] },
-    { icon: FileText, label: 'Laporan', path: '/reports', roles: ['admin', 'teller', 'kasir'] },
-    { icon: Settings, label: 'Pengaturan', path: '/settings', roles: ['admin'] },
+    { icon: LayoutDashboard, label: t('dashboard'), path: '/dashboard', roles: ['admin', 'teller', 'kasir'] },
+    { icon: ArrowLeftRight, label: t('transactions'), path: '/transactions', roles: ['admin', 'teller', 'kasir'] },
+    { icon: Users, label: t('customers'), path: '/customers', roles: ['admin', 'teller', 'kasir'] },
+    { icon: BookOpen, label: t('cashbook'), path: '/cashbook', roles: ['admin', 'teller', 'kasir'] },
+    { icon: Coins, label: t('mutasi_valas'), path: '/mutasi-valas', roles: ['admin', 'teller', 'kasir'] },
+    { icon: FileText, label: t('reports'), path: '/reports', roles: ['admin', 'teller', 'kasir'] },
+    { icon: Settings, label: t('settings'), path: '/settings', roles: ['admin'] },
   ];
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role));
