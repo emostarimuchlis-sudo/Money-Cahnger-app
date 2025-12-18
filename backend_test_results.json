@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-12-18T10:56:13.569662+00:00",
+  "total_tests": 14,
+  "passed_tests": 10,
+  "success_rate": 71.42857142857143,
+  "test_details": [
+    {
+      "test": "Login Admin",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Login Teller",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Login Kasir",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Dashboard stats (Admin)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Dashboard stats (Teller)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Dashboard stats (Kasir)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Create Branch",
+      "success": false,
+      "details": "Expected 201, got 200: {\"id\":\"aa382651-669f-41ff-b743-d00b93f9c9d7\",\"name\":\"Test Branch\",\"code\":\"TST001\",\"address\":\"Test Address\",\"phone\":\"081234567890\",\"is_headquarters\":false,\"is_active\":true,\"created_at\":\"2025-12-18T10:56:13.098645Z\"}"
+    },
+    {
+      "test": "Create Currency",
+      "success": false,
+      "details": "Expected 201, got 200: {\"id\":\"26021258-2374-4e1b-a309-4a184f18b003\",\"code\":\"TST\",\"name\":\"Test Currency\",\"symbol\":\"T$\",\"is_active\":true,\"created_at\":\"2025-12-18T10:56:13.173958Z\"}"
+    },
+    {
+      "test": "Get Users",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Create Customer (Admin)",
+      "success": false,
+      "details": "Expected 201, got 200: {\"id\":\"9b9b3124-a09a-47a1-a5dc-005cfe4c02d7\",\"name\":\"Test Customer\",\"identity_number\":\"1234567890123456\",\"phone\":\"081234567890\",\"email\":\"test@customer.com\",\"address\":\"Test Address\",\"branch_id\":\"fe5e943f-a878-467d-bbf3-4b271b3147d8\",\"created_at\":\"2025-12-18T10:56:13.336425Z\"}"
+    },
+    {
+      "test": "Create Customer (Teller)",
+      "success": false,
+      "details": "Expected 201, got 200: {\"id\":\"84c713a4-9cd4-425c-a3a8-d67404d5a7ee\",\"name\":\"Test Customer\",\"identity_number\":\"1234567890123456\",\"phone\":\"081234567890\",\"email\":\"test@customer.com\",\"address\":\"Test Address\",\"branch_id\":\"fe5e943f-a878-467d-bbf3-4b271b3147d8\",\"created_at\":\"2025-12-18T10:56:13.454276Z\"}"
+    },
+    {
+      "test": "Get Cashbook (Admin)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Mutasi Valas (Admin)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Reports (Admin)",
+      "success": true,
+      "details": ""
+    }
+  ]
+}
