@@ -659,6 +659,109 @@ async def create_cashbook_entry(entry_data: CashBookEntryCreate, current_user: U
 
 # ============= MUTASI VALAS ENDPOINTS =============
 
+@api_router.get("/mutasi-valas/calculate")
+async def calculate_mutasi_valas(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Calculate mutasi valas from transactions"""
+    query = {}
+    
+    # Branch filter
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+        target_branch_id = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+        target_branch_id = branch_id
+    else:
+        target_branch_id = None
+    
+    # Date filter
+    if start_date and end_date:
+        query["transaction_date"] = {"$gte": start_date, "$lte": end_date}
+    
+    # Get all transactions
+    transactions = await db.transactions.find(query, {"_id": 0}).to_list(10000)
+    
+    # Get all currencies
+    currencies = await db.currencies.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    
+    # Calculate mutasi per currency
+    mutasi_data = []
+    
+    for currency in currencies:
+        currency_code = currency["code"]
+        
+        # Filter transactions for this currency
+        currency_transactions = [
+            t for t in transactions 
+            if t.get("currency_code") == currency_code
+        ]
+        
+        if not currency_transactions:
+            continue
+        
+        # Calculate stock awal (from opening balance or previous transactions)
+        # For now, we'll start from 0 or could be set per branch
+        beginning_stock_valas = 0.0
+        beginning_stock_idr = 0.0
+        
+        # Calculate purchases (we buy from customer = customer sells to us = type "beli")
+        purchase_valas = sum(
+            t["amount"] for t in currency_transactions 
+            if t.get("transaction_type") == "beli"
+        )
+        purchase_idr = sum(
+            t["total_idr"] for t in currency_transactions 
+            if t.get("transaction_type") == "beli"
+        )
+        
+        # Calculate sales (we sell to customer = customer buys from us = type "jual")
+        sale_valas = sum(
+            t["amount"] for t in currency_transactions 
+            if t.get("transaction_type") == "jual"
+        )
+        sale_idr = sum(
+            t["total_idr"] for t in currency_transactions 
+            if t.get("transaction_type") == "jual"
+        )
+        
+        # Calculate ending stock
+        ending_stock_valas = beginning_stock_valas + purchase_valas - sale_valas
+        ending_stock_idr = beginning_stock_idr + purchase_idr - sale_idr
+        
+        # Calculate average rate
+        avg_rate = 0.0
+        if ending_stock_valas != 0:
+            avg_rate = abs(ending_stock_idr / ending_stock_valas)
+        elif purchase_valas > 0:
+            avg_rate = purchase_idr / purchase_valas
+        
+        # Calculate profit/loss
+        profit_loss = sale_idr - (sale_valas * avg_rate) if sale_valas > 0 else 0.0
+        
+        mutasi_data.append({
+            "currency_code": currency_code,
+            "currency_name": currency["name"],
+            "currency_symbol": currency["symbol"],
+            "beginning_stock_valas": beginning_stock_valas,
+            "beginning_stock_idr": beginning_stock_idr,
+            "purchase_valas": purchase_valas,
+            "purchase_idr": purchase_idr,
+            "sale_valas": sale_valas,
+            "sale_idr": sale_idr,
+            "ending_stock_valas": ending_stock_valas,
+            "ending_stock_idr": ending_stock_idr,
+            "avg_rate": avg_rate,
+            "profit_loss": profit_loss,
+            "transaction_count": len(currency_transactions)
+        })
+    
+    return mutasi_data
+
 @api_router.get("/mutasi-valas")
 async def get_mutasi_valas(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     query = {}
