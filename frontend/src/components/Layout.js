@@ -47,14 +47,18 @@ const Layout = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#064E3B] to-[#022C22]">
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-card px-4 py-3 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>MOZTEC</h1>
-        <button
-          data-testid="mobile-menu-toggle"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-[#FEF3C7] p-2 hover:bg-white/5 rounded-lg transition-colors duration-300"
-        >
-          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <h1 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>{t('app_name')}</h1>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <LanguageSwitcher />
+          <button
+            data-testid="mobile-menu-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="text-[#FEF3C7] p-2 hover:bg-white/5 rounded-lg transition-colors duration-300"
+          >
+            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Sidebar */}
