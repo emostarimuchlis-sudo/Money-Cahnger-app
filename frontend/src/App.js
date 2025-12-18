@@ -5,7 +5,7 @@ import { Toaster } from './components/ui/sonner';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
-import Customers from './pages/Customers';
+import Customers from './pages/CustomersNew';
 import CashBook from './pages/CashBook';
 import MutasiValas from './pages/MutasiValas';
 import Reports from './pages/Reports';
