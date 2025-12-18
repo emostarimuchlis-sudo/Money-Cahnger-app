@@ -1,15 +1,18 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
-
+from datetime import datetime, timezone, timedelta
+from passlib.context import CryptContext
+import jwt
+from bson import ObjectId
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,54 +22,693 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# Security
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+SECRET_KEY = os.environ.get('SECRET_KEY', 'moztec-secret-key-change-in-production')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
-# Create a router with the /api prefix
+security = HTTPBearer()
+
+app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# ============= MODELS =============
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+class UserRole(str):
+    ADMIN = "admin"
+    TELLER = "teller"
+    KASIR = "kasir"
+
+class User(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    email: EmailStr
+    name: str
+    role: str
+    branch_id: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    role: str
+    branch_id: Optional[str] = None
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+class Branch(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    code: str
+    address: str
+    phone: str
+    is_headquarters: bool = False
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class BranchCreate(BaseModel):
+    name: str
+    code: str
+    address: str
+    phone: str
+    is_headquarters: bool = False
+
+class Currency(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    code: str
+    name: str
+    symbol: str
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CurrencyCreate(BaseModel):
+    code: str
+    name: str
+    symbol: str
+
+class Customer(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    identity_number: str
+    phone: str
+    email: Optional[str] = None
+    address: Optional[str] = None
+    branch_id: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CustomerCreate(BaseModel):
+    name: str
+    identity_number: str
+    phone: str
+    email: Optional[str] = None
+    address: Optional[str] = None
+    branch_id: str
+
+class Transaction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    transaction_number: str
+    customer_id: str
+    customer_name: str
+    branch_id: str
+    user_id: str
+    transaction_type: str
+    currency_id: str
+    currency_code: str
+    amount: float
+    exchange_rate: float
+    total_idr: float
+    notes: Optional[str] = None
+    transaction_date: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class TransactionCreate(BaseModel):
+    customer_id: str
+    transaction_type: str
+    currency_id: str
+    amount: float
+    exchange_rate: float
+    notes: Optional[str] = None
+    transaction_date: Optional[datetime] = None
+
+class CashBookEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    branch_id: str
+    date: datetime
+    entry_type: str
+    amount: float
+    description: str
+    reference_type: Optional[str] = None
+    reference_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CashBookEntryCreate(BaseModel):
+    branch_id: str
+    entry_type: str
+    amount: float
+    description: str
+    reference_type: Optional[str] = None
+    reference_id: Optional[str] = None
+
+class MutasiValas(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    branch_id: str
+    currency_id: str
+    currency_code: str
+    date: datetime
+    beginning_stock: float
+    purchase: float
+    sale: float
+    ending_stock: float
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class DashboardStats(BaseModel):
+    total_transactions_today: int
+    total_revenue_today: float
+    total_customers: int
+    total_branches: int
+    recent_transactions: List[Transaction]
+
+# ============= HELPER FUNCTIONS =============
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        return User(**user)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def generate_transaction_number():
+    now = datetime.now(timezone.utc)
+    return f"TRX{now.strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+
+# ============= AUTH ENDPOINTS =============
+
+@api_router.post("/auth/register")
+async def register(user_data: UserCreate):
+    existing_user = await db.users.find_one({"email": user_data.email}, {"_id": 0})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
+    hashed_pwd = hash_password(user_data.password)
+    user = User(
+        email=user_data.email,
+        name=user_data.name,
+        role=user_data.role,
+        branch_id=user_data.branch_id
+    )
     
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    user_dict = user.model_dump()
+    user_dict["password_hash"] = hashed_pwd
+    user_dict["created_at"] = user_dict["created_at"].isoformat()
+    
+    await db.users.insert_one(user_dict)
+    
+    token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
+    return {"token": token, "user": user}
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.post("/auth/login")
+async def login(credentials: UserLogin):
+    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    if not user or not verify_password(credentials.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Account is inactive")
     
-    return status_checks
+    token = create_access_token({"sub": user["id"], "email": user["email"], "role": user["role"]})
+    
+    user_obj = User(**user)
+    return {"token": token, "user": user_obj}
 
-# Include the router in the main app
+@api_router.get("/auth/me", response_model=User)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+# ============= BRANCH ENDPOINTS =============
+
+@api_router.post("/branches", response_model=Branch)
+async def create_branch(branch_data: BranchCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can create branches")
+    
+    existing = await db.branches.find_one({"code": branch_data.code}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Branch code already exists")
+    
+    branch = Branch(**branch_data.model_dump())
+    branch_dict = branch.model_dump()
+    branch_dict["created_at"] = branch_dict["created_at"].isoformat()
+    
+    await db.branches.insert_one(branch_dict)
+    return branch
+
+@api_router.get("/branches", response_model=List[Branch])
+async def get_branches(current_user: User = Depends(get_current_user)):
+    branches = await db.branches.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    for branch in branches:
+        if isinstance(branch.get("created_at"), str):
+            branch["created_at"] = datetime.fromisoformat(branch["created_at"])
+    return branches
+
+@api_router.put("/branches/{branch_id}", response_model=Branch)
+async def update_branch(branch_id: str, branch_data: BranchCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can update branches")
+    
+    result = await db.branches.update_one(
+        {"id": branch_id},
+        {"$set": branch_data.model_dump()}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    updated = await db.branches.find_one({"id": branch_id}, {"_id": 0})
+    if isinstance(updated.get("created_at"), str):
+        updated["created_at"] = datetime.fromisoformat(updated["created_at"])
+    return Branch(**updated)
+
+@api_router.delete("/branches/{branch_id}")
+async def delete_branch(branch_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can delete branches")
+    
+    result = await db.branches.update_one({"id": branch_id}, {"$set": {"is_active": False}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    return {"message": "Branch deleted successfully"}
+
+# ============= CURRENCY ENDPOINTS =============
+
+@api_router.post("/currencies", response_model=Currency)
+async def create_currency(currency_data: CurrencyCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can create currencies")
+    
+    currency = Currency(**currency_data.model_dump())
+    currency_dict = currency.model_dump()
+    currency_dict["created_at"] = currency_dict["created_at"].isoformat()
+    
+    await db.currencies.insert_one(currency_dict)
+    return currency
+
+@api_router.get("/currencies", response_model=List[Currency])
+async def get_currencies(current_user: User = Depends(get_current_user)):
+    currencies = await db.currencies.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    for currency in currencies:
+        if isinstance(currency.get("created_at"), str):
+            currency["created_at"] = datetime.fromisoformat(currency["created_at"])
+    return currencies
+
+@api_router.put("/currencies/{currency_id}", response_model=Currency)
+async def update_currency(currency_id: str, currency_data: CurrencyCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can update currencies")
+    
+    result = await db.currencies.update_one(
+        {"id": currency_id},
+        {"$set": currency_data.model_dump()}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Currency not found")
+    
+    updated = await db.currencies.find_one({"id": currency_id}, {"_id": 0})
+    if isinstance(updated.get("created_at"), str):
+        updated["created_at"] = datetime.fromisoformat(updated["created_at"])
+    return Currency(**updated)
+
+@api_router.delete("/currencies/{currency_id}")
+async def delete_currency(currency_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can delete currencies")
+    
+    result = await db.currencies.update_one({"id": currency_id}, {"$set": {"is_active": False}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Currency not found")
+    return {"message": "Currency deleted successfully"}
+
+# ============= CUSTOMER ENDPOINTS =============
+
+@api_router.post("/customers", response_model=Customer)
+async def create_customer(customer_data: CustomerCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN and customer_data.branch_id != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="You can only create customers for your branch")
+    
+    customer = Customer(**customer_data.model_dump())
+    customer_dict = customer.model_dump()
+    customer_dict["created_at"] = customer_dict["created_at"].isoformat()
+    
+    await db.customers.insert_one(customer_dict)
+    return customer
+
+@api_router.get("/customers", response_model=List[Customer])
+async def get_customers(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    
+    customers = await db.customers.find(query, {"_id": 0}).to_list(1000)
+    for customer in customers:
+        if isinstance(customer.get("created_at"), str):
+            customer["created_at"] = datetime.fromisoformat(customer["created_at"])
+    return customers
+
+@api_router.get("/customers/{customer_id}", response_model=Customer)
+async def get_customer(customer_id: str, current_user: User = Depends(get_current_user)):
+    customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if current_user.role != UserRole.ADMIN and customer["branch_id"] != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if isinstance(customer.get("created_at"), str):
+        customer["created_at"] = datetime.fromisoformat(customer["created_at"])
+    return Customer(**customer)
+
+@api_router.put("/customers/{customer_id}", response_model=Customer)
+async def update_customer(customer_id: str, customer_data: CustomerCreate, current_user: User = Depends(get_current_user)):
+    existing = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if current_user.role != UserRole.ADMIN and existing["branch_id"] != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    result = await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": customer_data.model_dump()}
+    )
+    
+    updated = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if isinstance(updated.get("created_at"), str):
+        updated["created_at"] = datetime.fromisoformat(updated["created_at"])
+    return Customer(**updated)
+
+@api_router.delete("/customers/{customer_id}")
+async def delete_customer(customer_id: str, current_user: User = Depends(get_current_user)):
+    existing = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if current_user.role != UserRole.ADMIN and existing["branch_id"] != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.customers.delete_one({"id": customer_id})
+    return {"message": "Customer deleted successfully"}
+
+# ============= TRANSACTION ENDPOINTS =============
+
+@api_router.post("/transactions", response_model=Transaction)
+async def create_transaction(transaction_data: TransactionCreate, current_user: User = Depends(get_current_user)):
+    customer = await db.customers.find_one({"id": transaction_data.customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    currency = await db.currencies.find_one({"id": transaction_data.currency_id}, {"_id": 0})
+    if not currency:
+        raise HTTPException(status_code=404, detail="Currency not found")
+    
+    if current_user.role != UserRole.ADMIN and customer["branch_id"] != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    total_idr = transaction_data.amount * transaction_data.exchange_rate
+    
+    transaction = Transaction(
+        transaction_number=generate_transaction_number(),
+        customer_id=transaction_data.customer_id,
+        customer_name=customer["name"],
+        branch_id=customer["branch_id"],
+        user_id=current_user.id,
+        transaction_type=transaction_data.transaction_type,
+        currency_id=transaction_data.currency_id,
+        currency_code=currency["code"],
+        amount=transaction_data.amount,
+        exchange_rate=transaction_data.exchange_rate,
+        total_idr=total_idr,
+        notes=transaction_data.notes,
+        transaction_date=transaction_data.transaction_date or datetime.now(timezone.utc)
+    )
+    
+    transaction_dict = transaction.model_dump()
+    transaction_dict["created_at"] = transaction_dict["created_at"].isoformat()
+    transaction_dict["transaction_date"] = transaction_dict["transaction_date"].isoformat()
+    
+    await db.transactions.insert_one(transaction_dict)
+    
+    entry_type = "debit" if transaction_data.transaction_type == "sell" else "credit"
+    cashbook_entry = CashBookEntry(
+        branch_id=customer["branch_id"],
+        date=transaction.transaction_date,
+        entry_type=entry_type,
+        amount=total_idr,
+        description=f"Transaction {transaction.transaction_number}",
+        reference_type="transaction",
+        reference_id=transaction.id
+    )
+    cashbook_dict = cashbook_entry.model_dump()
+    cashbook_dict["created_at"] = cashbook_dict["created_at"].isoformat()
+    cashbook_dict["date"] = cashbook_dict["date"].isoformat()
+    await db.cashbook_entries.insert_one(cashbook_dict)
+    
+    return transaction
+
+@api_router.get("/transactions", response_model=List[Transaction])
+async def get_transactions(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    
+    transactions = await db.transactions.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    for transaction in transactions:
+        if isinstance(transaction.get("created_at"), str):
+            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+        if isinstance(transaction.get("transaction_date"), str):
+            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
+    return transactions
+
+@api_router.get("/transactions/{transaction_id}", response_model=Transaction)
+async def get_transaction(transaction_id: str, current_user: User = Depends(get_current_user)):
+    transaction = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    if current_user.role != UserRole.ADMIN and transaction["branch_id"] != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if isinstance(transaction.get("created_at"), str):
+        transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+    if isinstance(transaction.get("transaction_date"), str):
+        transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
+    return Transaction(**transaction)
+
+# ============= CASHBOOK ENDPOINTS =============
+
+@api_router.get("/cashbook")
+async def get_cashbook(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+    
+    entries = await db.cashbook_entries.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    for entry in entries:
+        if isinstance(entry.get("created_at"), str):
+            entry["created_at"] = datetime.fromisoformat(entry["created_at"])
+        if isinstance(entry.get("date"), str):
+            entry["date"] = datetime.fromisoformat(entry["date"])
+    
+    total_debit = sum(e["amount"] for e in entries if e["entry_type"] == "debit")
+    total_credit = sum(e["amount"] for e in entries if e["entry_type"] == "credit")
+    balance = total_debit - total_credit
+    
+    return {
+        "entries": entries,
+        "total_debit": total_debit,
+        "total_credit": total_credit,
+        "balance": balance
+    }
+
+@api_router.post("/cashbook", response_model=CashBookEntry)
+async def create_cashbook_entry(entry_data: CashBookEntryCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN and entry_data.branch_id != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    entry = CashBookEntry(**entry_data.model_dump(), date=datetime.now(timezone.utc))
+    entry_dict = entry.model_dump()
+    entry_dict["created_at"] = entry_dict["created_at"].isoformat()
+    entry_dict["date"] = entry_dict["date"].isoformat()
+    
+    await db.cashbook_entries.insert_one(entry_dict)
+    return entry
+
+# ============= MUTASI VALAS ENDPOINTS =============
+
+@api_router.get("/mutasi-valas")
+async def get_mutasi_valas(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+    
+    mutasi = await db.mutasi_valas.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    for m in mutasi:
+        if isinstance(m.get("created_at"), str):
+            m["created_at"] = datetime.fromisoformat(m["created_at"])
+        if isinstance(m.get("date"), str):
+            m["date"] = datetime.fromisoformat(m["date"])
+    return mutasi
+
+# ============= USER MANAGEMENT =============
+
+@api_router.get("/users", response_model=List[User])
+async def get_users(current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can view users")
+    
+    users = await db.users.find({"is_active": True}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    for user in users:
+        if isinstance(user.get("created_at"), str):
+            user["created_at"] = datetime.fromisoformat(user["created_at"])
+    return users
+
+@api_router.put("/users/{user_id}", response_model=User)
+async def update_user(user_id: str, user_data: dict, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can update users")
+    
+    update_data = {k: v for k, v in user_data.items() if k != "password" and v is not None}
+    
+    if "password" in user_data and user_data["password"]:
+        update_data["password_hash"] = hash_password(user_data["password"])
+    
+    result = await db.users.update_one({"id": user_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if isinstance(updated.get("created_at"), str):
+        updated["created_at"] = datetime.fromisoformat(updated["created_at"])
+    return User(**updated)
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can delete users")
+    
+    result = await db.users.update_one({"id": user_id}, {"$set": {"is_active": False}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted successfully"}
+
+# ============= DASHBOARD =============
+
+@api_router.get("/dashboard/stats")
+async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_iso = today.isoformat()
+    
+    transactions_today = await db.transactions.count_documents({
+        **query,
+        "transaction_date": {"$gte": today_iso}
+    })
+    
+    total_customers = await db.customers.count_documents(query)
+    
+    if current_user.role == UserRole.ADMIN:
+        total_branches = await db.branches.count_documents({"is_active": True})
+    else:
+        total_branches = 1
+    
+    recent_transactions = await db.transactions.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).limit(5).to_list(5)
+    
+    for transaction in recent_transactions:
+        if isinstance(transaction.get("created_at"), str):
+            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+        if isinstance(transaction.get("transaction_date"), str):
+            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
+    
+    revenue_pipeline = [
+        {"$match": {**query, "transaction_date": {"$gte": today_iso}}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_idr"}}}
+    ]
+    revenue_result = await db.transactions.aggregate(revenue_pipeline).to_list(1)
+    total_revenue_today = revenue_result[0]["total"] if revenue_result else 0
+    
+    return {
+        "total_transactions_today": transactions_today,
+        "total_revenue_today": total_revenue_today,
+        "total_customers": total_customers,
+        "total_branches": total_branches,
+        "recent_transactions": recent_transactions
+    }
+
+# ============= REPORTS =============
+
+@api_router.get("/reports/transactions")
+async def get_transaction_report(
+    start_date: str,
+    end_date: str,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {
+        "transaction_date": {
+            "$gte": start_date,
+            "$lte": end_date
+        }
+    }
+    
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+    
+    transactions = await db.transactions.find(query, {"_id": 0}).sort("transaction_date", -1).to_list(10000)
+    
+    for transaction in transactions:
+        if isinstance(transaction.get("created_at"), str):
+            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+        if isinstance(transaction.get("transaction_date"), str):
+            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
+    
+    total_buy = sum(t["total_idr"] for t in transactions if t["transaction_type"] == "buy")
+    total_sell = sum(t["total_idr"] for t in transactions if t["transaction_type"] == "sell")
+    total_transactions = len(transactions)
+    
+    return {
+        "transactions": transactions,
+        "summary": {
+            "total_transactions": total_transactions,
+            "total_buy": total_buy,
+            "total_sell": total_sell,
+            "net_revenue": total_sell - total_buy
+        }
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -77,7 +719,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
