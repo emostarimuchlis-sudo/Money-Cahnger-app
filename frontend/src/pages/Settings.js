@@ -156,13 +156,45 @@ const Settings = () => {
     return <div className="flex items-center justify-center h-64"><div className="text-[#D4AF37] text-xl">Memuat...</div></div>;
   }
 
+  const handleDownloadBackup = async () => {
+    try {
+      const response = await api.get('/backup/download', {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `moztec_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success('Backup berhasil diunduh');
+    } catch (error) {
+      toast.error('Gagal mengunduh backup');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
-          Pengaturan
-        </h1>
-        <p className="text-[#D1FAE5] mt-2">Kelola pengguna, cabang, dan mata uang</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+            Pengaturan
+          </h1>
+          <p className="text-[#D1FAE5] mt-2">Kelola pengguna, cabang, dan mata uang</p>
+        </div>
+        <Button
+          data-testid="download-backup-button"
+          onClick={handleDownloadBackup}
+          className="btn-primary px-6 py-3 flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download Backup
+        </Button>
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
