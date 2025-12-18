@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { toast } from 'sonner';
 import {
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import AdvancedAnalytics from '../components/AdvancedAnalytics';
 
 const Dashboard = () => {
   const { user } = useAuth();
