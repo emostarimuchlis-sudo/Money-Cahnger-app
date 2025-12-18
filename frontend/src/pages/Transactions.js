@@ -626,6 +626,23 @@ const Transactions = () => {
                     {formatCurrency(selectedTransaction.total_idr)}
                   </p>
                 </div>
+                {selectedTransaction.delivery_channel && (
+                  <div>
+                    <p className="text-[#6EE7B7] text-sm">Delivery Channel</p>
+                    <p className="text-[#FEF3C7] font-semibold">
+                      {selectedTransaction.delivery_channel === 'kantor_kupva' ? 'Kantor Kupva' : 
+                       selectedTransaction.delivery_channel === 'online_merchant' ? 'Online Merchant' : 'Delivery Service'}
+                    </p>
+                  </div>
+                )}
+                {selectedTransaction.payment_method && (
+                  <div>
+                    <p className="text-[#6EE7B7] text-sm">Metode Pembayaran</p>
+                    <p className="text-[#FEF3C7] font-semibold">
+                      {selectedTransaction.payment_method === 'cash' ? 'Cash' : 'Transfer'}
+                    </p>
+                  </div>
+                )}
               </div>
               {selectedTransaction.notes && (
                 <div className="pt-4 border-t border-white/10">
@@ -635,6 +652,94 @@ const Transactions = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Add Customer Dialog */}
+      <Dialog open={showQuickCustomerDialog} onOpenChange={setShowQuickCustomerDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Tambah Nasabah Baru
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleQuickCustomerSubmit} className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="quick-name" className="text-[#FEF3C7]">Nama Lengkap *</Label>
+                <Input
+                  data-testid="quick-customer-name-input"
+                  type="text"
+                  value={quickCustomerForm.name}
+                  onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, name: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="quick-identity" className="text-[#FEF3C7]">No. Identitas *</Label>
+                <Input
+                  data-testid="quick-customer-identity-input"
+                  type="text"
+                  value={quickCustomerForm.identity_number}
+                  onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, identity_number: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="quick-phone" className="text-[#FEF3C7]">Nomor Telepon *</Label>
+                <Input
+                  data-testid="quick-customer-phone-input"
+                  type="tel"
+                  value={quickCustomerForm.phone}
+                  onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, phone: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="quick-email" className="text-[#FEF3C7]">Email</Label>
+                <Input
+                  data-testid="quick-customer-email-input"
+                  type="email"
+                  value={quickCustomerForm.email}
+                  onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, email: e.target.value })}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="quick-address" className="text-[#FEF3C7]">Alamat</Label>
+              <Input
+                data-testid="quick-customer-address-input"
+                type="text"
+                value={quickCustomerForm.address}
+                onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, address: e.target.value })}
+                className="bg-black/20 border-white/10 text-[#FEF3C7]"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" data-testid="quick-customer-submit-button" className="btn-primary flex-1">
+                Simpan Nasabah
+              </Button>
+              <Button 
+                type="button" 
+                onClick={() => {
+                  setShowQuickCustomerDialog(false);
+                  setQuickCustomerForm({ name: '', identity_number: '', phone: '', email: '', address: '', branch_id: '' });
+                }} 
+                className="btn-secondary flex-1"
+              >
+                Batal
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
