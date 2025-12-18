@@ -525,14 +525,23 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     
     total_idr = transaction_data.amount * transaction_data.exchange_rate
     
-    # Generate customer code (first 3 letters of name + last 4 digits of ID)
+    # Get or generate customer code (MBA + 8 random digits)
+    customer_code = customer.get("customer_code")
+    if not customer_code:
+        # Generate new code for old customers
+        import random
+        customer_code = f"MBA{random.randint(10000000, 99999999)}"
+        # Update customer with new code
+        await db.customers.update_one(
+            {"id": transaction_data.customer_id},
+            {"$set": {"customer_code": customer_code}}
+        )
+    
     customer_name = customer.get("name") or customer.get("entity_name", "")
-    customer_identity = customer.get("identity_number") or customer.get("npwp", "XXXX")
-    customer_code = (customer_name[:3].upper() if customer_name else "CUS") + customer_identity[-4:]
     
     transaction = Transaction(
         transaction_number=generate_transaction_number(),
-        voucher_number=f"VC{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+        voucher_number=transaction_data.voucher_number if transaction_data.voucher_number else None,
         customer_id=transaction_data.customer_id,
         customer_code=customer_code,
         customer_name=customer_name,
