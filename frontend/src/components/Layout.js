@@ -111,9 +111,17 @@ const Layout = () => {
         </div>
       </aside>
 
+      {/* Desktop Header */}
+      <div className="hidden lg:block lg:ml-64 fixed top-0 right-0 left-0 z-40 glass-card border-b border-white/10 px-12 py-4">
+        <div className="flex items-center justify-end gap-4">
+          <NotificationBell />
+          <LanguageSwitcher />
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen">
-        <div className="pt-20 lg:pt-0 p-6 lg:p-12">
+        <div className="pt-20 lg:pt-20 p-6 lg:p-12">
           <Outlet />
         </div>
       </main>
