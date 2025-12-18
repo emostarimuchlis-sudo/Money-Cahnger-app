@@ -617,13 +617,21 @@ const Transactions = () => {
                   <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.transaction_number}</p>
                 </div>
                 <div>
+                  <p className="text-[#6EE7B7] text-sm">No. Voucher</p>
+                  <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.voucher_number || '-'}</p>
+                </div>
+                <div>
                   <p className="text-[#6EE7B7] text-sm">Tanggal</p>
                   <p className="text-[#FEF3C7] font-semibold">
                     {format(new Date(selectedTransaction.transaction_date), 'dd MMMM yyyy', { locale: localeId })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[#6EE7B7] text-sm">Nasabah</p>
+                  <p className="text-[#6EE7B7] text-sm">Kode Nasabah</p>
+                  <p className="text-[#D4AF37] font-bold mono">{selectedTransaction.customer_code || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[#6EE7B7] text-sm">Nama Nasabah</p>
                   <p className="text-[#FEF3C7] font-semibold">{selectedTransaction.customer_name}</p>
                 </div>
                 <div>
