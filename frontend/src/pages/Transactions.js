@@ -26,7 +26,19 @@ const Transactions = () => {
     currency_id: '',
     amount: '',
     exchange_rate: '',
-    notes: ''
+    notes: '',
+    delivery_channel: 'kantor_kupva',
+    payment_method: 'cash'
+  });
+  
+  const [showQuickCustomerDialog, setShowQuickCustomerDialog] = useState(false);
+  const [quickCustomerForm, setQuickCustomerForm] = useState({
+    name: '',
+    identity_number: '',
+    phone: '',
+    email: '',
+    address: '',
+    branch_id: ''
   });
 
   useEffect(() => {
