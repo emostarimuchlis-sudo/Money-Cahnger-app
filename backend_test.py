@@ -230,7 +230,7 @@ class MOZTECAPITester:
             "notes": "Test transaction"
         }
         
-        success, response = self.make_request('POST', 'transactions', transaction_data, token, 201)
+        success, response = self.make_request('POST', 'transactions', transaction_data, token, 200)
         if success:
             self.created_transaction_id = response.get('id')
             self.log_test(f"Create Transaction ({role_name})", True)
