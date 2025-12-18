@@ -127,6 +127,8 @@ class Transaction(BaseModel):
     exchange_rate: float
     total_idr: float
     notes: Optional[str] = None
+    delivery_channel: Optional[str] = None
+    payment_method: Optional[str] = None
     transaction_date: datetime
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -137,6 +139,8 @@ class TransactionCreate(BaseModel):
     amount: float
     exchange_rate: float
     notes: Optional[str] = None
+    delivery_channel: Optional[str] = None
+    payment_method: Optional[str] = None
     transaction_date: Optional[datetime] = None
 
 class CashBookEntry(BaseModel):
