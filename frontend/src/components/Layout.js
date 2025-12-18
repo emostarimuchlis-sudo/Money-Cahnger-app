@@ -68,8 +68,8 @@ const Layout = () => {
         }`}
       >
         <div className="p-6">
-          <h1 className="text-3xl font-bold text-[#D4AF37] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>MOZTEC</h1>
-          <p className="text-[#6EE7B7] text-sm">Money Changer System</p>
+          <h1 className="text-3xl font-bold text-[#D4AF37] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>{t('app_name')}</h1>
+          <p className="text-[#6EE7B7] text-sm">{t('app_subtitle')}</p>
         </div>
 
         <nav className="px-3 flex-1">
