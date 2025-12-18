@@ -437,8 +437,8 @@ const Transactions = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
-                    <SelectItem value="sell" className="text-[#FEF3C7]">Jual (Customer Jual ke Kami)</SelectItem>
-                    <SelectItem value="buy" className="text-[#FEF3C7]">Beli (Customer Beli dari Kami)</SelectItem>
+                    <SelectItem value="jual" className="text-[#FEF3C7]">Jual (Kami Jual ke Customer / Customer Beli dari Kami)</SelectItem>
+                    <SelectItem value="beli" className="text-[#FEF3C7]">Beli (Kami Beli dari Customer / Customer Jual ke Kami)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
