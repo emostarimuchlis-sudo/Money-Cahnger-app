@@ -172,7 +172,7 @@ class Transaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     transaction_number: str
-    voucher_number: str
+    voucher_number: Optional[str] = None  # Manual input, optional
     customer_id: str
     customer_code: str
     customer_name: str
@@ -181,7 +181,7 @@ class Transaction(BaseModel):
     branch_name: str
     user_id: str
     accountant_name: str
-    transaction_type: str  # "jual" (customer sell to us / we buy) or "beli" (customer buy from us / we sell)
+    transaction_type: str  # "jual" (we sell to customer) or "beli" (we buy from customer)
     currency_id: str
     currency_code: str
     amount: float
