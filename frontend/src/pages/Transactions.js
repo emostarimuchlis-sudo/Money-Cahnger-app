@@ -399,21 +399,32 @@ const Transactions = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="customer" className="text-[#FEF3C7]">Nasabah</Label>
-                <Select
-                  value={formData.customer_id}
-                  onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
-                >
-                  <SelectTrigger data-testid="transaction-customer-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                    <SelectValue placeholder="Pilih nasabah" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#064E3B] border-white/10">
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id} className="text-[#FEF3C7]">
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.customer_id}
+                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                  >
+                    <SelectTrigger data-testid="transaction-customer-select" className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1">
+                      <SelectValue placeholder="Pilih nasabah" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#064E3B] border-white/10">
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id} className="text-[#FEF3C7]">
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    data-testid="quick-add-customer-button"
+                    onClick={() => setShowQuickCustomerDialog(true)}
+                    className="px-3 py-2 bg-[#D4AF37] text-black rounded-lg hover:bg-[#D4AF37]/90 transition-all duration-300 font-bold text-lg"
+                    title="Tambah Nasabah Baru"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               <div>
