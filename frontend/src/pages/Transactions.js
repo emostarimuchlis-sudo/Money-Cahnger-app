@@ -250,7 +250,9 @@ const Transactions = () => {
       currency_id: '',
       amount: '',
       exchange_rate: '',
-      notes: ''
+      notes: '',
+      delivery_channel: 'kantor_kupva',
+      payment_method: 'cash'
     });
   };
 
