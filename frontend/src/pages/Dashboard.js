@@ -16,6 +16,7 @@ import AdvancedAnalytics from '../components/AdvancedAnalytics';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
