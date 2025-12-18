@@ -33,11 +33,14 @@ const Transactions = () => {
   
   const [showQuickCustomerDialog, setShowQuickCustomerDialog] = useState(false);
   const [quickCustomerForm, setQuickCustomerForm] = useState({
+    customer_type: 'perorangan',
     name: '',
+    entity_name: '',
     identity_number: '',
+    npwp: '',
     phone: '',
-    email: '',
-    address: '',
+    pic_phone: '',
+    identity_type: 'KTP',
     branch_id: ''
   });
 
