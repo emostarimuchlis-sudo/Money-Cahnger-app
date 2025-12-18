@@ -230,10 +230,16 @@ class MutasiValas(BaseModel):
     currency_id: str
     currency_code: str
     date: datetime
-    beginning_stock: float
-    purchase: float
-    sale: float
-    ending_stock: float
+    beginning_stock_valas: float
+    beginning_stock_idr: float
+    purchase_valas: float
+    purchase_idr: float
+    sale_valas: float
+    sale_idr: float
+    ending_stock_valas: float
+    ending_stock_idr: float
+    avg_rate: float
+    profit_loss: float
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class DashboardStats(BaseModel):
