@@ -96,7 +96,8 @@ class CurrencyCreate(BaseModel):
 class Customer(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    customer_type: str  # "perorangan" or "badan_usaha"
+    customer_type: str = "perorangan"  # "perorangan" or "badan_usaha" - default for backward compatibility
+    customer_code: str = Field(default_factory=lambda: f"MBA{uuid.uuid4().hex[:8].upper()}")
     
     # Common fields
     branch_id: str
