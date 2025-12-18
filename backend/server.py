@@ -171,11 +171,16 @@ class Transaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     transaction_number: str
+    voucher_number: str
     customer_id: str
+    customer_code: str
     customer_name: str
+    customer_identity_type: Optional[str] = None
     branch_id: str
+    branch_name: str
     user_id: str
-    transaction_type: str
+    accountant_name: str
+    transaction_type: str  # "jual" (customer sell to us / we buy) or "beli" (customer buy from us / we sell)
     currency_id: str
     currency_code: str
     amount: float
