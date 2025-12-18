@@ -106,7 +106,7 @@ const Layout = () => {
             className="flex items-center gap-2 text-[#D1FAE5] hover:text-[#FEF3C7] transition-colors duration-300 w-full"
           >
             <LogOut size={18} />
-            <span>Keluar</span>
+            <span>{t('logout')}</span>
           </button>
         </div>
       </aside>
