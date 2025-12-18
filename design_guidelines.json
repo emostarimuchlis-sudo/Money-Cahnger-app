@@ -1,0 +1,145 @@
+{
+  "identity": {
+    "name": "MOZTEC",
+    "persona": "E1 - The Anti-AI Designer",
+    "archetype": "Jewel & Luxury (Emerald & Gold)",
+    "vibe": "Futuristic, Elegant, Trustworthy, Balinese Premium",
+    "principles": [
+      "Fusion over Imitation: Mix Balinese warmth with Swiss financial precision",
+      "Emotion First: Trust and Opulence",
+      "Content is King: Data clarity is paramount",
+      "Zoom In: Focus on currency details",
+      "Negative Space: Breathable layouts even in dashboards",
+      "Contrast: Gold on Emerald, Cream on Black"
+    ]
+  },
+  "typography": {
+    "headings": {
+      "fontFamily": "Playfair Display, serif",
+      "weights": ["400", "700"],
+      "usage": "All major section headers, hero text, and brand names. Use tracking-tight for sizes > 32px."
+    },
+    "body": {
+      "fontFamily": "Manrope, sans-serif",
+      "weights": ["300", "400", "500", "600"],
+      "usage": "General text, data tables, inputs, and labels."
+    },
+    "mono": {
+      "fontFamily": "JetBrains Mono, monospace",
+      "usage": "Currency rates, transaction IDs, and code snippets."
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#047857",
+        "light": "#10B981",
+        "dark": "#064E3B",
+        "foreground": "#FFFFFF"
+      },
+      "secondary": {
+        "DEFAULT": "#D4AF37",
+        "light": "#FCD34D",
+        "dark": "#B45309",
+        "foreground": "#000000"
+      },
+      "background": {
+        "DEFAULT": "#022C22",
+        "paper": "#064E3B",
+        "subtle": "#065F46"
+      },
+      "text": {
+        "primary": "#FEF3C7",
+        "secondary": "#D1FAE5",
+        "muted": "#6EE7B7"
+      },
+      "accent": {
+        "neon": "#34D399",
+        "alert": "#EF4444"
+      }
+    },
+    "gradients": {
+      "hero": "linear-gradient(135deg, #064E3B 0%, #022C22 100%)",
+      "gold": "linear-gradient(45deg, #D4AF37 0%, #FCD34D 50%, #B45309 100%)",
+      "glass": "linear-gradient(180deg, rgba(6, 78, 59, 0.7) 0%, rgba(2, 44, 34, 0.4) 100%)"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "base": "0.25rem",
+      "containerPadding": "p-6 md:p-12",
+      "sectionGap": "gap-8"
+    },
+    "grids": {
+      "dashboard": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "marketing": "grid-cols-1 md:grid-cols-12 gap-8"
+    },
+    "radius": {
+      "default": "rounded-lg",
+      "card": "rounded-xl",
+      "button": "rounded-md"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all duration-300 font-semibold",
+      "secondary": "border border-secondary text-secondary hover:bg-secondary/10",
+      "ghost": "text-text-secondary hover:text-text-primary hover:bg-white/5"
+    },
+    "cards": {
+      "style": "glassmorphism",
+      "classes": "bg-background-paper/40 backdrop-blur-xl border border-white/10 shadow-xl"
+    },
+    "inputs": {
+      "style": "minimal",
+      "classes": "bg-black/20 border-white/10 focus:border-secondary/50 text-text-primary placeholder:text-text-muted/50"
+    }
+  },
+  "visual_enhancers": {
+    "textures": "Use subtle noise overlays on dark backgrounds to prevent banding.",
+    "shadows": "Colored shadows! Use shadow-emerald-900/50 for depth.",
+    "borders": "1px solid white/10 for structure, Gold borders for active states."
+  },
+  "motion": {
+    "transitions": "transition-all duration-300 ease-out",
+    "hover": "hover:-translate-y-1 hover:shadow-lg",
+    "entrance": "animate-in fade-in slide-in-from-bottom-4 duration-500"
+  },
+  "images": {
+    "office": {
+      "url": "https://images.unsplash.com/photo-1746173098263-8262c7725b1e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Modern Luxury Office Lobby",
+      "usage": "Dashboard Welcome, Login Background"
+    },
+    "texture": {
+      "url": "https://images.unsplash.com/photo-1583937443351-f2f669fbe2cf?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Emerald and Diamond Texture",
+      "usage": "Hero Backgrounds, Card Accents"
+    },
+    "staff": {
+      "url": "https://images.unsplash.com/photo-1755050026084-49ae65b94882?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Professional Indonesian Staff",
+      "usage": "About Us, User Profile Placeholder"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Implement the 'Jewel & Luxury' theme strictly. No default shadcn slate/gray.",
+    "Use the provided image URLs for the respective sections.",
+    "Ensure the dashboard uses the 'Control Room' grid layout.",
+    "Customize all Shadcn components to match the Emerald/Gold palette.",
+    "Use 'Playfair Display' for all headings to maintain the premium feel.",
+    "Ensure all text has sufficient contrast against the dark emerald backgrounds.",
+    "Add 'data-testid' to all interactive elements.",
+    "Do not use gradients for text, only for backgrounds or borders.",
+    "Use 'sonner' for notifications.",
+    "Create a 'Layout' component that handles the sidebar/header structure for the dashboard."
+  ],
+  "universal_guidelines": [
+    "Avoid 'AI slop' - no generic centered layouts.",
+    "Use glassmorphism with backdrop-blur-xl.",
+    "No universal 'transition: all'.",
+    "Micro-animations on all interactions.",
+    "Generous spacing (p-8, p-12).",
+    "Mobile-first responsive design."
+  ]
+}
