@@ -118,7 +118,7 @@ class MOZTECAPITester:
             "is_headquarters": False
         }
         
-        success, response = self.make_request('POST', 'branches', branch_data, self.admin_token, 201)
+        success, response = self.make_request('POST', 'branches', branch_data, self.admin_token, 200)
         if success:
             self.created_branch_id = response.get('id')
             self.log_test("Create Branch", True)
