@@ -174,13 +174,13 @@ class Transaction(BaseModel):
     transaction_number: str
     voucher_number: Optional[str] = None  # Manual input, optional
     customer_id: str
-    customer_code: str
+    customer_code: Optional[str] = None  # For backward compatibility
     customer_name: str
     customer_identity_type: Optional[str] = None
     branch_id: str
-    branch_name: str
+    branch_name: Optional[str] = None  # For backward compatibility
     user_id: str
-    accountant_name: str
+    accountant_name: Optional[str] = None  # For backward compatibility
     transaction_type: str  # "jual" (we sell to customer) or "beli" (we buy from customer)
     currency_id: str
     currency_code: str
