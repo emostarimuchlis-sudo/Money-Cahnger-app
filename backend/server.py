@@ -591,10 +591,28 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     return transaction
 
 @api_router.get("/transactions", response_model=List[Transaction])
-async def get_transactions(current_user: User = Depends(get_current_user)):
+async def get_transactions(
+    branch_id: Optional[str] = None,
+    currency_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
     query = {}
     if current_user.role != UserRole.ADMIN:
         query["branch_id"] = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+    
+    if currency_id:
+        query["currency_id"] = currency_id
+    
+    if start_date and end_date:
+        query["transaction_date"] = {"$gte": start_date, "$lte": end_date + "T23:59:59Z"}
+    elif start_date:
+        query["transaction_date"] = {"$gte": start_date}
+    elif end_date:
+        query["transaction_date"] = {"$lte": end_date + "T23:59:59Z"}
     
     transactions = await db.transactions.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     for transaction in transactions:
