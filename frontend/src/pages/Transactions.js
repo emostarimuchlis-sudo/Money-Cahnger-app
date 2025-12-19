@@ -295,15 +295,33 @@ const Transactions = () => {
   };
   
   const printTransaction = (transaction) => {
+    // Validate transaction data before printing
+    if (!transaction || !transaction.transaction_number) {
+      toast.error('Data transaksi tidak valid untuk dicetak');
+      return;
+    }
+    
     const customer = customers.find(c => c.id === transaction.customer_id);
     const currency = currencies.find(c => c.id === transaction.currency_id);
     const branch = branches.find(b => b.id === transaction.branch_id);
+    
+    // Validate required data
+    if (!customer) {
+      toast.warning('Data nasabah tidak ditemukan. Transaksi dapat dicetak dengan data terbatas.');
+    }
     
     // Use company settings for receipt
     const companyName = companySettings.company_name || 'Mulia Bali Valuta';
     const companyAddress = companySettings.company_address || branch?.address || '';
     const companyPhone = companySettings.company_phone || branch?.phone || '';
     const receiptFooter = companySettings.receipt_footer || 'Terima kasih atas kepercayaan Anda';
+    
+    // Use safe values with fallbacks
+    const customerName = customer?.name || customer?.entity_name || transaction.customer_name || 'N/A';
+    const customerIdentity = customer?.identity_number || customer?.npwp || '-';
+    const customerPhone = customer?.phone || customer?.pic_phone || '-';
+    const currencyCode = currency?.code || transaction.currency_code || 'N/A';
+    const branchName = branch?.name || transaction.branch_name || 'N/A';
     
     const printWindow = window.open('', '_blank');
     const printContent = `
