@@ -98,11 +98,12 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
             <h2
-              className="text-3xl lg:text-4xl font-bold text-[#FEF3C7] mb-4"
+              className="text-3xl lg:text-4xl font-bold text-[#FEF3C7] mb-2"
               style={{ fontFamily: 'Playfair Display, serif' }}
             >
               {companyName}
             </h2>
+            <p className="text-[#D4AF37] text-xl mb-4 font-semibold">MBA Money Changer</p>
             <p className="text-[#D1FAE5] text-lg mb-6 leading-relaxed">
               Layanan penukaran mata uang asing terpercaya di Bali, Indonesia. Kami menyediakan kurs kompetitif dengan pelayanan profesional untuk kebutuhan valuta asing Anda.
             </p>
