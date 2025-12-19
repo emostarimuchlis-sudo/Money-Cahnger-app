@@ -101,7 +101,7 @@ const Dashboard = () => {
               className="text-3xl lg:text-4xl font-bold text-[#FEF3C7] mb-4"
               style={{ fontFamily: 'Playfair Display, serif' }}
             >
-              MOZTEC Money Changer
+              {companyName}
             </h2>
             <p className="text-[#D1FAE5] text-lg mb-6 leading-relaxed">
               Layanan penukaran mata uang asing terpercaya di Bali, Indonesia. Kami menyediakan kurs kompetitif dengan pelayanan profesional untuk kebutuhan valuta asing Anda.
