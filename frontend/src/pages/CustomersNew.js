@@ -338,12 +338,12 @@ const CustomersNew = () => {
           <div className="flex flex-wrap gap-4 pt-4 border-t border-white/10">
             <div className="w-48">
               <Label className="text-[#FEF3C7] text-sm">Jenis Nasabah</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
+              <Select value={filterType || 'all'} onValueChange={(v) => setFilterType(v === 'all' ? '' : v)}>
                 <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
                   <SelectValue placeholder="Semua Jenis" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#064E3B] border-white/10">
-                  <SelectItem value="" className="text-[#FEF3C7]">Semua Jenis</SelectItem>
+                  <SelectItem value="all" className="text-[#FEF3C7]">Semua Jenis</SelectItem>
                   <SelectItem value="perorangan" className="text-[#FEF3C7]">Perorangan</SelectItem>
                   <SelectItem value="badan_usaha" className="text-[#FEF3C7]">Badan Usaha</SelectItem>
                 </SelectContent>
