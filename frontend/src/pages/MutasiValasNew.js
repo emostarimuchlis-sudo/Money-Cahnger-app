@@ -50,6 +50,15 @@ const MutasiValasNew = () => {
     }
   };
 
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await api.get('/settings/company');
+      setCompanySettings(response.data);
+    } catch (error) {
+      console.log('Using default company settings');
+    }
+  };
+
   const fetchMutasi = async () => {
     setLoading(true);
     try {
