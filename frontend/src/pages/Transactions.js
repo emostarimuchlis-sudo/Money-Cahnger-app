@@ -442,27 +442,49 @@ const Transactions = () => {
   ];
 
   const handleExportExcel = () => {
-    exportToExcel(filteredTransactions, exportColumns, 'Data_Transaksi');
+    // Export to Excel using simple CSV approach
+    const headers = exportColumns.map(c => c.header).join(',');
+    const rows = filteredTransactions.map(row => 
+      exportColumns.map(col => col.accessor ? col.accessor(row) : row[col.key] || '-').join(',')
+    ).join('\n');
+    const csv = headers + '\n' + rows;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Data_Transaksi_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
     toast.success('Export Excel berhasil');
   };
 
   const handleExportPDF = () => {
-    exportToPDF(filteredTransactions, exportColumns, 'Data_Transaksi', 'Laporan Data Transaksi', {
-      name: companySettings.company_name,
-      address: companySettings.company_address,
-      phone: companySettings.company_phone,
-      footer: companySettings.receipt_footer
-    });
-    toast.success('Export PDF berhasil');
+    handlePrintTable(); // Use print as PDF alternative
+    toast.success('Silakan simpan sebagai PDF dari dialog print');
   };
 
   const handlePrintTable = () => {
-    printTable(filteredTransactions, exportColumns, 'Laporan Data Transaksi', {
-      name: companySettings.company_name,
-      address: companySettings.company_address,
-      phone: companySettings.company_phone,
-      footer: companySettings.receipt_footer
-    });
+    const tableRows = filteredTransactions.map(row => 
+      '<tr>' + exportColumns.map(col => '<td>' + (col.accessor ? col.accessor(row) : row[col.key] || '-') + '</td>').join('') + '</tr>'
+    ).join('');
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <!DOCTYPE html><html><head><title>Data Transaksi</title>
+      <style>
+        body { font-family: Arial; font-size: 12px; margin: 20px; }
+        h1 { color: #064E3B; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #064E3B; color: #FEF3C7; padding: 8px; text-align: left; }
+        td { border-bottom: 1px solid #ddd; padding: 6px; }
+      </style></head><body>
+      <h1>${companySettings.company_name || 'MOZTEC'} Money Changer</h1>
+      <p>${companySettings.company_address || ''}</p>
+      <h2>Laporan Data Transaksi</h2>
+      <table><thead><tr>${exportColumns.map(c => '<th>' + c.header + '</th>').join('')}</tr></thead>
+      <tbody>${tableRows}</tbody></table>
+      <script>setTimeout(function(){window.print();},500);</script>
+      </body></html>
+    `);
+    printWindow.document.close();
   };
 
   const viewDetail = (transaction) => {
