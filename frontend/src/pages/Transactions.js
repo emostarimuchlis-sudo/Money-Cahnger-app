@@ -87,8 +87,8 @@ const Transactions = () => {
     try {
       let url = '/transactions?';
       const params = [];
-      if (filterBranch) params.push(`branch_id=${filterBranch}`);
-      if (filterCurrency) params.push(`currency_id=${filterCurrency}`);
+      if (filterBranch && filterBranch !== 'all') params.push(`branch_id=${filterBranch}`);
+      if (filterCurrency && filterCurrency !== 'all') params.push(`currency_id=${filterCurrency}`);
       if (filterStartDate) params.push(`start_date=${filterStartDate}`);
       if (filterEndDate) params.push(`end_date=${filterEndDate}`);
       url += params.join('&');
