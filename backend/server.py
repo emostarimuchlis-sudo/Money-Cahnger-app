@@ -891,6 +891,8 @@ async def calculate_mutasi_valas(
         
         # Get beginning stock from branch settings, or default to 0
         beginning_stock_valas = float(branch_currency_balances.get(currency_code, 0.0))
+        # Calculate IDR equivalent using average market rate (assume purchase rate as baseline)
+        beginning_stock_idr = 0.0  # Will be calculated based on first transaction rate if needed
         
         # Calculate purchases (we buy from customer = customer sells to us = type "beli" or "buy")
         purchase_valas = sum(
