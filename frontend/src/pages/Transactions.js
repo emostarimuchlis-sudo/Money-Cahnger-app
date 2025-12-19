@@ -352,6 +352,8 @@ const Transactions = () => {
       transaction_purpose: ''
     });
     setEditingTransaction(null);
+    setIsMultiCurrency(false);
+    setMultiItems([{ currency_id: '', transaction_type: 'jual', amount: '', exchange_rate: '' }]);
   };
 
   const clearFilters = () => {
