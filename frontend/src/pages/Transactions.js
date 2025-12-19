@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye, Edit, Trash2, Printer, Filter } from 'lucide-react';
+import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye, Edit, Trash2, Printer, Filter, FileSpreadsheet, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -10,6 +10,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useAuth } from '../context/AuthContext';
+import { exportToExcel, exportToPDF, printTable, formatCurrencyExport, formatDateExport } from '../utils/exportUtils';
 
 const Transactions = () => {
   const { user } = useAuth();
