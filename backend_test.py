@@ -220,30 +220,71 @@ class MOZTECAPITester:
             self.log_test(f"Transaction Management ({role_name})", False, "Missing customer or currency")
             return False
 
-        # Create transaction
+        # Create transaction with new transaction_purpose field
         transaction_data = {
             "customer_id": self.created_customer_id,
-            "transaction_type": "sell",
+            "transaction_type": "jual",
             "currency_id": self.created_currency_id,
             "amount": 100.0,
             "exchange_rate": 15000.0,
-            "notes": "Test transaction"
+            "notes": "Test transaction",
+            "transaction_purpose": "traveling",
+            "voucher_number": "VCH001",
+            "delivery_channel": "kantor_kupva",
+            "payment_method": "cash"
         }
         
         success, response = self.make_request('POST', 'transactions', transaction_data, token, 200)
         if success:
             self.created_transaction_id = response.get('id')
-            self.log_test(f"Create Transaction ({role_name})", True)
+            self.log_test(f"Create Transaction with Purpose ({role_name})", True)
         else:
-            self.log_test(f"Create Transaction ({role_name})", False, str(response))
+            self.log_test(f"Create Transaction with Purpose ({role_name})", False, str(response))
             return False
 
-        # Get transactions
+        # Test transaction filters
         success, response = self.make_request('GET', 'transactions', token=token, expected_status=200)
         if success and isinstance(response, list):
             self.log_test(f"Get Transactions ({role_name})", True)
         else:
             self.log_test(f"Get Transactions ({role_name})", False, str(response))
+
+        # Test transaction filters with parameters
+        if self.created_branch_id and self.created_currency_id:
+            filter_params = f"?branch_id={self.created_branch_id}&currency_id={self.created_currency_id}&start_date=2024-01-01&end_date=2024-12-31"
+            success, response = self.make_request('GET', f'transactions{filter_params}', token=token, expected_status=200)
+            self.log_test(f"Get Transactions with Filters ({role_name})", success, str(response) if not success else "")
+
+        return True
+
+    def test_transaction_admin_operations(self):
+        """Test admin-only transaction operations (PUT/DELETE)"""
+        if not self.admin_token or not self.created_transaction_id:
+            self.log_test("Transaction Admin Operations", False, "Missing admin token or transaction ID")
+            return False
+
+        # Test UPDATE transaction (admin only)
+        update_data = {
+            "customer_id": self.created_customer_id,
+            "transaction_type": "beli",
+            "currency_id": self.created_currency_id,
+            "amount": 150.0,
+            "exchange_rate": 15500.0,
+            "notes": "Updated test transaction",
+            "transaction_purpose": "bisnis"
+        }
+        
+        success, response = self.make_request('PUT', f'transactions/{self.created_transaction_id}', 
+                                            update_data, self.admin_token, 200)
+        self.log_test("Update Transaction (Admin Only)", success, str(response) if not success else "")
+
+        # Test DELETE transaction (admin only)
+        success, response = self.make_request('DELETE', f'transactions/{self.created_transaction_id}', 
+                                            token=self.admin_token, expected_status=200)
+        self.log_test("Delete Transaction (Admin Only)", success, str(response) if not success else "")
+        
+        if success:
+            self.created_transaction_id = None  # Clear since it's deleted
 
         return True
 
