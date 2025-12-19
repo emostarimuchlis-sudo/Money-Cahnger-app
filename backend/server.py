@@ -290,7 +290,7 @@ class MutasiValas(BaseModel):
 class CompanySettings(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default="company_settings")
-    company_name: str = "MOZTEC"
+    company_name: str = "Mulia Bali Valuta"
     company_address: str = ""
     company_phone: str = ""
     company_email: str = ""
@@ -1351,7 +1351,7 @@ async def download_backup(current_user: User = Depends(get_current_user)):
     # Create file stream
     file_stream = io.BytesIO(json_data.encode())
     
-    filename = f"moztec_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    filename = f"mba_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
     
     return StreamingResponse(
         file_stream,
