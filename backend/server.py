@@ -498,15 +498,55 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, curre
 
 @api_router.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can delete customers")
+    
     existing = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Customer not found")
     
-    if current_user.role != UserRole.ADMIN and existing["branch_id"] != current_user.branch_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
     await db.customers.delete_one({"id": customer_id})
     return {"message": "Customer deleted successfully"}
+
+@api_router.get("/customers/{customer_id}/transactions")
+async def get_customer_transactions(customer_id: str, current_user: User = Depends(get_current_user)):
+    """Get all transactions for a specific customer (YTD view)"""
+    customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if current_user.role != UserRole.ADMIN and customer["branch_id"] != current_user.branch_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get current year start
+    current_year = datetime.now(timezone.utc).year
+    year_start = f"{current_year}-01-01"
+    
+    transactions = await db.transactions.find(
+        {"customer_id": customer_id, "transaction_date": {"$gte": year_start}}, 
+        {"_id": 0}
+    ).sort("transaction_date", -1).to_list(1000)
+    
+    for transaction in transactions:
+        if isinstance(transaction.get("created_at"), str):
+            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+        if isinstance(transaction.get("transaction_date"), str):
+            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
+    
+    # Calculate YTD summary
+    total_buy = sum(t["total_idr"] for t in transactions if t.get("transaction_type") in ["beli", "buy"])
+    total_sell = sum(t["total_idr"] for t in transactions if t.get("transaction_type") in ["jual", "sell"])
+    
+    return {
+        "customer": customer,
+        "transactions": transactions,
+        "ytd_summary": {
+            "total_transactions": len(transactions),
+            "total_buy_idr": total_buy,
+            "total_sell_idr": total_sell,
+            "net_total_idr": total_sell - total_buy
+        }
+    }
 
 # ============= TRANSACTION ENDPOINTS =============
 
