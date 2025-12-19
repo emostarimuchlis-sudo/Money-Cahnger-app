@@ -709,24 +709,24 @@ async def calculate_mutasi_valas(
         beginning_stock_valas = 0.0
         beginning_stock_idr = 0.0
         
-        # Calculate purchases (we buy from customer = customer sells to us = type "beli")
+        # Calculate purchases (we buy from customer = customer sells to us = type "beli" or "buy")
         purchase_valas = sum(
             t["amount"] for t in currency_transactions 
-            if t.get("transaction_type") == "beli"
+            if t.get("transaction_type") in ["beli", "buy"]
         )
         purchase_idr = sum(
             t["total_idr"] for t in currency_transactions 
-            if t.get("transaction_type") == "beli"
+            if t.get("transaction_type") in ["beli", "buy"]
         )
         
-        # Calculate sales (we sell to customer = customer buys from us = type "jual")
+        # Calculate sales (we sell to customer = customer buys from us = type "jual" or "sell")
         sale_valas = sum(
             t["amount"] for t in currency_transactions 
-            if t.get("transaction_type") == "jual"
+            if t.get("transaction_type") in ["jual", "sell"]
         )
         sale_idr = sum(
             t["total_idr"] for t in currency_transactions 
-            if t.get("transaction_type") == "jual"
+            if t.get("transaction_type") in ["jual", "sell"]
         )
         
         # Calculate ending stock
