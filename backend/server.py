@@ -333,9 +333,28 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-def generate_transaction_number():
+async def generate_transaction_number(transaction_type: str, branch_id: str):
+    """Generate transaction number with format: TRX-MBA-J/B-XXXXX-BRANCHCODE-DDMMYY"""
     now = datetime.now(timezone.utc)
-    return f"TRX{now.strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+    
+    # Get transaction type indicator
+    type_indicator = "J" if transaction_type in ["jual", "sell"] else "B"
+    
+    # Get branch code
+    branch = await db.branches.find_one({"id": branch_id}, {"_id": 0})
+    branch_code = branch.get("code", "00")[:3].upper() if branch else "00"
+    
+    # Get sequential number for today
+    today_start = now.strftime('%Y-%m-%d')
+    count = await db.transactions.count_documents({
+        "transaction_date": {"$gte": today_start, "$lt": today_start + "T23:59:59Z"}
+    })
+    seq_number = str(count + 1).zfill(5)
+    
+    # Format date as DDMMYY
+    date_str = now.strftime('%d%m%y')
+    
+    return f"TRX-MBA-{type_indicator}-{seq_number}-{branch_code}-{date_str}"
 
 # ============= AUTH ENDPOINTS =============
 
