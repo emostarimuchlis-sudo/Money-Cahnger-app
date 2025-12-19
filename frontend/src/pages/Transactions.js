@@ -62,10 +62,28 @@ const Transactions = () => {
     identity_type: 'KTP',
     branch_id: ''
   });
+  
+  // Company settings for receipts
+  const [companySettings, setCompanySettings] = useState({
+    company_name: 'MOZTEC',
+    company_address: '',
+    company_phone: '',
+    receipt_footer: 'Terima kasih atas kepercayaan Anda'
+  });
 
   useEffect(() => {
     fetchInitialData();
+    fetchCompanySettings();
   }, []);
+  
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await api.get('/settings/company');
+      setCompanySettings(response.data);
+    } catch (error) {
+      console.log('Using default company settings');
+    }
+  };
 
   useEffect(() => {
     fetchTransactions();
