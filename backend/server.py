@@ -649,7 +649,7 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     customer_name = customer.get("name") or customer.get("entity_name", "")
     
     transaction = Transaction(
-        transaction_number=generate_transaction_number(),
+        transaction_number=await generate_transaction_number(transaction_data.transaction_type, customer["branch_id"]),
         voucher_number=transaction_data.voucher_number if transaction_data.voucher_number else None,
         customer_id=transaction_data.customer_id,
         customer_code=customer_code,
