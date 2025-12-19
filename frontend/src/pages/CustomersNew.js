@@ -28,6 +28,7 @@ const CustomersNew = () => {
   const [customerType, setCustomerType] = useState('perorangan');
   const [filterType, setFilterType] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [companySettings, setCompanySettings] = useState({});
   
   const [formData, setFormData] = useState({
     customer_type: 'perorangan',
