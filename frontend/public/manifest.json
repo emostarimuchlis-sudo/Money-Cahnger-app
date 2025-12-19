@@ -1,0 +1,24 @@
+{
+  "short_name": "MBA Money",
+  "name": "Mulia Bali Valuta - Money Changer",
+  "description": "Aplikasi Money Changer untuk penukaran mata uang asing",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#064E3B",
+  "background_color": "#064E3B",
+  "categories": ["finance", "business"],
+  "lang": "id"
+}
