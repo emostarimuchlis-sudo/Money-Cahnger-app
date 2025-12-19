@@ -32,6 +32,9 @@ const Transactions = () => {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   
+  // Customer search state
+  const [customerSearch, setCustomerSearch] = useState('');
+  
   const [formData, setFormData] = useState({
     customer_id: '',
     transaction_type: 'jual',
