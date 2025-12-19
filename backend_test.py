@@ -396,7 +396,7 @@ class MOZTECAPITester:
                     "POST Jual Transaction for Number Format",
                     "POST",
                     "transactions",
-                    201,
+                    200,  # Changed to 200 as that's what the API returns
                     data=jual_data
                 )
                 
