@@ -573,11 +573,13 @@ async def delete_customer(customer_id: str, current_user: User = Depends(get_cur
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admin can delete customers")
     
-    existing = await db.customers.find_one({"id": customer_id}, {"_id": 0})
-    if not existing:
+    # Soft delete - preserve transaction history
+    result = await db.customers.update_one(
+        {"id": customer_id}, 
+        {"$set": {"is_active": False, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Customer not found")
-    
-    await db.customers.delete_one({"id": customer_id})
     return {"message": "Customer deleted successfully"}
 
 @api_router.get("/customers/{customer_id}/transactions")
