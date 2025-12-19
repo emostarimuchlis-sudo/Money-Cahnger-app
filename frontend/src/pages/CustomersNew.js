@@ -276,6 +276,41 @@ const CustomersNew = () => {
     setEditingCustomer(null);
   };
 
+  // Export columns and functions
+  const exportColumns = [
+    { header: 'Kode', key: 'customer_code' },
+    { header: 'Jenis', key: 'customer_type', accessor: (r) => r.customer_type === 'perorangan' ? 'Perorangan' : 'Badan Usaha' },
+    { header: 'Nama', key: 'name', accessor: (r) => r.name || r.entity_name || '-' },
+    { header: 'JK', key: 'gender', accessor: (r) => r.gender || '-' },
+    { header: 'No. Identitas', key: 'identity_number', accessor: (r) => r.identity_number || r.npwp || '-' },
+    { header: 'Telepon', key: 'phone', accessor: (r) => r.phone || r.pic_phone || '-' },
+    { header: 'Pekerjaan', key: 'occupation', accessor: (r) => r.occupation || '-' },
+    { header: 'Alamat', key: 'address', accessor: (r) => r.domicile_address || r.entity_address || '-' }
+  ];
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredCustomers, exportColumns, 'Data_Nasabah');
+    toast.success('Export Excel berhasil');
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF(filteredCustomers, exportColumns, 'Data_Nasabah', 'Laporan Data Nasabah', {
+      name: companySettings.company_name || 'MOZTEC',
+      address: companySettings.company_address || '',
+      phone: companySettings.company_phone || ''
+    });
+    toast.success('Export PDF berhasil');
+  };
+
+  const handlePrintTable = () => {
+    printTable(filteredCustomers, exportColumns, 'Laporan Data Nasabah', {
+      name: companySettings.company_name || 'MOZTEC',
+      address: companySettings.company_address || '',
+      phone: companySettings.company_phone || '',
+      footer: companySettings.receipt_footer || 'Terima kasih'
+    });
+  };
+
   const filteredCustomers = customers.filter(c => {
     const searchableText = (
       (c.name || '') + 
