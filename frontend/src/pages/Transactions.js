@@ -347,7 +347,7 @@ const Transactions = () => {
       <body>
         <div class="header">
           <h1>${companyName}</h1>
-          <p>Money Changer - ${branch?.name || ''}</p>
+          <p>Money Changer - ${branchName}</p>
           <p>${companyAddress || branch?.address || ''}</p>
           <p>Telp: ${companyPhone || branch?.phone || ''}</p>
         </div>
