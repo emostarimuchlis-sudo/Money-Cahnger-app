@@ -712,7 +712,7 @@ async def get_transactions(
     end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    query = {}
+    query = {"is_deleted": {"$ne": True}}  # Exclude soft-deleted transactions
     
     # Role-based access control
     if current_user.role == UserRole.ADMIN:
