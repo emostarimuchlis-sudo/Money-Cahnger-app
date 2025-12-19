@@ -10,7 +10,20 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useAuth } from '../context/AuthContext';
-import { exportToExcel, exportToPDF, printTable, formatCurrencyExport, formatDateExport } from '../utils/exportUtils';
+
+// Inline export functions
+const formatCurrencyExport = (value) => {
+  return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(value || 0);
+};
+
+const formatDateExport = (dateStr) => {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('id-ID');
+  } catch {
+    return dateStr;
+  }
+};
 
 const Transactions = () => {
   const { user } = useAuth();
