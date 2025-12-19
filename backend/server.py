@@ -873,6 +873,13 @@ async def calculate_mutasi_valas(
     # Calculate mutasi per currency
     mutasi_data = []
     
+    # Get branch opening balances if branch is specified
+    branch_currency_balances = {}
+    if target_branch_id:
+        branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
+        if branch:
+            branch_currency_balances = branch.get("currency_balances", {})
+    
     for currency in currencies:
         currency_code = currency["code"]
         
@@ -882,13 +889,8 @@ async def calculate_mutasi_valas(
             if t.get("currency_code") == currency_code
         ]
         
-        if not currency_transactions:
-            continue
-        
-        # Calculate stock awal (from opening balance or previous transactions)
-        # For now, we'll start from 0 or could be set per branch
-        beginning_stock_valas = 0.0
-        beginning_stock_idr = 0.0
+        # Get beginning stock from branch settings, or default to 0
+        beginning_stock_valas = float(branch_currency_balances.get(currency_code, 0.0))
         
         # Calculate purchases (we buy from customer = customer sells to us = type "beli" or "buy")
         purchase_valas = sum(
