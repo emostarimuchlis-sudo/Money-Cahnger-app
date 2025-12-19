@@ -524,10 +524,13 @@ async def create_customer(customer_data: CustomerCreate, current_user: User = De
 @api_router.get("/customers", response_model=List[Customer])
 async def get_customers(current_user: User = Depends(get_current_user)):
     query = {}
+    
+    # Role-based access: Admin sees all, Kasir/Teller only see their branch customers
     if current_user.role != UserRole.ADMIN:
         query["branch_id"] = current_user.branch_id
     
-    customers = await db.customers.find(query, {"_id": 0}).to_list(1000)
+    # Sort by most recent first (for dropdown)
+    customers = await db.customers.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     for customer in customers:
         if isinstance(customer.get("created_at"), str):
             customer["created_at"] = datetime.fromisoformat(customer["created_at"])
