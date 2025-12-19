@@ -118,26 +118,28 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: |
-      BATCH 2 IMPLEMENTATION COMPLETE:
+      BATCH 3 - FORK CONTINUATION:
       
-      BACKEND:
-      1. POST /api/transactions/multi - Multi-currency transactions
-      2. GET/PUT /api/settings/company - Company profile
-      3. GET/PUT /api/branches/{id}/balances - Branch opening balances
-      4. Mutasi Valas uses branch currency_balances for beginning stock
+      FIXES COMPLETED:
+      1. Fixed critical syntax error in Transactions.js (unterminated JSX)
       
-      FRONTEND:
-      1. Transactions.js - Multi-currency toggle with dynamic item list
-      2. Settings.js - New "Perusahaan" tab with company profile form
-      3. Settings.js - Wallet icon on branches to set opening balances
+      NEW FEATURES ADDED:
+      1. Export buttons (Cetak/Excel/PDF) on Data Nasabah page
+      2. Export buttons (Cetak/Excel/PDF) on Mutasi Valas page
+      3. All pages now have consistent export functionality
+      
+      PAGES WITH EXPORT BUTTONS:
+      - Transaksi: ✅ Cetak, Excel, PDF
+      - Buku Kas: ✅ Cetak, Excel, PDF
+      - Data Nasabah: ✅ Cetak, Excel, PDF (NEW)
+      - Mutasi Valas: ✅ Cetak, Excel, PDF (NEW)
       
       CREDENTIALS: admin@moztec.com / admin123
       
       TEST SCENARIOS:
-      1. Enable multi-currency checkbox in new transaction form
-      2. Add multiple currency items with different types (jual/beli)
-      3. Verify total calculation updates dynamically
-      4. Save multi-currency transaction
-      5. Update company profile in Settings > Perusahaan
-      6. Set branch opening balance via Wallet icon in Settings > Cabang
-      7. Verify Mutasi Valas uses the opening balance
+      1. Verify Transactions page loads with all export buttons
+      2. Verify Cash Book page loads with all export buttons
+      3. Verify Customers page loads with all export buttons
+      4. Verify Mutasi Valas page loads with all export buttons
+      5. Test customer search in transaction form
+      6. Test export functionality on each page
