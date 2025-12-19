@@ -83,9 +83,19 @@ export const exportToPDF = (data, columns, filename, title, companyInfo = {}) =>
 export const printTable = (data, columns, title, companyInfo = {}) => {
   const printWindow = window.open('', '_blank');
   
-  const tableRows = data.map(row => 
-    `<tr>${columns.map(col => `<td>${col.accessor ? col.accessor(row) : row[col.key] || '-'}</td>`).join('')}</tr>`
-  ).join('');
+  const tableRows = data.map(row => {
+    const cells = columns.map(col => {
+      try {
+        let value = col.accessor ? col.accessor(row) : row[col.key];
+        if (value === null || value === undefined) return '<td>-</td>';
+        if (typeof value === 'object') return `<td>${JSON.stringify(value)}</td>`;
+        return `<td>${String(value)}</td>`;
+      } catch (e) {
+        return '<td>-</td>';
+      }
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
   
   const printContent = `
     <!DOCTYPE html>
