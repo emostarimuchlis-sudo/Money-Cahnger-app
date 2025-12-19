@@ -525,7 +525,7 @@ const CustomersNew = () => {
 
       {/* Customer Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
               Profil Nasabah
@@ -533,21 +533,20 @@ const CustomersNew = () => {
           </DialogHeader>
           
           {selectedCustomer && (
-            <div className="space-y-6 mt-4">
-              {/* Member Card */}
-              <div className="bg-gradient-to-r from-[#064E3B] to-[#022C22] rounded-xl p-6 border-2 border-[#D4AF37]">
+            <div className="mt-4">
+              {/* Member Info Header */}
+              <div className="bg-gradient-to-r from-[#064E3B] to-[#022C22] rounded-xl p-4 border-2 border-[#D4AF37] mb-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 rounded-full bg-[#D4AF37]/20">
+                  <div className="p-3 rounded-full bg-[#D4AF37]/20">
                     {selectedCustomer.customer_type === 'perorangan' ? (
-                      <User className="text-[#D4AF37]" size={40} />
+                      <User className="text-[#D4AF37]" size={32} />
                     ) : (
-                      <Building2 className="text-[#D4AF37]" size={40} />
+                      <Building2 className="text-[#D4AF37]" size={32} />
                     )}
                   </div>
                   <div>
-                    <p className="text-[#6EE7B7] text-sm">Member Code</p>
-                    <p className="text-[#D4AF37] font-bold text-3xl mono">{selectedCustomer.customer_code || '-'}</p>
-                    <p className="text-[#FEF3C7] text-xl mt-1">{getCustomerDisplayName(selectedCustomer)}</p>
+                    <p className="text-[#D4AF37] font-bold text-2xl mono">{selectedCustomer.customer_code || '-'}</p>
+                    <p className="text-[#FEF3C7] text-lg">{getCustomerDisplayName(selectedCustomer)}</p>
                     <p className="text-[#6EE7B7] text-sm">
                       {selectedCustomer.customer_type === 'perorangan' ? 'Nasabah Perorangan' : 'Nasabah Badan Usaha'}
                     </p>
@@ -555,110 +554,103 @@ const CustomersNew = () => {
                 </div>
               </div>
 
-              {/* Customer Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedCustomer.customer_type === 'perorangan' ? (
-                  <>
-                    <div><p className="text-[#6EE7B7] text-sm">Jenis Kelamin</p><p className="text-[#FEF3C7]">{selectedCustomer.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">No. Identitas ({selectedCustomer.identity_type})</p><p className="text-[#FEF3C7] mono">{selectedCustomer.identity_number || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">TTL</p><p className="text-[#FEF3C7]">{selectedCustomer.birth_place || '-'}, {selectedCustomer.birth_date || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">Telepon</p><p className="text-[#FEF3C7]">{selectedCustomer.phone || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">Pekerjaan</p><p className="text-[#FEF3C7]">{selectedCustomer.occupation || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">Sumber Dana</p><p className="text-[#FEF3C7]">{selectedCustomer.fund_source || '-'}</p></div>
-                    <div className="md:col-span-2"><p className="text-[#6EE7B7] text-sm">Alamat Domisili</p><p className="text-[#FEF3C7]">{selectedCustomer.domicile_address || '-'}</p></div>
-                  </>
-                ) : (
-                  <>
-                    <div><p className="text-[#6EE7B7] text-sm">Jenis Badan Usaha</p><p className="text-[#FEF3C7]">{selectedCustomer.entity_type || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">NPWP</p><p className="text-[#FEF3C7] mono">{selectedCustomer.npwp || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">No. Izin</p><p className="text-[#FEF3C7]">{selectedCustomer.license_number || '-'}</p></div>
-                    <div><p className="text-[#6EE7B7] text-sm">PIC</p><p className="text-[#FEF3C7]">{selectedCustomer.pic_name || '-'} ({selectedCustomer.pic_phone || '-'})</p></div>
-                    <div className="md:col-span-2"><p className="text-[#6EE7B7] text-sm">Alamat</p><p className="text-[#FEF3C7]">{selectedCustomer.entity_address || '-'}</p></div>
-                  </>
-                )}
-              </div>
+              {/* Tabs for different views */}
+              <Tabs defaultValue="member-card" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 bg-emerald-900/30 mb-4">
+                  <TabsTrigger value="member-card" className="flex items-center gap-2 data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#064E3B]">
+                    <CreditCard size={16} /> V-Card Member
+                  </TabsTrigger>
+                  <TabsTrigger value="transaction-book" className="flex items-center gap-2 data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#064E3B]">
+                    <BookOpen size={16} /> Buku Transaksi
+                  </TabsTrigger>
+                  <TabsTrigger value="kyc" className="flex items-center gap-2 data-[state=active]:bg-[#D4AF37] data-[state=active]:text-[#064E3B]">
+                    <FileText size={16} /> KYC
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* YTD Summary */}
-              {ytdSummary && (
-                <div className="glass-card rounded-xl p-4">
-                  <h3 className="text-[#D4AF37] font-semibold mb-4">Ringkasan Transaksi Tahun Ini (YTD)</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <p className="text-[#6EE7B7] text-sm">Total Transaksi</p>
-                      <p className="text-[#FEF3C7] font-bold text-xl">{ytdSummary.total_transactions}</p>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <p className="text-[#6EE7B7] text-sm">Total Beli</p>
-                      <p className="text-blue-400 font-bold">{formatCurrency(ytdSummary.total_buy_idr)}</p>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <p className="text-[#6EE7B7] text-sm">Total Jual</p>
-                      <p className="text-emerald-400 font-bold">{formatCurrency(ytdSummary.total_sell_idr)}</p>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <p className="text-[#6EE7B7] text-sm">Net</p>
-                      <p className={`font-bold ${ytdSummary.net_total_idr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {formatCurrency(ytdSummary.net_total_idr)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                {/* V-Card Member Tab */}
+                <TabsContent value="member-card">
+                  <MemberCard 
+                    customer={selectedCustomer} 
+                    companySettings={companySettings}
+                  />
+                </TabsContent>
 
-              {/* Transaction History */}
-              <div>
-                <h3 className="text-[#D4AF37] font-semibold mb-4">Riwayat Transaksi</h3>
-                {customerTransactions.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-white/5">
-                        <tr>
-                          <th className="text-left py-2 px-3 text-[#D4AF37] text-sm">Tanggal</th>
-                          <th className="text-left py-2 px-3 text-[#D4AF37] text-sm">No. Transaksi</th>
-                          <th className="text-left py-2 px-3 text-[#D4AF37] text-sm">Tipe</th>
-                          <th className="text-left py-2 px-3 text-[#D4AF37] text-sm">Mata Uang</th>
-                          <th className="text-right py-2 px-3 text-[#D4AF37] text-sm">Jumlah</th>
-                          <th className="text-right py-2 px-3 text-[#D4AF37] text-sm">Total IDR</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {customerTransactions.slice(0, 10).map((t) => (
-                          <tr key={t.id} className="border-b border-white/5">
-                            <td className="py-2 px-3 text-[#FEF3C7] text-sm">
-                              {format(new Date(t.transaction_date), 'dd/MM/yyyy', { locale: localeId })}
-                            </td>
-                            <td className="py-2 px-3 text-[#6EE7B7] text-xs mono">{t.transaction_number}</td>
-                            <td className="py-2 px-3">
-                              <span className={`text-xs ${t.transaction_type === 'beli' || t.transaction_type === 'buy' ? 'text-blue-400' : 'text-emerald-400'}`}>
-                                {t.transaction_type === 'beli' || t.transaction_type === 'buy' ? 'Beli' : 'Jual'}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-[#D4AF37] font-semibold">{t.currency_code}</td>
-                            <td className="py-2 px-3 text-right text-[#FEF3C7] mono text-sm">{t.amount.toLocaleString('id-ID')}</td>
-                            <td className="py-2 px-3 text-right text-[#D4AF37] font-semibold text-sm">{formatCurrency(t.total_idr)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {customerTransactions.length > 10 && (
-                      <p className="text-center text-[#6EE7B7] text-sm py-2">
-                        ... dan {customerTransactions.length - 10} transaksi lainnya
-                      </p>
+                {/* Transaction Book Tab */}
+                <TabsContent value="transaction-book">
+                  <TransactionBook 
+                    customer={selectedCustomer} 
+                    transactions={customerTransactions}
+                    companySettings={companySettings}
+                  />
+                </TabsContent>
+
+                {/* KYC Tab */}
+                <TabsContent value="kyc">
+                  <div className="space-y-4">
+                    {/* Customer Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-900/20 p-4 rounded-lg">
+                      {selectedCustomer.customer_type === 'perorangan' ? (
+                        <>
+                          <div><p className="text-[#6EE7B7] text-sm">Jenis Kelamin</p><p className="text-[#FEF3C7]">{selectedCustomer.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">No. Identitas ({selectedCustomer.identity_type})</p><p className="text-[#FEF3C7] mono">{selectedCustomer.identity_number || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">TTL</p><p className="text-[#FEF3C7]">{selectedCustomer.birth_place || '-'}, {selectedCustomer.birth_date || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">Telepon</p><p className="text-[#FEF3C7]">{selectedCustomer.phone || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">Pekerjaan</p><p className="text-[#FEF3C7]">{selectedCustomer.occupation || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">Sumber Dana</p><p className="text-[#FEF3C7]">{selectedCustomer.fund_source || '-'}</p></div>
+                          <div className="md:col-span-2"><p className="text-[#6EE7B7] text-sm">Alamat Domisili</p><p className="text-[#FEF3C7]">{selectedCustomer.domicile_address || '-'}</p></div>
+                        </>
+                      ) : (
+                        <>
+                          <div><p className="text-[#6EE7B7] text-sm">Jenis Badan Usaha</p><p className="text-[#FEF3C7]">{selectedCustomer.entity_type || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">NPWP</p><p className="text-[#FEF3C7] mono">{selectedCustomer.npwp || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">No. Izin</p><p className="text-[#FEF3C7]">{selectedCustomer.license_number || '-'}</p></div>
+                          <div><p className="text-[#6EE7B7] text-sm">PIC</p><p className="text-[#FEF3C7]">{selectedCustomer.pic_name || '-'} ({selectedCustomer.pic_phone || '-'})</p></div>
+                          <div className="md:col-span-2"><p className="text-[#6EE7B7] text-sm">Alamat</p><p className="text-[#FEF3C7]">{selectedCustomer.entity_address || '-'}</p></div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* YTD Summary */}
+                    {ytdSummary && (
+                      <div className="glass-card rounded-xl p-4">
+                        <h3 className="text-[#D4AF37] font-semibold mb-4">Ringkasan Transaksi Tahun Ini (YTD)</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                            <p className="text-[#6EE7B7] text-sm">Total Transaksi</p>
+                            <p className="text-[#FEF3C7] font-bold text-xl">{ytdSummary.total_transactions}</p>
+                          </div>
+                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                            <p className="text-[#6EE7B7] text-sm">Total Beli</p>
+                            <p className="text-blue-400 font-bold">{formatCurrency(ytdSummary.total_buy_idr)}</p>
+                          </div>
+                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                            <p className="text-[#6EE7B7] text-sm">Total Jual</p>
+                            <p className="text-emerald-400 font-bold">{formatCurrency(ytdSummary.total_sell_idr)}</p>
+                          </div>
+                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                            <p className="text-[#6EE7B7] text-sm">Net</p>
+                            <p className={`font-bold ${ytdSummary.net_total_idr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {formatCurrency(ytdSummary.net_total_idr)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </div>
-                ) : (
-                  <p className="text-center text-[#6EE7B7] py-4">Belum ada transaksi tahun ini</p>
-                )}
-              </div>
 
-              <div className="flex gap-3 pt-4">
-                {(user?.role === 'admin' || user?.role === 'kasir') && (
-                  <Button onClick={() => printKYC(selectedCustomer)} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                    <Printer size={18} />
-                    Cetak KYC
-                  </Button>
-                )}
-                <Button onClick={() => setShowProfileDialog(false)} className="btn-secondary flex-1">
+                    {/* Print KYC Button */}
+                    <div className="flex justify-center">
+                      <Button onClick={() => printKYC(selectedCustomer)} className="btn-primary flex items-center gap-2 px-8">
+                        <Printer size={18} />
+                        Cetak KYC
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <div className="flex justify-end pt-4 border-t border-white/10 mt-4">
+                <Button onClick={() => setShowProfileDialog(false)} className="btn-secondary">
                   Tutup
                 </Button>
               </div>
