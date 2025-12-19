@@ -280,6 +280,12 @@ const Transactions = () => {
     const currency = currencies.find(c => c.id === transaction.currency_id);
     const branch = branches.find(b => b.id === transaction.branch_id);
     
+    // Use company settings for receipt
+    const companyName = companySettings.company_name || 'MOZTEC';
+    const companyAddress = companySettings.company_address || branch?.address || '';
+    const companyPhone = companySettings.company_phone || branch?.phone || '';
+    const receiptFooter = companySettings.receipt_footer || 'Terima kasih atas kepercayaan Anda';
+    
     const printWindow = window.open('', '_blank');
     const printContent = `
       <!DOCTYPE html>
