@@ -462,28 +462,26 @@ const Transactions = () => {
   };
 
   const handlePrintTable = () => {
-    const tableRows = filteredTransactions.map(row => 
-      '<tr>' + exportColumns.map(col => '<td>' + (col.accessor ? col.accessor(row) : row[col.key] || '-') + '</td>').join('') + '</tr>'
-    ).join('');
+    const tableRows = filteredTransactions.map(function(row) {
+      return '<tr>' + exportColumns.map(function(col) {
+        return '<td>' + (col.accessor ? col.accessor(row) : row[col.key] || '-') + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    
+    const headers = exportColumns.map(function(c) { return '<th>' + c.header + '</th>'; }).join('');
+    const compName = companySettings.company_name || 'MOZTEC';
+    const compAddr = companySettings.company_address || '';
     
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <!DOCTYPE html><html><head><title>Data Transaksi</title>
-      <style>
-        body { font-family: Arial; font-size: 12px; margin: 20px; }
-        h1 { color: #064E3B; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #064E3B; color: #FEF3C7; padding: 8px; text-align: left; }
-        td { border-bottom: 1px solid #ddd; padding: 6px; }
-      </style></head><body>
-      <h1>${companySettings.company_name || 'MOZTEC'} Money Changer</h1>
-      <p>${companySettings.company_address || ''}</p>
-      <h2>Laporan Data Transaksi</h2>
-      <table><thead><tr>${exportColumns.map(c => '<th>' + c.header + '</th>').join('')}</tr></thead>
-      <tbody>${tableRows}</tbody></table>
-      <script>setTimeout(function(){window.print();},500);</script>
-      </body></html>
-    `);
+    const html = '<!DOCTYPE html><html><head><title>Data Transaksi</title>' +
+      '<style>body{font-family:Arial;font-size:12px;margin:20px}h1{color:#064E3B}' +
+      'table{width:100%;border-collapse:collapse}th{background:#064E3B;color:#FEF3C7;padding:8px;text-align:left}' +
+      'td{border-bottom:1px solid #ddd;padding:6px}</style></head><body>' +
+      '<h1>' + compName + ' Money Changer</h1><p>' + compAddr + '</p>' +
+      '<h2>Laporan Data Transaksi</h2>' +
+      '<table><thead><tr>' + headers + '</tr></thead><tbody>' + tableRows + '</tbody></table>' +
+      '<script>setTimeout(function(){window.print();},500);</script></body></html>';
+    printWindow.document.write(html);
     printWindow.document.close();
   };
 
