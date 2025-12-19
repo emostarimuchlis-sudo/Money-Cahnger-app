@@ -420,9 +420,21 @@ class MOZTECAPITester:
         if teller_token:
             self.test_customer_management(teller_token, "Teller")
 
+        # Test customer YTD transactions
+        print("\n📊 Testing Customer YTD Transactions...")
+        if admin_token and self.created_customer_id:
+            self.test_customer_ytd_transactions(admin_token, "Admin")
+        if teller_token and self.created_customer_id:
+            self.test_customer_ytd_transactions(teller_token, "Teller")
+
         print("\n💰 Testing Transaction Management...")
         if admin_token and self.created_customer_id and self.created_currency_id:
             self.test_transaction_management(admin_token, "Admin")
+            
+        # Test admin-only transaction operations
+        print("\n🔒 Testing Admin Transaction Operations...")
+        if admin_token:
+            self.test_transaction_admin_operations()
 
         # Test other features
         print("\n📚 Testing Other Features...")
