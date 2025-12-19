@@ -744,10 +744,14 @@ async def delete_transaction(transaction_id: str, current_user: User = Depends(g
 @api_router.get("/cashbook")
 async def get_cashbook(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     query = {}
+    target_branch_id = None
+    
     if current_user.role != UserRole.ADMIN:
         query["branch_id"] = current_user.branch_id
+        target_branch_id = current_user.branch_id
     elif branch_id:
         query["branch_id"] = branch_id
+        target_branch_id = branch_id
     
     entries = await db.cashbook_entries.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
     for entry in entries:
@@ -756,12 +760,20 @@ async def get_cashbook(branch_id: Optional[str] = None, current_user: User = Dep
         if isinstance(entry.get("date"), str):
             entry["date"] = datetime.fromisoformat(entry["date"])
     
+    # Get opening balance from branch
+    opening_balance = 0.0
+    if target_branch_id:
+        branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
+        if branch:
+            opening_balance = branch.get("opening_balance", 0.0)
+    
     total_debit = sum(e["amount"] for e in entries if e["entry_type"] == "debit")
     total_credit = sum(e["amount"] for e in entries if e["entry_type"] == "credit")
-    balance = total_debit - total_credit
+    balance = opening_balance + total_debit - total_credit
     
     return {
         "entries": entries,
+        "opening_balance": opening_balance,
         "total_debit": total_debit,
         "total_credit": total_credit,
         "balance": balance
