@@ -523,7 +523,7 @@ async def create_customer(customer_data: CustomerCreate, current_user: User = De
 
 @api_router.get("/customers", response_model=List[Customer])
 async def get_customers(current_user: User = Depends(get_current_user)):
-    query = {}
+    query = {"is_active": {"$ne": False}}  # Only show active customers (soft delete support)
     
     # Role-based access: Admin sees all, Kasir/Teller only see their branch customers
     if current_user.role != UserRole.ADMIN:
