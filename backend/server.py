@@ -17,6 +17,43 @@ from bson import ObjectId
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# WITA Timezone (UTC+8) - Indonesia Central Time (Bali)
+WITA_OFFSET = timedelta(hours=8)
+WITA = timezone(WITA_OFFSET)
+
+def get_wita_now():
+    """Get current datetime in WITA timezone"""
+    return datetime.now(timezone.utc).astimezone(WITA)
+
+def utc_to_wita(utc_dt):
+    """Convert UTC datetime to WITA"""
+    if isinstance(utc_dt, str):
+        utc_dt = datetime.fromisoformat(utc_dt.replace('Z', '+00:00'))
+    return utc_dt.astimezone(WITA)
+
+def get_accounting_date_wita():
+    """Get current accounting date in WITA (resets at midnight WITA)"""
+    wita_now = get_wita_now()
+    return wita_now.strftime('%Y-%m-%d')
+
+def get_wita_day_range_utc(date_str):
+    """
+    Get start and end of a WITA day in UTC for database queries.
+    Accounting period: 00:00 WITA to 23:59:59 WITA
+    """
+    # Parse the date
+    date = datetime.strptime(date_str, '%Y-%m-%d')
+    
+    # Create WITA midnight for this date
+    wita_start = datetime(date.year, date.month, date.day, 0, 0, 0, tzinfo=WITA)
+    wita_end = datetime(date.year, date.month, date.day, 23, 59, 59, tzinfo=WITA)
+    
+    # Convert to UTC for database queries
+    utc_start = wita_start.astimezone(timezone.utc)
+    utc_end = wita_end.astimezone(timezone.utc)
+    
+    return utc_start.isoformat(), utc_end.isoformat()
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
