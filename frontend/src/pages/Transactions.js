@@ -362,7 +362,7 @@ const Transactions = () => {
         <div class="divider"></div>
         
         <div class="row"><span class="label">Tipe:</span><span>${transaction.transaction_type === 'beli' || transaction.transaction_type === 'buy' ? 'BELI' : 'JUAL'}</span></div>
-        <div class="row"><span class="label">Mata Uang:</span><span>${currency?.code || transaction.currency_code}</span></div>
+        <div class="row"><span class="label">Mata Uang:</span><span>${currencyCode}</span></div>
         <div class="row"><span class="label">Jumlah:</span><span>${parseFloat(transaction.amount).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</span></div>
         <div class="row"><span class="label">Kurs:</span><span>Rp ${parseFloat(transaction.exchange_rate).toLocaleString('id-ID')}</span></div>
         ${transaction.transaction_purpose ? `<div class="row"><span class="label">Tujuan:</span><span>${transaction.transaction_purpose}</span></div>` : ''}
