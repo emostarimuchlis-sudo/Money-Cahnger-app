@@ -29,7 +29,7 @@ export const exportToPDF = (data, columns, filename, title, companyInfo = {}) =>
   // Header
   doc.setFontSize(18);
   doc.setTextColor(6, 78, 59); // Emerald color
-  doc.text(companyInfo.name || 'MOZTEC Money Changer', 14, 15);
+  doc.text(companyInfo.name || 'Mulia Bali Valuta (MBA Money Changer)', 14, 15);
   
   doc.setFontSize(10);
   doc.setTextColor(100);
@@ -99,7 +99,7 @@ export const printTable = (data, columns, title, companyInfo = {}) => {
     </head>
     <body>
       <div class="header">
-        <h1>${companyInfo.name || 'MOZTEC Money Changer'}</h1>
+        <h1>${companyInfo.name || 'Mulia Bali Valuta (MBA Money Changer)'}</h1>
         ${companyInfo.address ? `<p>${companyInfo.address}</p>` : ''}
         ${companyInfo.phone ? `<p>Telp: ${companyInfo.phone}</p>` : ''}
       </div>
@@ -113,7 +113,7 @@ export const printTable = (data, columns, title, companyInfo = {}) => {
       </table>
       <div class="footer">
         <p>${companyInfo.footer || 'Terima kasih'}</p>
-        <p>${companyInfo.name || 'MOZTEC'} Money Changer</p>
+        <p>${companyInfo.name || 'Mulia Bali Valuta'} - MBA Money Changer</p>
       </div>
       <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
     </body>
