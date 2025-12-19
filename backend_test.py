@@ -178,7 +178,7 @@ class MOZTECAPITester:
         return True
 
     def test_customer_management(self, token, role_name):
-        """Test customer CRUD operations"""
+        """Test customer CRUD operations with extended fields"""
         # Get branches first to use in customer creation
         success, branches = self.make_request('GET', 'branches', token=token, expected_status=200)
         if not success or not branches:
@@ -187,22 +187,34 @@ class MOZTECAPITester:
 
         branch_id = branches[0]['id']
 
-        # Create customer
+        # Create customer with extended fields (JK, Alamat, Pekerjaan)
         customer_data = {
+            "customer_type": "perorangan",
             "name": "Test Customer",
+            "gender": "L",  # JK field
+            "identity_type": "KTP",
             "identity_number": "1234567890123456",
             "phone": "081234567890",
-            "email": "test@customer.com",
-            "address": "Test Address",
-            "branch_id": branch_id
+            "occupation": "Software Engineer",  # Pekerjaan field
+            "domicile_address": "Jl. Test No. 123, Jakarta",  # Alamat field
+            "identity_address": "Jl. Test No. 123, Jakarta",
+            "branch_id": branch_id,
+            "birth_place": "Jakarta",
+            "birth_date": "1990-01-01",
+            "fund_source": "Gaji",
+            "is_pep": False
         }
         
         success, response = self.make_request('POST', 'customers', customer_data, token, 200)
         if success:
             self.created_customer_id = response.get('id')
-            self.log_test(f"Create Customer ({role_name})", True)
+            # Verify extended fields are present
+            if all(field in response for field in ['gender', 'occupation', 'domicile_address']):
+                self.log_test(f"Create Customer with Extended Fields ({role_name})", True)
+            else:
+                self.log_test(f"Create Customer with Extended Fields ({role_name})", False, "Missing extended fields")
         else:
-            self.log_test(f"Create Customer ({role_name})", False, str(response))
+            self.log_test(f"Create Customer with Extended Fields ({role_name})", False, str(response))
             return False
 
         # Get customers
@@ -211,6 +223,27 @@ class MOZTECAPITester:
             self.log_test(f"Get Customers ({role_name})", True)
         else:
             self.log_test(f"Get Customers ({role_name})", False, str(response))
+
+        return True
+
+    def test_customer_ytd_transactions(self, token, role_name):
+        """Test customer YTD transactions endpoint"""
+        if not self.created_customer_id:
+            self.log_test(f"Customer YTD Transactions ({role_name})", False, "No customer ID available")
+            return False
+
+        success, response = self.make_request('GET', f'customers/{self.created_customer_id}/transactions', 
+                                            token=token, expected_status=200)
+        
+        if success and 'customer' in response and 'transactions' in response and 'ytd_summary' in response:
+            ytd_summary = response['ytd_summary']
+            required_ytd_fields = ['total_transactions', 'total_buy_idr', 'total_sell_idr', 'net_total_idr']
+            if all(field in ytd_summary for field in required_ytd_fields):
+                self.log_test(f"Customer YTD Transactions ({role_name})", True)
+            else:
+                self.log_test(f"Customer YTD Transactions ({role_name})", False, "Missing YTD summary fields")
+        else:
+            self.log_test(f"Customer YTD Transactions ({role_name})", False, str(response))
 
         return True
 
