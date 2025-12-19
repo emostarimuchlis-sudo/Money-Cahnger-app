@@ -1263,6 +1263,153 @@ async def download_backup(current_user: User = Depends(get_current_user)):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+# ============= COMPANY SETTINGS ENDPOINTS =============
+
+@api_router.get("/settings/company")
+async def get_company_settings(current_user: User = Depends(get_current_user)):
+    settings = await db.company_settings.find_one({"id": "company_settings"}, {"_id": 0})
+    if not settings:
+        # Return default settings
+        return CompanySettings().model_dump()
+    return settings
+
+@api_router.put("/settings/company")
+async def update_company_settings(settings_update: CompanySettingsUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can update company settings")
+    
+    # Get existing or create default
+    existing = await db.company_settings.find_one({"id": "company_settings"}, {"_id": 0})
+    if not existing:
+        existing = CompanySettings().model_dump()
+    
+    # Update only provided fields
+    update_data = {k: v for k, v in settings_update.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.company_settings.update_one(
+        {"id": "company_settings"},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    return await db.company_settings.find_one({"id": "company_settings"}, {"_id": 0})
+
+# ============= BRANCH BALANCE ENDPOINTS =============
+
+@api_router.put("/branches/{branch_id}/balances")
+async def update_branch_balances(branch_id: str, balance_update: BranchBalanceUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can update branch balances")
+    
+    branch = await db.branches.find_one({"id": branch_id}, {"_id": 0})
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    update_data = {}
+    if balance_update.opening_balance is not None:
+        update_data["opening_balance"] = balance_update.opening_balance
+    if balance_update.currency_balances is not None:
+        update_data["currency_balances"] = balance_update.currency_balances
+    
+    await db.branches.update_one({"id": branch_id}, {"$set": update_data})
+    
+    updated = await db.branches.find_one({"id": branch_id}, {"_id": 0})
+    return updated
+
+@api_router.get("/branches/{branch_id}/balances")
+async def get_branch_balances(branch_id: str, current_user: User = Depends(get_current_user)):
+    branch = await db.branches.find_one({"id": branch_id}, {"_id": 0})
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    return {
+        "branch_id": branch_id,
+        "branch_name": branch.get("name"),
+        "opening_balance": branch.get("opening_balance", 0.0),
+        "currency_balances": branch.get("currency_balances", {})
+    }
+
+# ============= MULTI-CURRENCY TRANSACTION ENDPOINT =============
+
+@api_router.post("/transactions/multi")
+async def create_multi_transaction(transaction_data: MultiTransactionCreate, current_user: User = Depends(get_current_user)):
+    """Create multiple transactions for the same customer in one request"""
+    
+    # Get customer
+    customer = await db.customers.find_one({"id": transaction_data.customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Get branch
+    branch = await db.branches.find_one({"id": customer["branch_id"]}, {"_id": 0})
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    # Get customer name and code
+    customer_name = customer.get("name") or customer.get("entity_name", "")
+    customer_code = customer.get("customer_code", "")
+    
+    # Generate a single voucher number for all transactions in this batch
+    batch_voucher = transaction_data.voucher_number or f"MULTI-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    
+    created_transactions = []
+    
+    for item in transaction_data.items:
+        # Get currency
+        currency = await db.currencies.find_one({"id": item.currency_id}, {"_id": 0})
+        if not currency:
+            continue
+        
+        total_idr = item.amount * item.exchange_rate
+        
+        transaction = Transaction(
+            transaction_number=generate_transaction_number(),
+            voucher_number=batch_voucher,
+            customer_id=transaction_data.customer_id,
+            customer_code=customer_code,
+            customer_name=customer_name,
+            customer_identity_type=customer.get("identity_type", customer.get("entity_type", "")),
+            branch_id=customer["branch_id"],
+            branch_name=branch["name"],
+            user_id=current_user.id,
+            accountant_name=current_user.name,
+            transaction_type=item.transaction_type,
+            currency_id=item.currency_id,
+            currency_code=currency["code"],
+            amount=item.amount,
+            exchange_rate=item.exchange_rate,
+            total_idr=total_idr,
+            notes=transaction_data.notes,
+            delivery_channel=transaction_data.delivery_channel,
+            payment_method=transaction_data.payment_method,
+            transaction_purpose=transaction_data.transaction_purpose,
+            transaction_date=transaction_data.transaction_date or datetime.now(timezone.utc)
+        )
+        
+        await db.transactions.insert_one(transaction.model_dump())
+        
+        # Create cashbook entry for each transaction
+        entry_type = "debit" if item.transaction_type in ["beli", "buy"] else "credit"
+        cashbook_entry = CashBookEntry(
+            branch_id=customer["branch_id"],
+            date=transaction.transaction_date,
+            entry_type=entry_type,
+            amount=total_idr,
+            description=f"{'Pembelian' if entry_type == 'debit' else 'Penjualan'} {currency['code']} - {customer_name}",
+            reference_type="transaction",
+            reference_id=transaction.id
+        )
+        await db.cashbook_entries.insert_one(cashbook_entry.model_dump())
+        
+        created_transactions.append(transaction.model_dump())
+    
+    return {
+        "message": f"Successfully created {len(created_transactions)} transactions",
+        "batch_voucher": batch_voucher,
+        "transactions": created_transactions
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
