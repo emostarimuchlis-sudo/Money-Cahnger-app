@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Plus, Search, Edit, Trash2, Printer, User, Building2, Eye, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Printer, User, Building2, Eye, Filter, FileSpreadsheet, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -11,6 +11,7 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../context/AuthContext';
+import { exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
 const CustomersNew = () => {
   const { user } = useAuth();
