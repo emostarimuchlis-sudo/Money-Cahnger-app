@@ -1391,7 +1391,7 @@ async def create_multi_transaction(transaction_data: MultiTransactionCreate, cur
         total_idr = item.amount * item.exchange_rate
         
         transaction = Transaction(
-            transaction_number=generate_transaction_number(),
+            transaction_number=await generate_transaction_number(item.transaction_type, customer["branch_id"]),
             voucher_number=batch_voucher,
             customer_id=transaction_data.customer_id,
             customer_code=customer_code,
