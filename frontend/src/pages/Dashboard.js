@@ -122,40 +122,45 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          data-testid="stat-transactions"
-          icon={TrendingUp}
-          label="Transaksi Hari Ini"
-          value={stats?.total_transactions_today || 0}
-          color="emerald"
-        />
-        <StatCard
-          data-testid="stat-revenue"
-          icon={ArrowUpRight}
-          label="Pendapatan Hari Ini"
-          value={formatCurrency(stats?.total_revenue_today || 0)}
-          color="amber"
-        />
-        <StatCard
-          data-testid="stat-customers"
-          icon={Users}
-          label="Total Nasabah"
-          value={stats?.total_customers || 0}
-          color="blue"
-        />
-        <StatCard
-          data-testid="stat-branches"
-          icon={Building2}
-          label="Cabang Aktif"
-          value={stats?.total_branches || 0}
-          color="purple"
-        />
-      </div>
+      {/* Stats Grid - Only for Admin and Kasir */}
+      {(user?.role === 'admin' || user?.role === 'kasir') && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            data-testid="stat-transactions"
+            icon={TrendingUp}
+            label="Transaksi Hari Ini"
+            value={stats?.total_transactions_today || 0}
+            color="emerald"
+          />
+          <StatCard
+            data-testid="stat-revenue"
+            icon={ArrowUpRight}
+            label="Pendapatan Hari Ini"
+            value={formatCurrency(stats?.total_revenue_today || 0)}
+            color="amber"
+          />
+          <StatCard
+            data-testid="stat-customers"
+            icon={Users}
+            label="Total Nasabah"
+            value={stats?.total_customers || 0}
+            color="blue"
+          />
+          {user?.role === 'admin' && (
+            <StatCard
+              data-testid="stat-branches"
+              icon={Building2}
+              label="Cabang Aktif"
+              value={stats?.total_branches || 0}
+              color="purple"
+            />
+          )}
+        </div>
+      )}
 
-      {/* Recent Transactions */}
-      <div className="glass-card rounded-xl p-6 lg:p-8">
+      {/* Recent Transactions - Only for Admin and Kasir */}
+      {(user?.role === 'admin' || user?.role === 'kasir') && (
+        <div className="glass-card rounded-xl p-6 lg:p-8">
         <h3 className="text-2xl font-bold text-[#FEF3C7] mb-6" style={{ fontFamily: 'Playfair Display, serif' }}>
           Transaksi Terbaru
         </h3>
