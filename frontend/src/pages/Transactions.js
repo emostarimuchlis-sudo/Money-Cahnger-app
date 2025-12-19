@@ -699,15 +699,25 @@ const Transactions = () => {
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             {/* Customer & Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Label className="text-[#FEF3C7]">Cari Nasabah</Label>
+                <Input
+                  type="text"
+                  placeholder="Ketik nama, kode, atau no. identitas nasabah..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
+                />
+              </div>
               <div>
                 <Label className="text-[#FEF3C7]">Nasabah *</Label>
                 <div className="flex gap-2">
-                  <Select value={formData.customer_id} onValueChange={(value) => setFormData({ ...formData, customer_id: value })}>
+                  <Select value={formData.customer_id} onValueChange={(value) => { setFormData({ ...formData, customer_id: value }); setCustomerSearch(''); }}>
                     <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1">
                       <SelectValue placeholder="Pilih nasabah" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#064E3B] border-white/10">
-                      {customers.map((customer) => (
+                    <SelectContent className="bg-[#064E3B] border-white/10 max-h-60">
+                      {filteredCustomers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id} className="text-[#FEF3C7]">
                           {customer.customer_code ? `[${customer.customer_code}] ` : ''}{customer.name || customer.entity_name}
                         </SelectItem>
