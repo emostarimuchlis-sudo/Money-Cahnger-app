@@ -708,10 +708,19 @@ async def get_transactions(
     current_user: User = Depends(get_current_user)
 ):
     query = {}
-    if current_user.role != UserRole.ADMIN:
+    
+    # Role-based access control
+    if current_user.role == UserRole.ADMIN:
+        # Admin can see all, but can filter by branch
+        if branch_id:
+            query["branch_id"] = branch_id
+    elif current_user.role == UserRole.TELLER:
+        # Teller can only see their own transactions at their branch
         query["branch_id"] = current_user.branch_id
-    elif branch_id:
-        query["branch_id"] = branch_id
+        query["user_id"] = current_user.id
+    else:
+        # Kasir can see all transactions at their branch
+        query["branch_id"] = current_user.branch_id
     
     if currency_id:
         query["currency_id"] = currency_id
