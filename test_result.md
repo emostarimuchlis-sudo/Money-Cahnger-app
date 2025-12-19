@@ -101,3 +101,235 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  MOZTEC Money Changer Application dengan fitur:
+  1. Mutasi Valas yang dinamis dari data transaksi
+  2. Form Nasabah dengan Jenis Kelamin, tanpa Tujuan Transaksi
+  3. Form Transaksi dengan Tujuan Transaksi (dipindahkan dari nasabah)
+  4. Filter transaksi (cabang, mata uang, tanggal)
+  5. Tombol role-based (Edit/Delete untuk Admin, Reprint untuk Admin/Kasir)
+  6. Kolom tambahan di tabel nasabah (JK, Alamat, Pekerjaan)
+  7. Profil nasabah dengan Member Card dan riwayat transaksi YTD
+  8. Print KYC untuk nasabah
+  9. Saldo Awal di Buku Kas
+
+backend:
+  - task: "Mutasi Valas Calculate Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Fixed transaction_type filter to support both 'jual/beli' and 'sell/buy' values"
+
+  - task: "Transaction Filter Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added filter parameters: branch_id, currency_id, start_date, end_date to GET /transactions"
+
+  - task: "Transaction Update/Delete Endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added PUT /transactions/{id} and DELETE /transactions/{id} with admin-only access"
+
+  - task: "Transaction Purpose Field"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added transaction_purpose field to Transaction and TransactionCreate models"
+
+  - task: "Customer Transactions YTD Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added GET /customers/{id}/transactions endpoint for YTD transaction history"
+
+  - task: "Customer Delete Admin-Only"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Modified DELETE /customers/{id} to require admin role"
+
+  - task: "Cashbook Opening Balance"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added opening_balance from branch to cashbook response, balance calculation includes opening_balance"
+
+frontend:
+  - task: "Transactions Page with Filters"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Transactions.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added filter panel with branch, currency, date range filters. Added Edit/Delete buttons for admin, Reprint for admin/kasir"
+
+  - task: "Transaction Form with Purpose"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Transactions.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added Tujuan Transaksi dropdown to transaction form with options: traveling, bisnis, pendidikan, investasi, keluarga, lainnya"
+
+  - task: "Customers Page with Extended Columns"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/CustomersNew.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added JK (gender), Pekerjaan, Alamat columns. Added Print KYC button for admin/kasir, Delete only for admin"
+
+  - task: "Customer Profile with Member Card"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/CustomersNew.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Clickable customer code opens profile dialog with Member Card, customer details, YTD summary, and transaction history"
+
+  - task: "Print KYC Function"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/CustomersNew.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented printKYC function that generates printable KYC document with member card and customer details"
+
+  - task: "Cashbook with Opening Balance"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/CashBook.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added Saldo Awal card showing opening_balance from backend. Now shows 4 cards: Saldo Awal, Total Debit, Total Kredit, Saldo Akhir"
+
+  - task: "Mutasi Valas Dynamic Page"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/MutasiValasNew.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Page fetches data from /api/mutasi-valas/calculate endpoint and displays dynamic forex mutation data"
+
+metadata:
+  created_by: "main_agent"
+  version: "2.0"
+  test_sequence: 2
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Transactions Page with Filters"
+    - "Transaction Form with Purpose"
+    - "Customers Page with Extended Columns"
+    - "Customer Profile with Member Card"
+    - "Cashbook with Opening Balance"
+    - "Mutasi Valas Dynamic Page"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Saya telah mengimplementasikan banyak fitur baru:
+      
+      BACKEND:
+      1. Endpoint Mutasi Valas dengan fix untuk transaction_type (jual/beli dan sell/buy)
+      2. Filter transaksi di GET /transactions (branch_id, currency_id, start_date, end_date)
+      3. PUT/DELETE transaction endpoints (admin only)
+      4. Field transaction_purpose di Transaction model
+      5. GET /customers/{id}/transactions untuk YTD view
+      6. Cashbook dengan opening_balance dari branch
+      
+      FRONTEND:
+      1. Transactions.js - Filter panel, tombol role-based (Edit/Delete admin, Reprint admin/kasir), Tujuan Transaksi
+      2. CustomersNew.js - Kolom tambahan (JK, Pekerjaan, Alamat), Print KYC, Customer Profile dialog dengan Member Card dan YTD
+      3. CashBook.js - Tampilan 4 kartu dengan Saldo Awal
+      4. MutasiValasNew.js - Data dinamis dari transaksi
+      
+      CREDENTIALS:
+      - Email: admin@moztec.com
+      - Password: admin123
+      
+      Tolong test semua fitur di atas dengan fokus pada:
+      1. Filter transaksi (cabang, mata uang, tanggal)
+      2. Edit dan Delete transaksi (hanya admin)
+      3. Reprint struk (admin dan kasir)
+      4. Klik kode nasabah untuk melihat profil dan YTD
+      5. Print KYC
+      6. Buku Kas dengan Saldo Awal
+      7. Mutasi Valas yang dinamis
