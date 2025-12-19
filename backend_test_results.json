@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-12-18T10:56:37.060909+00:00",
-  "total_tests": 19,
-  "passed_tests": 18,
-  "success_rate": 94.73684210526315,
+  "timestamp": "2025-12-19T12:05:57.565017+00:00",
+  "total_tests": 24,
+  "passed_tests": 23,
+  "success_rate": 95.83333333333334,
   "test_details": [
     {
       "test": "Login Admin",
@@ -55,7 +55,7 @@
       "details": ""
     },
     {
-      "test": "Create Customer (Admin)",
+      "test": "Create Customer with Extended Fields (Admin)",
       "success": true,
       "details": ""
     },
@@ -65,7 +65,7 @@
       "details": ""
     },
     {
-      "test": "Create Customer (Teller)",
+      "test": "Create Customer with Extended Fields (Teller)",
       "success": true,
       "details": ""
     },
@@ -75,7 +75,17 @@
       "details": ""
     },
     {
-      "test": "Create Transaction (Admin)",
+      "test": "Customer YTD Transactions (Admin)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Customer YTD Transactions (Teller)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Create Transaction with Purpose (Admin)",
       "success": true,
       "details": ""
     },
@@ -85,12 +95,27 @@
       "details": ""
     },
     {
-      "test": "Get Cashbook (Admin)",
+      "test": "Update Transaction (Admin Only)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Delete Transaction (Admin Only)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Get Cashbook with Opening Balance (Admin)",
       "success": true,
       "details": ""
     },
     {
       "test": "Get Mutasi Valas (Admin)",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Calculate Mutasi Valas Dynamic (Admin)",
       "success": true,
       "details": ""
     },
