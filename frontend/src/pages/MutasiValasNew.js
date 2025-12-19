@@ -294,9 +294,9 @@ const MutasiValasNew = () => {
                       {formatIDR(item.ending_stock_idr)}
                     </td>
                     
-                    {/* Avg Rate */}
+                    {/* Avg Rate - Hide if ending stock is 0 */}
                     <td className="py-4 px-4 text-center mono text-[#FEF3C7]">
-                      {formatCurrency(item.avg_rate)}
+                      {item.ending_stock_valas > 0 ? formatCurrency(item.avg_rate) : '-'}
                     </td>
                     
                     {/* Laba/Rugi */}
