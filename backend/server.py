@@ -563,6 +563,7 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
         notes=transaction_data.notes,
         delivery_channel=transaction_data.delivery_channel,
         payment_method=transaction_data.payment_method,
+        transaction_purpose=transaction_data.transaction_purpose,
         transaction_date=transaction_data.transaction_date or datetime.now(timezone.utc)
     )
     
