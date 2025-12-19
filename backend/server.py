@@ -248,6 +248,52 @@ class MutasiValas(BaseModel):
     profit_loss: float
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Company Settings Model
+class CompanySettings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default="company_settings")
+    company_name: str = "MOZTEC"
+    company_address: str = ""
+    company_phone: str = ""
+    company_email: str = ""
+    company_website: str = ""
+    company_license: str = ""  # Nomor izin BI
+    company_npwp: str = ""
+    receipt_footer: str = "Terima kasih atas kepercayaan Anda"
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CompanySettingsUpdate(BaseModel):
+    company_name: Optional[str] = None
+    company_address: Optional[str] = None
+    company_phone: Optional[str] = None
+    company_email: Optional[str] = None
+    company_website: Optional[str] = None
+    company_license: Optional[str] = None
+    company_npwp: Optional[str] = None
+    receipt_footer: Optional[str] = None
+
+# Multi-Currency Transaction Item
+class TransactionItem(BaseModel):
+    currency_id: str
+    transaction_type: str  # "jual" or "beli"
+    amount: float
+    exchange_rate: float
+
+class MultiTransactionCreate(BaseModel):
+    customer_id: str
+    items: List[TransactionItem]
+    voucher_number: Optional[str] = None
+    notes: Optional[str] = None
+    delivery_channel: Optional[str] = None
+    payment_method: Optional[str] = None
+    transaction_purpose: Optional[str] = None
+    transaction_date: Optional[datetime] = None
+
+# Branch Initial Balances (per currency)
+class BranchBalanceUpdate(BaseModel):
+    opening_balance: float = 0.0  # IDR
+    currency_balances: Optional[dict] = None  # {"USD": 1000, "SGD": 500}
+
 class DashboardStats(BaseModel):
     total_transactions_today: int
     total_revenue_today: float
