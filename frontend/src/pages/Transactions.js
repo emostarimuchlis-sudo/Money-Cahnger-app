@@ -369,7 +369,7 @@ const Transactions = () => {
                     <SelectValue placeholder="Semua Cabang" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
-                    <SelectItem value="" className="text-[#FEF3C7]">Semua Cabang</SelectItem>
+                    <SelectItem value="all" className="text-[#FEF3C7]">Semua Cabang</SelectItem>
                     {branches.map((branch) => (
                       <SelectItem key={branch.id} value={branch.id} className="text-[#FEF3C7]">
                         {branch.name}
