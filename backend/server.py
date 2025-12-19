@@ -816,9 +816,17 @@ async def delete_transaction(transaction_id: str, current_user: User = Depends(g
     if not existing:
         raise HTTPException(status_code=404, detail="Transaction not found")
     
-    # Also delete related cashbook entry
-    await db.cashbook_entries.delete_one({"reference_id": transaction_id, "reference_type": "transaction"})
-    await db.transactions.delete_one({"id": transaction_id})
+    # Soft delete - preserve transaction history for audit trail
+    await db.transactions.update_one(
+        {"id": transaction_id},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat(), "deleted_by": current_user.id}}
+    )
+    
+    # Also soft delete related cashbook entry
+    await db.cashbook_entries.update_one(
+        {"reference_id": transaction_id, "reference_type": "transaction"},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
     
     return {"message": "Transaction deleted successfully"}
 
