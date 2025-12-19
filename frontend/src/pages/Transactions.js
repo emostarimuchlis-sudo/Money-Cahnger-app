@@ -608,15 +608,13 @@ const Transactions = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            {/* Customer & Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="customer" className="text-[#FEF3C7]">Nasabah *</Label>
+                <Label className="text-[#FEF3C7]">Nasabah *</Label>
                 <div className="flex gap-2">
-                  <Select
-                    value={formData.customer_id}
-                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
-                  >
-                    <SelectTrigger data-testid="transaction-customer-select" className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1">
+                  <Select value={formData.customer_id} onValueChange={(value) => setFormData({ ...formData, customer_id: value })}>
+                    <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1">
                       <SelectValue placeholder="Pilih nasabah" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#064E3B] border-white/10">
@@ -627,105 +625,130 @@ const Transactions = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickCustomerDialog(true)}
-                    className="px-3 py-2 bg-[#D4AF37] text-black rounded-lg hover:bg-[#D4AF37]/90 transition-all duration-300 font-bold text-lg"
-                    title="Tambah Nasabah Baru"
-                  >
-                    +
-                  </button>
+                  <button type="button" onClick={() => setShowQuickCustomerDialog(true)} className="px-3 py-2 bg-[#D4AF37] text-black rounded-lg hover:bg-[#D4AF37]/90 font-bold text-lg">+</button>
                 </div>
               </div>
-
               <div>
-                <Label htmlFor="voucher_number" className="text-[#FEF3C7]">No. Voucher</Label>
-                <Input
-                  type="text"
-                  value={formData.voucher_number}
-                  onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                  placeholder="Opsional"
-                />
+                <Label className="text-[#FEF3C7]">No. Voucher</Label>
+                <Input type="text" value={formData.voucher_number} onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })} className="bg-black/20 border-white/10 text-[#FEF3C7]" placeholder="Opsional" />
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="transaction_type" className="text-[#FEF3C7]">Tipe Transaksi *</Label>
-                <Select
-                  value={formData.transaction_type}
-                  onValueChange={(value) => setFormData({ ...formData, transaction_type: value })}
-                >
-                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#064E3B] border-white/10">
-                    <SelectItem value="jual" className="text-[#FEF3C7]">Jual (Kami Jual ke Customer)</SelectItem>
-                    <SelectItem value="beli" className="text-[#FEF3C7]">Beli (Kami Beli dari Customer)</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Multi-currency Toggle */}
+            {!editingTransaction && (
+              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                <input type="checkbox" checked={isMultiCurrency} onChange={(e) => setIsMultiCurrency(e.target.checked)} className="w-5 h-5" />
+                <Label className="text-[#D4AF37] font-semibold cursor-pointer" onClick={() => setIsMultiCurrency(!isMultiCurrency)}>
+                  Multi-Currency Transaction (Transaksi lebih dari 1 mata uang)
+                </Label>
               </div>
+            )}
 
-              <div>
-                <Label htmlFor="currency" className="text-[#FEF3C7]">Mata Uang *</Label>
-                <Select
-                  value={formData.currency_id}
-                  onValueChange={(value) => setFormData({ ...formData, currency_id: value })}
-                >
-                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                    <SelectValue placeholder="Pilih mata uang" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#064E3B] border-white/10">
-                    {currencies.map((currency) => (
-                      <SelectItem key={currency.id} value={currency.id} className="text-[#FEF3C7]">
-                        {currency.code} - {currency.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="amount" className="text-[#FEF3C7]">Jumlah *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="exchange_rate" className="text-[#FEF3C7]">Kurs (IDR) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.exchange_rate}
-                  onChange={(e) => setFormData({ ...formData, exchange_rate: e.target.value })}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label className="text-[#FEF3C7]">Total (IDR)</Label>
-                <div className="px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-[#D4AF37] font-semibold mono">
-                  {formData.amount && formData.exchange_rate
-                    ? formatCurrency(parseFloat(formData.amount) * parseFloat(formData.exchange_rate))
-                    : 'Rp 0'}
+            {/* Single Currency Form */}
+            {!isMultiCurrency && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#FEF3C7]">Tipe Transaksi *</Label>
+                  <Select value={formData.transaction_type} onValueChange={(value) => setFormData({ ...formData, transaction_type: value })}>
+                    <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#064E3B] border-white/10">
+                      <SelectItem value="jual" className="text-[#FEF3C7]">Jual (Kami Jual ke Customer)</SelectItem>
+                      <SelectItem value="beli" className="text-[#FEF3C7]">Beli (Kami Beli dari Customer)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">Mata Uang *</Label>
+                  <Select value={formData.currency_id} onValueChange={(value) => setFormData({ ...formData, currency_id: value })}>
+                    <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue placeholder="Pilih mata uang" /></SelectTrigger>
+                    <SelectContent className="bg-[#064E3B] border-white/10">
+                      {currencies.map((c) => <SelectItem key={c.id} value={c.id} className="text-[#FEF3C7]">{c.code} - {c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">Jumlah *</Label>
+                  <Input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className="bg-black/20 border-white/10 text-[#FEF3C7]" required={!isMultiCurrency} />
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">Kurs (IDR) *</Label>
+                  <Input type="number" step="0.01" value={formData.exchange_rate} onChange={(e) => setFormData({ ...formData, exchange_rate: e.target.value })} className="bg-black/20 border-white/10 text-[#FEF3C7]" required={!isMultiCurrency} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-[#FEF3C7]">Total (IDR)</Label>
+                  <div className="px-4 py-3 bg-black/20 border border-white/10 rounded-lg text-[#D4AF37] font-semibold mono text-xl">
+                    {formData.amount && formData.exchange_rate ? formatCurrency(parseFloat(formData.amount) * parseFloat(formData.exchange_rate)) : 'Rp 0'}
+                  </div>
                 </div>
               </div>
+            )}
 
+            {/* Multi-Currency Form */}
+            {isMultiCurrency && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[#D4AF37] font-semibold">Daftar Mata Uang</Label>
+                  <Button type="button" onClick={addCurrencyItem} className="btn-secondary text-sm px-3 py-1">+ Tambah Mata Uang</Button>
+                </div>
+                {multiItems.map((item, index) => (
+                  <div key={index} className="p-4 bg-white/5 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#D4AF37] font-semibold">#{index + 1}</span>
+                      {multiItems.length > 1 && (
+                        <button type="button" onClick={() => removeCurrencyItem(index)} className="text-red-400 hover:text-red-300 text-sm">Hapus</button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <Label className="text-[#FEF3C7] text-sm">Mata Uang</Label>
+                        <Select value={item.currency_id} onValueChange={(value) => updateCurrencyItem(index, 'currency_id', value)}>
+                          <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                          <SelectContent className="bg-[#064E3B] border-white/10">
+                            {currencies.map((c) => <SelectItem key={c.id} value={c.id} className="text-[#FEF3C7]">{c.code}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-[#FEF3C7] text-sm">Tipe</Label>
+                        <Select value={item.transaction_type} onValueChange={(value) => updateCurrencyItem(index, 'transaction_type', value)}>
+                          <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue /></SelectTrigger>
+                          <SelectContent className="bg-[#064E3B] border-white/10">
+                            <SelectItem value="jual" className="text-[#FEF3C7]">Jual</SelectItem>
+                            <SelectItem value="beli" className="text-[#FEF3C7]">Beli</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-[#FEF3C7] text-sm">Jumlah</Label>
+                        <Input type="number" step="0.01" value={item.amount} onChange={(e) => updateCurrencyItem(index, 'amount', e.target.value)} className="bg-black/20 border-white/10 text-[#FEF3C7]" />
+                      </div>
+                      <div>
+                        <Label className="text-[#FEF3C7] text-sm">Kurs (IDR)</Label>
+                        <Input type="number" step="0.01" value={item.exchange_rate} onChange={(e) => updateCurrencyItem(index, 'exchange_rate', e.target.value)} className="bg-black/20 border-white/10 text-[#FEF3C7]" />
+                      </div>
+                    </div>
+                    {item.amount && item.exchange_rate && (
+                      <div className="text-right text-[#6EE7B7] text-sm">
+                        Subtotal: {formatCurrency(parseFloat(item.amount) * parseFloat(item.exchange_rate))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div className="p-4 bg-[#D4AF37]/20 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#D4AF37] font-bold">TOTAL KESELURUHAN</span>
+                    <span className="text-[#D4AF37] font-bold text-2xl mono">{formatCurrency(calculateMultiTotal())}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Additional Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-[#FEF3C7]">Tujuan Transaksi</Label>
-                <Select
-                  value={formData.transaction_purpose}
-                  onValueChange={(value) => setFormData({ ...formData, transaction_purpose: value })}
-                >
-                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                    <SelectValue placeholder="Pilih tujuan" />
-                  </SelectTrigger>
+                <Select value={formData.transaction_purpose} onValueChange={(value) => setFormData({ ...formData, transaction_purpose: value })}>
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue placeholder="Pilih tujuan" /></SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
                     <SelectItem value="traveling" className="text-[#FEF3C7]">Traveling</SelectItem>
                     <SelectItem value="bisnis" className="text-[#FEF3C7]">Bisnis</SelectItem>
@@ -736,16 +759,10 @@ const Transactions = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label className="text-[#FEF3C7]">Delivery Channel</Label>
-                <Select
-                  value={formData.delivery_channel}
-                  onValueChange={(value) => setFormData({ ...formData, delivery_channel: value })}
-                >
-                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={formData.delivery_channel} onValueChange={(value) => setFormData({ ...formData, delivery_channel: value })}>
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
                     <SelectItem value="kantor_kupva" className="text-[#FEF3C7]">Kantor Kupva</SelectItem>
                     <SelectItem value="online_merchant" className="text-[#FEF3C7]">Online Merchant</SelectItem>
@@ -753,33 +770,20 @@ const Transactions = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label className="text-[#FEF3C7]">Metode Pembayaran</Label>
-                <Select
-                  value={formData.payment_method}
-                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
-                >
-                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={formData.payment_method} onValueChange={(value) => setFormData({ ...formData, payment_method: value })}>
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
                     <SelectItem value="cash" className="text-[#FEF3C7]">Cash</SelectItem>
                     <SelectItem value="transfer" className="text-[#FEF3C7]">Transfer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div>
-              <Label className="text-[#FEF3C7]">Catatan</Label>
-              <Input
-                type="text"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                placeholder="Catatan tambahan (opsional)"
-              />
+              <div>
+                <Label className="text-[#FEF3C7]">Catatan</Label>
+                <Input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="bg-black/20 border-white/10 text-[#FEF3C7]" placeholder="Opsional" />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -788,13 +792,10 @@ const Transactions = () => {
               </Button>
               {!editingTransaction && (
                 <Button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                  <Printer size={18} />
-                  Cetak & Simpan
+                  <Printer size={18} /> Cetak & Simpan
                 </Button>
               )}
-              <Button type="button" onClick={() => { setShowDialog(false); resetForm(); }} className="btn-secondary flex-1">
-                Batal
-              </Button>
+              <Button type="button" onClick={() => { setShowDialog(false); resetForm(); }} className="btn-secondary flex-1">Batal</Button>
             </div>
           </form>
         </DialogContent>
