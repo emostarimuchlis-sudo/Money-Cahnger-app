@@ -178,7 +178,7 @@ const CustomersNew = () => {
       </head>
       <body>
         <div class="header">
-          <h1>MOZTEC</h1>
+          <h1>Mulia Bali Valuta</h1>
           <h2>Know Your Customer (KYC)</h2>
           <p>${branch?.name || 'Money Changer'} - ${branch?.address || ''}</p>
         </div>
@@ -230,7 +230,7 @@ const CustomersNew = () => {
 
         <div class="footer">
           <p>Dokumen ini dicetak pada ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: localeId })}</p>
-          <p>MOZTEC Money Changer - ${branch?.address || ''}</p>
+          <p>MBA Money Changer - ${branch?.address || ''}</p>
         </div>
 
         <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
@@ -295,7 +295,7 @@ const CustomersNew = () => {
 
   const handleExportPDF = () => {
     exportToPDF(filteredCustomers, exportColumns, 'Data_Nasabah', 'Laporan Data Nasabah', {
-      name: companySettings.company_name || 'MOZTEC',
+      name: companySettings.company_name || 'Mulia Bali Valuta',
       address: companySettings.company_address || '',
       phone: companySettings.company_phone || ''
     });
@@ -304,7 +304,7 @@ const CustomersNew = () => {
 
   const handlePrintTable = () => {
     printTable(filteredCustomers, exportColumns, 'Laporan Data Nasabah', {
-      name: companySettings.company_name || 'MOZTEC',
+      name: companySettings.company_name || 'Mulia Bali Valuta',
       address: companySettings.company_address || '',
       phone: companySettings.company_phone || '',
       footer: companySettings.receipt_footer || 'Terima kasih'
