@@ -109,23 +109,56 @@ const Transactions = () => {
   const handleSubmit = async (e, shouldPrint = false) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...formData,
-        amount: parseFloat(formData.amount),
-        exchange_rate: parseFloat(formData.exchange_rate)
-      };
-      
       let response;
-      if (editingTransaction) {
-        response = await api.put(`/transactions/${editingTransaction.id}`, payload);
-        toast.success('Transaksi berhasil diperbarui');
-      } else {
-        response = await api.post('/transactions', payload);
-        toast.success('Transaksi berhasil dibuat');
-      }
       
-      if (shouldPrint) {
-        printTransaction(response.data);
+      if (isMultiCurrency && !editingTransaction) {
+        // Multi-currency transaction
+        const validItems = multiItems.filter(item => item.currency_id && item.amount && item.exchange_rate);
+        if (validItems.length === 0) {
+          toast.error('Tambahkan minimal satu mata uang');
+          return;
+        }
+        
+        const payload = {
+          customer_id: formData.customer_id,
+          items: validItems.map(item => ({
+            currency_id: item.currency_id,
+            transaction_type: item.transaction_type,
+            amount: parseFloat(item.amount),
+            exchange_rate: parseFloat(item.exchange_rate)
+          })),
+          voucher_number: formData.voucher_number || undefined,
+          notes: formData.notes || undefined,
+          delivery_channel: formData.delivery_channel,
+          payment_method: formData.payment_method,
+          transaction_purpose: formData.transaction_purpose || undefined
+        };
+        
+        response = await api.post('/transactions/multi', payload);
+        toast.success(`${response.data.transactions.length} transaksi berhasil dibuat`);
+        
+        if (shouldPrint && response.data.transactions.length > 0) {
+          response.data.transactions.forEach(t => printTransaction(t));
+        }
+      } else {
+        // Single transaction
+        const payload = {
+          ...formData,
+          amount: parseFloat(formData.amount),
+          exchange_rate: parseFloat(formData.exchange_rate)
+        };
+        
+        if (editingTransaction) {
+          response = await api.put(`/transactions/${editingTransaction.id}`, payload);
+          toast.success('Transaksi berhasil diperbarui');
+        } else {
+          response = await api.post('/transactions', payload);
+          toast.success('Transaksi berhasil dibuat');
+        }
+        
+        if (shouldPrint) {
+          printTransaction(response.data);
+        }
       }
       
       setShowDialog(false);
@@ -134,6 +167,32 @@ const Transactions = () => {
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Gagal menyimpan transaksi');
     }
+  };
+  
+  // Multi-currency item handlers
+  const addCurrencyItem = () => {
+    setMultiItems([...multiItems, { currency_id: '', transaction_type: 'jual', amount: '', exchange_rate: '' }]);
+  };
+  
+  const removeCurrencyItem = (index) => {
+    if (multiItems.length > 1) {
+      setMultiItems(multiItems.filter((_, i) => i !== index));
+    }
+  };
+  
+  const updateCurrencyItem = (index, field, value) => {
+    const newItems = [...multiItems];
+    newItems[index][field] = value;
+    setMultiItems(newItems);
+  };
+  
+  const calculateMultiTotal = () => {
+    return multiItems.reduce((total, item) => {
+      if (item.amount && item.exchange_rate) {
+        return total + (parseFloat(item.amount) * parseFloat(item.exchange_rate));
+      }
+      return total;
+    }, 0);
   };
   
   const handleQuickCustomerSubmit = async (e) => {
