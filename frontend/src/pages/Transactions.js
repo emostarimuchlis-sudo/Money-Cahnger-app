@@ -44,6 +44,12 @@ const Transactions = () => {
     transaction_purpose: ''
   });
   
+  // Multi-currency transaction state
+  const [isMultiCurrency, setIsMultiCurrency] = useState(false);
+  const [multiItems, setMultiItems] = useState([
+    { currency_id: '', transaction_type: 'jual', amount: '', exchange_rate: '' }
+  ]);
+  
   const [showQuickCustomerDialog, setShowQuickCustomerDialog] = useState(false);
   const [quickCustomerForm, setQuickCustomerForm] = useState({
     customer_type: 'perorangan',
