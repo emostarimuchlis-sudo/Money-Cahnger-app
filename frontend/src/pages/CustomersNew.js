@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Plus, Search, Edit, Trash2, Printer, User, Building2, Eye, Filter, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Printer, User, Building2, Eye, Filter, FileSpreadsheet, FileText, CreditCard, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../context/AuthContext';
 import { exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
+import MemberCard from '../components/MemberCard';
+import TransactionBook from '../components/TransactionBook';
 
 const CustomersNew = () => {
   const { user } = useAuth();
