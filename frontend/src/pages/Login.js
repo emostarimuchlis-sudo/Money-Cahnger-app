@@ -40,9 +40,9 @@ const Login = () => {
         <div className="glass-card rounded-2xl p-8 lg:p-12">
           <div className="text-center mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold text-[#D4AF37] mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-              MBA
+              MOZTEC
             </h1>
-            <p className="text-[#6EE7B7]">Mulia Bali Valuta - Money Changer</p>
+            <p className="text-[#6EE7B7]">Money Changer System</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
