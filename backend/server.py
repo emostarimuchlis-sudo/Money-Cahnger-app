@@ -558,7 +558,7 @@ async def update_customer(customer_id: str, customer_data: CustomerCreate, curre
     if current_user.role != UserRole.ADMIN and existing["branch_id"] != current_user.branch_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    result = await db.customers.update_one(
+    await db.customers.update_one(
         {"id": customer_id},
         {"$set": customer_data.model_dump()}
     )
