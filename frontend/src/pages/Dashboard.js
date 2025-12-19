@@ -215,9 +215,20 @@ const Dashboard = () => {
           </table>
         </div>
       </div>
+      )}
 
-      {/* Advanced Analytics */}
-      <AdvancedAnalytics />
+      {/* Advanced Analytics - Only for Admin and Kasir */}
+      {(user?.role === 'admin' || user?.role === 'kasir') && (
+        <AdvancedAnalytics />
+      )}
+
+      {/* Message for Teller */}
+      {user?.role === 'teller' && (
+        <div className="glass-card rounded-xl p-8 text-center">
+          <h3 className="text-xl font-bold text-[#D4AF37] mb-2">Selamat Bekerja!</h3>
+          <p className="text-[#6EE7B7]">Anda dapat mengakses menu Transaksi dan Data Nasabah untuk mengelola transaksi harian.</p>
+        </div>
+      )}
     </div>
   );
 };
