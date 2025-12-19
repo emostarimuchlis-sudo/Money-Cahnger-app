@@ -350,13 +350,24 @@ const CustomersNew = () => {
           </h1>
           <p className="text-[#D1FAE5] mt-2">Kelola data nasabah money changer</p>
         </div>
-        <Button
-          onClick={() => { resetForm(); setShowDialog(true); }}
-          className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
-        >
-          <Plus size={20} />
-          <span>Tambah Nasabah</span>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={handlePrintTable} className="btn-secondary flex items-center gap-2">
+            <Printer size={18} /> Cetak
+          </Button>
+          <Button onClick={handleExportExcel} className="btn-secondary flex items-center gap-2">
+            <FileSpreadsheet size={18} /> Excel
+          </Button>
+          <Button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2">
+            <FileText size={18} /> PDF
+          </Button>
+          <Button
+            onClick={() => { resetForm(); setShowDialog(true); }}
+            className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
+          >
+            <Plus size={20} />
+            <span>Tambah Nasabah</span>
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter */}
