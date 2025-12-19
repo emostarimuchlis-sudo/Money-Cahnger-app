@@ -678,8 +678,8 @@ const Transactions = () => {
                   <Select value={formData.transaction_type} onValueChange={(value) => setFormData({ ...formData, transaction_type: value })}>
                     <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-[#064E3B] border-white/10">
-                      <SelectItem value="jual" className="text-[#FEF3C7]">Jual (Kami Jual ke Customer)</SelectItem>
-                      <SelectItem value="beli" className="text-[#FEF3C7]">Beli (Kami Beli dari Customer)</SelectItem>
+                      <SelectItem value="jual" className="text-[#FEF3C7]">Jual</SelectItem>
+                      <SelectItem value="beli" className="text-[#FEF3C7]">Beli</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
