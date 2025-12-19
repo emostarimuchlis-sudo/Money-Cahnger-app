@@ -17,8 +17,10 @@ const MutasiValasNew = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [companySettings, setCompanySettings] = useState({});
 
   useEffect(() => {
+    fetchCompanySettings();
     fetchBranches();
     // Set default dates (last 30 days)
     const today = new Date();
