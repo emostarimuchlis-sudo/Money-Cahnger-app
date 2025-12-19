@@ -386,7 +386,7 @@ const Transactions = () => {
                   <SelectValue placeholder="Semua Mata Uang" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#064E3B] border-white/10">
-                  <SelectItem value="" className="text-[#FEF3C7]">Semua Mata Uang</SelectItem>
+                  <SelectItem value="all" className="text-[#FEF3C7]">Semua Mata Uang</SelectItem>
                   {currencies.map((currency) => (
                     <SelectItem key={currency.id} value={currency.id} className="text-[#FEF3C7]">
                       {currency.code}
