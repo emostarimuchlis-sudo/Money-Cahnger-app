@@ -146,22 +146,23 @@ agent_communication:
       
   - agent: "main"
     message: |
-      BATCH 4 - ADDITIONAL FEATURES:
+      BATCH 5 - BIG UPDATE:
       
-      BACKEND UPDATES:
-      1. Soft delete for Customers (was hard delete) - preserves transaction history
-      2. Soft delete for Transactions - preserves audit trail
-      3. Added WITA timezone support for accounting period (closes at 24:00 WITA)
-      4. Added accounting_date_wita field to Transaction model
+      NEW FEATURES:
+      1. PWA Support - manifest.json, service worker for tablet/mobile
+      2. V-Card Member - ATM-style member card (2 sides) for printing
+      3. Transaction Book - Formatted like bank statement
+      4. Profile dialog with 3 tabs: V-Card Member, Buku Transaksi, KYC
+      5. Mutasi Valas shows ALL currencies from master
+      6. Avg Rate hidden if ending stock is 0
       
-      SOFT DELETE STATUS:
-      - User: ✅ Soft delete (is_active: false)
-      - Branch: ✅ Soft delete (is_active: false)
-      - Currency: ✅ Soft delete (is_active: false)
-      - Customer: ✅ Soft delete (is_active: false) - UPDATED
-      - Transaction: ✅ Soft delete (is_deleted: true) - UPDATED
+      BUG FIXES:
+      1. Fixed print transaction error handling - shows notification instead of crash
+      2. Fixed export PDF error handling - sanitizes data to prevent object rendering
+      3. Restored "MOZTEC" name on Login page
       
-      ACCOUNTING PERIOD:
-      - Added WITA timezone utility functions
-      - Transactions now store accounting_date_wita
-      - All queries filter soft-deleted records
+      COMPONENTS ADDED:
+      - /app/frontend/src/components/MemberCard.js
+      - /app/frontend/src/components/TransactionBook.js
+      
+      CREDENTIALS: admin@moztec.com / admin123
