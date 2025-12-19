@@ -967,6 +967,21 @@ const Transactions = () => {
                   />
                 </div>
                 <div>
+                  <Label className="text-[#FEF3C7]">Jenis Kelamin *</Label>
+                  <Select 
+                    value={quickCustomerForm.gender} 
+                    onValueChange={(value) => setQuickCustomerForm({ ...quickCustomerForm, gender: value })}
+                  >
+                    <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#064E3B] border-white/10">
+                      <SelectItem value="L" className="text-[#FEF3C7]">Laki-laki</SelectItem>
+                      <SelectItem value="P" className="text-[#FEF3C7]">Perempuan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label className="text-[#FEF3C7]">Jenis Identitas</Label>
                   <Select 
                     value={quickCustomerForm.identity_type} 
@@ -998,6 +1013,15 @@ const Transactions = () => {
                     onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, phone: e.target.value })}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
                     required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-[#FEF3C7]">Alamat</Label>
+                  <Input
+                    value={quickCustomerForm.domicile_address}
+                    onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, domicile_address: e.target.value })}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="Alamat lengkap"
                   />
                 </div>
               </div>
