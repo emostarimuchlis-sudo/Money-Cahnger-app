@@ -28,7 +28,7 @@ const Settings = () => {
   
   // Company Settings
   const [companySettings, setCompanySettings] = useState({
-    company_name: 'MOZTEC',
+    company_name: 'Mulia Bali Valuta',
     company_address: '',
     company_phone: '',
     company_email: '',
@@ -230,7 +230,7 @@ const Settings = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `moztec_backup_${new Date().toISOString().split('T')[0]}.json`);
+      link.setAttribute('download', `mba_backup_${new Date().toISOString().split('T')[0]}.json`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -293,7 +293,7 @@ const Settings = () => {
                     value={companySettings.company_name}
                     onChange={(e) => setCompanySettings({...companySettings, company_name: e.target.value})}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                    placeholder="MOZTEC Money Changer"
+                    placeholder="Mulia Bali Valuta"
                   />
                 </div>
                 <div>
@@ -329,7 +329,7 @@ const Settings = () => {
                     value={companySettings.company_email}
                     onChange={(e) => setCompanySettings({...companySettings, company_email: e.target.value})}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                    placeholder="info@moztec.com"
+                    placeholder="info@mbamoneychange.com"
                   />
                 </div>
                 <div>
@@ -338,7 +338,7 @@ const Settings = () => {
                     value={companySettings.company_website}
                     onChange={(e) => setCompanySettings({...companySettings, company_website: e.target.value})}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                    placeholder="www.moztec.com"
+                    placeholder="www.mbamoneychange.com"
                   />
                 </div>
                 <div>
