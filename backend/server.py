@@ -982,9 +982,7 @@ async def calculate_mutasi_valas(
         # Calculate IDR equivalent using average market rate (assume purchase rate as baseline)
         beginning_stock_idr = 0.0  # Will be calculated based on first transaction rate if needed
         
-        # Skip if no transactions AND no opening balance
-        if not currency_transactions and beginning_stock_valas == 0:
-            continue
+        # Display ALL currencies from master, regardless of transactions
         
         # Calculate purchases (we buy from customer = customer sells to us = type "beli" or "buy")
         purchase_valas = sum(
