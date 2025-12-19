@@ -309,10 +309,10 @@ const Transactions = () => {
       </head>
       <body>
         <div class="header">
-          <h1>MOZTEC</h1>
-          <p>Money Changer - ${branch?.name || 'Bali, Indonesia'}</p>
-          <p>${branch?.address || 'Jl. Sunset Road No. 123, Denpasar'}</p>
-          <p>Telp: ${branch?.phone || '+62 361 123456'}</p>
+          <h1>${companyName}</h1>
+          <p>Money Changer - ${branch?.name || ''}</p>
+          <p>${companyAddress || branch?.address || ''}</p>
+          <p>Telp: ${companyPhone || branch?.phone || ''}</p>
         </div>
         
         <div class="row"><span class="label">No. Transaksi:</span><span>${transaction.transaction_number}</span></div>
