@@ -192,6 +192,7 @@ class Transaction(BaseModel):
     notes: Optional[str] = None
     delivery_channel: Optional[str] = None
     payment_method: Optional[str] = None
+    transaction_purpose: Optional[str] = None  # Tujuan transaksi
     transaction_date: datetime
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -205,6 +206,7 @@ class TransactionCreate(BaseModel):
     notes: Optional[str] = None
     delivery_channel: Optional[str] = None
     payment_method: Optional[str] = None
+    transaction_purpose: Optional[str] = None  # Tujuan transaksi
     transaction_date: Optional[datetime] = None
 
 class CashBookEntry(BaseModel):
