@@ -520,8 +520,9 @@ const Transactions = () => {
             className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
           >
             <Plus size={20} />
-          <span>Transaksi Baru</span>
-        </Button>
+            <span>Transaksi Baru</span>
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
