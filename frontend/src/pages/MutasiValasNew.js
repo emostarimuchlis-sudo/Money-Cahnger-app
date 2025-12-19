@@ -109,7 +109,7 @@ const MutasiValasNew = () => {
 
   const handleExportPDF = () => {
     exportToPDF(mutasi, exportColumns, 'Mutasi_Valas', `Laporan Mutasi Valas (${startDate} - ${endDate})`, {
-      name: companySettings.company_name || 'MOZTEC',
+      name: companySettings.company_name || 'Mulia Bali Valuta',
       address: companySettings.company_address || '',
       phone: companySettings.company_phone || ''
     });
@@ -118,7 +118,7 @@ const MutasiValasNew = () => {
 
   const handlePrintTable = () => {
     printTable(mutasi, exportColumns, `Laporan Mutasi Valas (${startDate} - ${endDate})`, {
-      name: companySettings.company_name || 'MOZTEC',
+      name: companySettings.company_name || 'Mulia Bali Valuta',
       address: companySettings.company_address || '',
       phone: companySettings.company_phone || '',
       footer: companySettings.receipt_footer || 'Terima kasih'
