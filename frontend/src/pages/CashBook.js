@@ -138,7 +138,21 @@ const CashBook = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="glass-card rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 rounded-lg bg-blue-500/20">
+              <TrendingUp className="text-blue-400" size={24} />
+            </div>
+            <div>
+              <p className="text-[#6EE7B7] text-sm">Saldo Awal</p>
+              <p className="text-2xl font-bold text-blue-400 mono">
+                {formatCurrency(cashbook?.opening_balance || 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-3 rounded-lg bg-emerald-500/20">
@@ -173,7 +187,7 @@ const CashBook = () => {
               <TrendingUp className="text-[#D4AF37]" size={24} />
             </div>
             <div>
-              <p className="text-[#D4AF37] text-sm font-semibold">Saldo</p>
+              <p className="text-[#D4AF37] text-sm font-semibold">Saldo Akhir</p>
               <p className="text-3xl font-bold text-[#D4AF37] mono">
                 {formatCurrency(cashbook?.balance || 0)}
               </p>
