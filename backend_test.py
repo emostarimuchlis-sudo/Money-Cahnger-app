@@ -337,11 +337,24 @@ class MOZTECAPITester:
 
     def test_mutasi_valas(self, token, role_name):
         """Test mutasi valas operations"""
+        # Test old endpoint
         success, response = self.make_request('GET', 'mutasi-valas', token=token, expected_status=200)
         if success and isinstance(response, list):
             self.log_test(f"Get Mutasi Valas ({role_name})", True)
         else:
             self.log_test(f"Get Mutasi Valas ({role_name})", False, str(response))
+
+        # Test new calculate endpoint
+        success, response = self.make_request('GET', 'mutasi-valas/calculate?start_date=2024-01-01&end_date=2024-12-31', 
+                                            token=token, expected_status=200)
+        if success and isinstance(response, list):
+            # Check if response has expected fields for dynamic calculation
+            if len(response) == 0 or all(field in response[0] for field in ['currency_code', 'beginning_stock_valas', 'purchase_valas', 'sale_valas'] if response):
+                self.log_test(f"Calculate Mutasi Valas Dynamic ({role_name})", True)
+            else:
+                self.log_test(f"Calculate Mutasi Valas Dynamic ({role_name})", False, "Missing required mutasi fields")
+        else:
+            self.log_test(f"Calculate Mutasi Valas Dynamic ({role_name})", False, str(response))
 
     def test_reports(self, token, role_name):
         """Test reports functionality"""
