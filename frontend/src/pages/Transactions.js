@@ -1069,11 +1069,13 @@ const Transactions = () => {
                     customer_type: 'perorangan',
                     name: '',
                     entity_name: '',
+                    gender: 'L',
                     identity_number: '',
                     npwp: '',
                     phone: '',
                     pic_phone: '',
                     identity_type: 'KTP',
+                    domicile_address: '',
                     branch_id: ''
                   });
                 }} 
