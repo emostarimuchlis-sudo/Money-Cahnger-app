@@ -43,9 +43,19 @@ export const exportToPDF = (data, columns, filename, title, companyInfo = {}) =>
   doc.setFontSize(9);
   doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 44);
   
-  // Table data
+  // Table data - sanitize to ensure no objects are passed
   const tableData = data.map(row => 
-    columns.map(col => col.accessor ? col.accessor(row) : row[col.key] || '-')
+    columns.map(col => {
+      try {
+        let value = col.accessor ? col.accessor(row) : row[col.key];
+        // Ensure value is a string or number, not an object
+        if (value === null || value === undefined) return '-';
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+      } catch (e) {
+        return '-';
+      }
+    })
   );
   
   doc.autoTable({
