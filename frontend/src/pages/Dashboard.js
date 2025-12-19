@@ -41,7 +41,7 @@ const Dashboard = () => {
     try {
       const response = await api.get('/settings/company');
       if (response.data?.company_name) {
-        setCompanyName(response.data.company_name + ' Money Changer');
+        setCompanyName(response.data.company_name);
       }
     } catch (error) {
       console.log('Using default company name');
