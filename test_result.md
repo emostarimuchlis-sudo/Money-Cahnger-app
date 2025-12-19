@@ -143,3 +143,25 @@ agent_communication:
       4. Verify Mutasi Valas page loads with all export buttons
       5. Test customer search in transaction form
       6. Test export functionality on each page
+      
+  - agent: "main"
+    message: |
+      BATCH 4 - ADDITIONAL FEATURES:
+      
+      BACKEND UPDATES:
+      1. Soft delete for Customers (was hard delete) - preserves transaction history
+      2. Soft delete for Transactions - preserves audit trail
+      3. Added WITA timezone support for accounting period (closes at 24:00 WITA)
+      4. Added accounting_date_wita field to Transaction model
+      
+      SOFT DELETE STATUS:
+      - User: ✅ Soft delete (is_active: false)
+      - Branch: ✅ Soft delete (is_active: false)
+      - Currency: ✅ Soft delete (is_active: false)
+      - Customer: ✅ Soft delete (is_active: false) - UPDATED
+      - Transaction: ✅ Soft delete (is_deleted: true) - UPDATED
+      
+      ACCOUNTING PERIOD:
+      - Added WITA timezone utility functions
+      - Transactions now store accounting_date_wita
+      - All queries filter soft-deleted records
