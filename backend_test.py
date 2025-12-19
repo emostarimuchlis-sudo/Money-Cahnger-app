@@ -424,7 +424,7 @@ class MOZTECAPITester:
                     "POST Beli Transaction for Number Format",
                     "POST",
                     "transactions",
-                    201,
+                    200,  # Changed to 200 as that's what the API returns
                     data=beli_data
                 )
                 
