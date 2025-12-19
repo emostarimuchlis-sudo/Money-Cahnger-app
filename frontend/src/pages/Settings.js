@@ -453,18 +453,23 @@ const Settings = () => {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openBalanceDialog(branch)}
-                            className="text-[#6EE7B7] hover:text-[#A7F3D0] p-2"
+                            className="bg-[#6EE7B7]/20 text-[#6EE7B7] hover:bg-[#6EE7B7]/30 hover:text-[#A7F3D0] p-2 rounded-lg transition-all"
                             title="Atur Saldo Awal"
                           >
                             <Wallet size={18} />
                           </button>
                           <button
                             onClick={() => { setEditingItem(branch); setBranchForm(branch); setShowBranchDialog(true); }}
-                            className="text-[#D4AF37] hover:text-[#FCD34D] p-2"
+                            className="bg-[#D4AF37]/20 text-[#D4AF37] hover:bg-[#D4AF37]/30 hover:text-[#FCD34D] p-2 rounded-lg transition-all"
+                            title="Edit Cabang"
                           >
                             <Edit size={18} />
                           </button>
-                          <button onClick={() => handleDeleteBranch(branch.id)} className="text-red-400 hover:text-red-300 p-2">
+                          <button 
+                            onClick={() => handleDeleteBranch(branch.id)} 
+                            className="bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 p-2 rounded-lg transition-all"
+                            title="Hapus Cabang"
+                          >
                             <Trash2 size={18} />
                           </button>
                         </div>
