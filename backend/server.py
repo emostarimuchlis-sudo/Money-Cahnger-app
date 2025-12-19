@@ -340,9 +340,13 @@ async def generate_transaction_number(transaction_type: str, branch_id: str):
     # Get transaction type indicator
     type_indicator = "J" if transaction_type in ["jual", "sell"] else "B"
     
-    # Get branch code
+    # Get branch code - use first part before dash, or full code up to 3 chars
     branch = await db.branches.find_one({"id": branch_id}, {"_id": 0})
-    branch_code = branch.get("code", "00")[:3].upper() if branch else "00"
+    if branch:
+        raw_code = branch.get("code", "00")
+        branch_code = raw_code.split("-")[0][:3].upper() if "-" in raw_code else raw_code[:3].upper()
+    else:
+        branch_code = "00"
     
     # Get sequential number for today
     today_start = now.strftime('%Y-%m-%d')
