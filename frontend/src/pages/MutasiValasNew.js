@@ -87,6 +87,44 @@ const MutasiValasNew = () => {
     }).format(value);
   };
 
+  // Export columns and functions
+  const exportColumns = [
+    { header: 'Valas', key: 'currency_code' },
+    { header: 'Stock Awal (Valas)', key: 'beginning_stock_valas', accessor: (r) => formatCurrency(r.beginning_stock_valas) },
+    { header: 'Stock Awal (IDR)', key: 'beginning_stock_idr', accessor: (r) => formatIDR(r.beginning_stock_idr) },
+    { header: 'Pembelian (Valas)', key: 'purchase_valas', accessor: (r) => formatCurrency(r.purchase_valas) },
+    { header: 'Pembelian (IDR)', key: 'purchase_idr', accessor: (r) => formatIDR(r.purchase_idr) },
+    { header: 'Penjualan (Valas)', key: 'sale_valas', accessor: (r) => formatCurrency(r.sale_valas) },
+    { header: 'Penjualan (IDR)', key: 'sale_idr', accessor: (r) => formatIDR(r.sale_idr) },
+    { header: 'Stock Akhir (Valas)', key: 'ending_stock_valas', accessor: (r) => formatCurrency(r.ending_stock_valas) },
+    { header: 'Stock Akhir (IDR)', key: 'ending_stock_idr', accessor: (r) => formatIDR(r.ending_stock_idr) },
+    { header: 'Avg Rate', key: 'avg_rate', accessor: (r) => formatCurrency(r.avg_rate) },
+    { header: 'Laba/Rugi', key: 'profit_loss', accessor: (r) => formatIDR(r.profit_loss) }
+  ];
+
+  const handleExportExcel = () => {
+    exportToExcel(mutasi, exportColumns, 'Mutasi_Valas');
+    toast.success('Export Excel berhasil');
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF(mutasi, exportColumns, 'Mutasi_Valas', `Laporan Mutasi Valas (${startDate} - ${endDate})`, {
+      name: companySettings.company_name || 'MOZTEC',
+      address: companySettings.company_address || '',
+      phone: companySettings.company_phone || ''
+    });
+    toast.success('Export PDF berhasil');
+  };
+
+  const handlePrintTable = () => {
+    printTable(mutasi, exportColumns, `Laporan Mutasi Valas (${startDate} - ${endDate})`, {
+      name: companySettings.company_name || 'MOZTEC',
+      address: companySettings.company_address || '',
+      phone: companySettings.company_phone || '',
+      footer: companySettings.receipt_footer || 'Terima kasih'
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
