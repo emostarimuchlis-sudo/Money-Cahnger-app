@@ -403,6 +403,55 @@ const Transactions = () => {
     (t.customer_code || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Filter customers for dropdown (search + sorted by most recent)
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch) return customers;
+    const search = customerSearch.toLowerCase();
+    return customers.filter(c => 
+      (c.name || '').toLowerCase().includes(search) ||
+      (c.entity_name || '').toLowerCase().includes(search) ||
+      (c.customer_code || '').toLowerCase().includes(search) ||
+      (c.identity_number || '').toLowerCase().includes(search)
+    );
+  }, [customers, customerSearch]);
+
+  // Export functions
+  const exportColumns = [
+    { header: 'No. Transaksi', key: 'transaction_number' },
+    { header: 'No. Voucher', key: 'voucher_number', accessor: (r) => r.voucher_number || '-' },
+    { header: 'Tanggal', key: 'transaction_date', accessor: (r) => formatDateExport(r.transaction_date) },
+    { header: 'Kode Nasabah', key: 'customer_code', accessor: (r) => r.customer_code || '-' },
+    { header: 'Nama Nasabah', key: 'customer_name' },
+    { header: 'Tipe', key: 'transaction_type', accessor: (r) => r.transaction_type === 'beli' || r.transaction_type === 'buy' ? 'Beli' : 'Jual' },
+    { header: 'Mata Uang', key: 'currency_code' },
+    { header: 'Jumlah', key: 'amount', accessor: (r) => formatCurrencyExport(r.amount) },
+    { header: 'Total IDR', key: 'total_idr', accessor: (r) => formatCurrencyExport(r.total_idr) }
+  ];
+
+  const handleExportExcel = () => {
+    exportToExcel(filteredTransactions, exportColumns, 'Data_Transaksi');
+    toast.success('Export Excel berhasil');
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF(filteredTransactions, exportColumns, 'Data_Transaksi', 'Laporan Data Transaksi', {
+      name: companySettings.company_name,
+      address: companySettings.company_address,
+      phone: companySettings.company_phone,
+      footer: companySettings.receipt_footer
+    });
+    toast.success('Export PDF berhasil');
+  };
+
+  const handlePrintTable = () => {
+    printTable(filteredTransactions, exportColumns, 'Laporan Data Transaksi', {
+      name: companySettings.company_name,
+      address: companySettings.company_address,
+      phone: companySettings.company_phone,
+      footer: companySettings.receipt_footer
+    });
+  };
+
   const viewDetail = (transaction) => {
     setSelectedTransaction(transaction);
     setShowDetailDialog(true);
@@ -422,12 +471,22 @@ const Transactions = () => {
           </h1>
           <p className="text-[#D1FAE5] mt-2">Kelola transaksi money changer</p>
         </div>
-        <Button
-          data-testid="create-transaction-button"
-          onClick={() => { resetForm(); setShowDialog(true); }}
-          className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
-        >
-          <Plus size={20} />
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={handlePrintTable} className="btn-secondary flex items-center gap-2">
+            <Printer size={18} /> Cetak
+          </Button>
+          <Button onClick={handleExportExcel} className="btn-secondary flex items-center gap-2">
+            <FileSpreadsheet size={18} /> Excel
+          </Button>
+          <Button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2">
+            <FileText size={18} /> PDF
+          </Button>
+          <Button
+            data-testid="create-transaction-button"
+            onClick={() => { resetForm(); setShowDialog(true); }}
+            className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
+          >
+            <Plus size={20} />
           <span>Transaksi Baru</span>
         </Button>
       </div>
