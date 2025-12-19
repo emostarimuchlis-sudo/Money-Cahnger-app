@@ -325,30 +325,197 @@ class MOZTECAPITester:
                 200
             )
 
+    def test_customer_gender_address_fields(self):
+        """Test customer creation with gender and address fields"""
+        print("\n👤 Testing Customer Gender & Address Fields...")
+        
+        # Get branches first
+        success, branches = self.run_test("GET Branches for Customer Test", "GET", "branches", 200)
+        
+        if success and branches:
+            branch_id = branches[0]['id']
+            
+            # Test customer creation with gender and address
+            customer_data = {
+                "customer_type": "perorangan",
+                "branch_id": branch_id,
+                "name": "Test Customer Gender Address",
+                "gender": "L",  # Test gender field
+                "identity_type": "KTP",
+                "identity_number": "1234567890123456",
+                "phone": "081234567890",
+                "domicile_address": "Jl. Test Address No. 123, Denpasar, Bali"  # Test address field
+            }
+            
+            success, response = self.run_test(
+                "POST Customer with Gender & Address",
+                "POST",
+                "customers",
+                200,
+                data=customer_data
+            )
+            
+            if success:
+                customer_id = response.get('id')
+                self.created_resources['customers'].append(customer_id)
+                
+                # Verify gender and address fields are saved
+                if response.get('gender') == 'L' and response.get('domicile_address'):
+                    self.log_test("Customer Gender & Address Fields Verification", True)
+                else:
+                    self.log_test("Customer Gender & Address Fields Verification", False, "Gender or address not saved correctly")
+                
+                return customer_id
+        return None
+
+    def test_transaction_number_format(self):
+        """Test new transaction number format: TRX-MBA-J/B-XXXXX-XXX-DDMMYY"""
+        print("\n🔢 Testing Transaction Number Format...")
+        
+        # Create a customer first if needed
+        customer_id = self.test_customer_gender_address_fields()
+        
+        if customer_id:
+            # Get currencies
+            success, currencies = self.run_test("GET Currencies for Transaction Number Test", "GET", "currencies", 200)
+            
+            if success and currencies:
+                currency_id = currencies[0]['id']
+                
+                # Test Jual transaction
+                jual_data = {
+                    "customer_id": customer_id,
+                    "transaction_type": "jual",
+                    "currency_id": currency_id,
+                    "amount": 100.0,
+                    "exchange_rate": 15500.0,
+                    "notes": "Test transaction number format - Jual"
+                }
+                
+                success, jual_response = self.run_test(
+                    "POST Jual Transaction for Number Format",
+                    "POST",
+                    "transactions",
+                    201,
+                    data=jual_data
+                )
+                
+                if success:
+                    jual_number = jual_response.get('transaction_number', '')
+                    self.created_resources['transactions'].append(jual_response['id'])
+                    
+                    # Verify Jual format: TRX-MBA-J-XXXXX-XXX-DDMMYY
+                    if jual_number.startswith('TRX-MBA-J-') and len(jual_number.split('-')) == 6:
+                        self.log_test("Jual Transaction Number Format", True, f"Format: {jual_number}")
+                    else:
+                        self.log_test("Jual Transaction Number Format", False, f"Invalid format: {jual_number}")
+                
+                # Test Beli transaction
+                beli_data = {
+                    "customer_id": customer_id,
+                    "transaction_type": "beli",
+                    "currency_id": currency_id,
+                    "amount": 50.0,
+                    "exchange_rate": 15400.0,
+                    "notes": "Test transaction number format - Beli"
+                }
+                
+                success, beli_response = self.run_test(
+                    "POST Beli Transaction for Number Format",
+                    "POST",
+                    "transactions",
+                    201,
+                    data=beli_data
+                )
+                
+                if success:
+                    beli_number = beli_response.get('transaction_number', '')
+                    self.created_resources['transactions'].append(beli_response['id'])
+                    
+                    # Verify Beli format: TRX-MBA-B-XXXXX-XXX-DDMMYY
+                    if beli_number.startswith('TRX-MBA-B-') and len(beli_number.split('-')) == 6:
+                        self.log_test("Beli Transaction Number Format", True, f"Format: {beli_number}")
+                    else:
+                        self.log_test("Beli Transaction Number Format", False, f"Invalid format: {beli_number}")
+
+    def test_company_name_settings(self):
+        """Test company name in settings for dashboard"""
+        print("\n🏢 Testing Company Name Settings...")
+        
+        # Test updating company name
+        update_data = {
+            "company_name": "Test Company Name Update"
+        }
+        
+        success, response = self.run_test(
+            "PUT Company Name Update",
+            "PUT",
+            "settings/company",
+            200,
+            data=update_data
+        )
+        
+        if success:
+            # Verify the company name was updated
+            success, settings = self.run_test(
+                "GET Updated Company Settings",
+                "GET",
+                "settings/company",
+                200
+            )
+            
+            if success and settings.get('company_name') == update_data['company_name']:
+                self.log_test("Company Name Update Verification", True)
+                
+                # Reset to original name
+                reset_data = {"company_name": "MOZTEC"}
+                self.run_test(
+                    "Reset Company Name",
+                    "PUT",
+                    "settings/company",
+                    200,
+                    data=reset_data
+                )
+            else:
+                self.log_test("Company Name Update Verification", False, "Company name not updated correctly")
+
+    def cleanup_test_customers(self):
+        """Clean up test customers"""
+        print("\n🧹 Cleaning up test customers...")
+        
+        for customer_id in self.created_resources['customers']:
+            self.run_test(
+                f"DELETE Test Customer {customer_id[:8]}",
+                "DELETE",
+                f"customers/{customer_id}",
+                200
+            )
+
     def run_all_tests(self):
-        """Run all tests"""
-        print("🚀 Starting MOZTEC Money Changer API Tests - Batch 2 Features")
-        print("=" * 60)
+        """Run all tests focusing on the 4 specific features"""
+        print("🚀 Starting MOZTEC Money Changer API Tests - Update 4 Features")
+        print("Testing: 1) Gender & Address in Quick Customer, 2) Transaction Types, 3) Company Name, 4) Transaction Number Format")
+        print("=" * 80)
         
         # Authentication first
         if not self.test_authentication():
             print("❌ Authentication failed, stopping tests")
             return False
         
-        # Test new features from Batch 2
-        self.test_company_settings()
-        self.test_branch_balances()
-        self.test_multi_currency_transactions()
+        # Test the 4 specific features
+        self.test_customer_gender_address_fields()
+        self.test_transaction_number_format()
+        self.test_company_name_settings()
         
-        # Test existing functionality
+        # Test basic functionality to ensure nothing broke
         self.test_existing_endpoints()
-        self.test_single_transaction_creation()
         
         # Cleanup
         self.cleanup_test_data()
+        self.cleanup_test_customers()
         
         # Print summary
-        print("\n" + "=" * 60)
+        print("\n" + "=" * 80)
         print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
         print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
         
