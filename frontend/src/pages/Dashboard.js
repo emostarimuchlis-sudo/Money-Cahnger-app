@@ -19,7 +19,7 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [companyName, setCompanyName] = useState('MOZTEC Money Changer');
+  const [companyName, setCompanyName] = useState('Mulia Bali Valuta (MBA Money Changer)');
 
   useEffect(() => {
     fetchDashboardStats();
@@ -115,7 +115,7 @@ const Dashboard = () => {
           <div className="rounded-xl overflow-hidden shadow-2xl">
             <img
               src="https://images.unsplash.com/photo-1746173098263-8262c7725b1e?crop=entropy&cs=srgb&fm=jpg&q=85"
-              alt="MOZTEC Office"
+              alt="MBA Money Changer Office"
               className="w-full h-64 lg:h-80 object-cover"
             />
           </div>
