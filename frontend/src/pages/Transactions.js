@@ -349,8 +349,8 @@ const Transactions = () => {
         </div>
         
         <div class="footer">
-          <p>Terima kasih atas kepercayaan Anda</p>
-          <p>MOZTEC Money Changer</p>
+          <p>${receiptFooter}</p>
+          <p>${companyName} Money Changer</p>
         </div>
         
         <script>window.onload = function() { setTimeout(function() { window.print(); setTimeout(function() { window.close(); }, 100); }, 500); }</script>
