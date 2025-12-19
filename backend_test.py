@@ -322,13 +322,18 @@ class MOZTECAPITester:
         return True
 
     def test_cashbook(self, token, role_name):
-        """Test cashbook operations"""
-        # Get cashbook entries
+        """Test cashbook operations with opening balance"""
+        # Get cashbook entries with opening balance
         success, response = self.make_request('GET', 'cashbook', token=token, expected_status=200)
         if success and 'entries' in response:
-            self.log_test(f"Get Cashbook ({role_name})", True)
+            # Check for opening_balance field
+            required_fields = ['entries', 'opening_balance', 'total_debit', 'total_credit', 'balance']
+            if all(field in response for field in required_fields):
+                self.log_test(f"Get Cashbook with Opening Balance ({role_name})", True)
+            else:
+                self.log_test(f"Get Cashbook with Opening Balance ({role_name})", False, "Missing required cashbook fields")
         else:
-            self.log_test(f"Get Cashbook ({role_name})", False, str(response))
+            self.log_test(f"Get Cashbook with Opening Balance ({role_name})", False, str(response))
 
     def test_mutasi_valas(self, token, role_name):
         """Test mutasi valas operations"""
