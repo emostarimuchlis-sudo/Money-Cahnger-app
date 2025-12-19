@@ -356,7 +356,7 @@ const Transactions = () => {
         ${transaction.voucher_number ? `<div class="row"><span class="label">No. Voucher:</span><span>${transaction.voucher_number}</span></div>` : ''}
         <div class="row"><span class="label">Tanggal:</span><span>${format(new Date(transaction.transaction_date || new Date()), 'dd/MM/yyyy HH:mm')}</span></div>
         <div class="row"><span class="label">Kode Nasabah:</span><span>${transaction.customer_code || '-'}</span></div>
-        <div class="row"><span class="label">Nasabah:</span><span>${customer?.name || transaction.customer_name}</span></div>
+        <div class="row"><span class="label">Nasabah:</span><span>${customerName}</span></div>
         <div class="row"><span class="label">Teller:</span><span>${transaction.accountant_name || '-'}</span></div>
         
         <div class="divider"></div>
