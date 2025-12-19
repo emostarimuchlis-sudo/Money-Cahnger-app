@@ -231,6 +231,7 @@ class Transaction(BaseModel):
     payment_method: Optional[str] = None
     transaction_purpose: Optional[str] = None  # Tujuan transaksi
     transaction_date: datetime
+    accounting_date_wita: Optional[str] = None  # WITA accounting date (YYYY-MM-DD) - closes at 24:00 WITA
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TransactionCreate(BaseModel):
