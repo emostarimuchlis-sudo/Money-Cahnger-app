@@ -19,9 +19,11 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState('MOZTEC Money Changer');
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchCompanySettings();
   }, []);
 
   const fetchDashboardStats = async () => {
@@ -32,6 +34,17 @@ const Dashboard = () => {
       toast.error('Gagal memuat data dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await api.get('/settings/company');
+      if (response.data?.company_name) {
+        setCompanyName(response.data.company_name + ' Money Changer');
+      }
+    } catch (error) {
+      console.log('Using default company name');
     }
   };
 
