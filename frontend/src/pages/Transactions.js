@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react';
+import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye, Edit, Trash2, Printer, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -9,16 +9,27 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useAuth } from '../context/AuthContext';
 
 const Transactions = () => {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [currencies, setCurrencies] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Filter states
+  const [filterBranch, setFilterBranch] = useState('');
+  const [filterCurrency, setFilterCurrency] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   
   const [formData, setFormData] = useState({
     customer_id: '',
@@ -29,7 +40,8 @@ const Transactions = () => {
     voucher_number: '',
     notes: '',
     delivery_channel: 'kantor_kupva',
-    payment_method: 'cash'
+    payment_method: 'cash',
+    transaction_purpose: ''
   });
   
   const [showQuickCustomerDialog, setShowQuickCustomerDialog] = useState(false);
@@ -46,19 +58,24 @@ const Transactions = () => {
   });
 
   useEffect(() => {
-    fetchData();
+    fetchInitialData();
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchTransactions();
+  }, [filterBranch, filterCurrency, filterStartDate, filterEndDate]);
+
+  const fetchInitialData = async () => {
     try {
-      const [transactionsRes, customersRes, currenciesRes] = await Promise.all([
-        api.get('/transactions'),
+      const [customersRes, currenciesRes, branchesRes] = await Promise.all([
         api.get('/customers'),
-        api.get('/currencies')
+        api.get('/currencies'),
+        api.get('/branches')
       ]);
-      setTransactions(transactionsRes.data);
       setCustomers(customersRes.data);
       setCurrencies(currenciesRes.data);
+      setBranches(branchesRes.data);
+      fetchTransactions();
     } catch (error) {
       toast.error('Gagal memuat data');
     } finally {
@@ -66,16 +83,40 @@ const Transactions = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    try {
+      let url = '/transactions?';
+      const params = [];
+      if (filterBranch) params.push(`branch_id=${filterBranch}`);
+      if (filterCurrency) params.push(`currency_id=${filterCurrency}`);
+      if (filterStartDate) params.push(`start_date=${filterStartDate}`);
+      if (filterEndDate) params.push(`end_date=${filterEndDate}`);
+      url += params.join('&');
+      
+      const response = await api.get(url);
+      setTransactions(response.data);
+    } catch (error) {
+      toast.error('Gagal memuat transaksi');
+    }
+  };
+
   const handleSubmit = async (e, shouldPrint = false) => {
     e.preventDefault();
     try {
-      const response = await api.post('/transactions', {
+      const payload = {
         ...formData,
         amount: parseFloat(formData.amount),
         exchange_rate: parseFloat(formData.exchange_rate)
-      });
+      };
       
-      toast.success('Transaksi berhasil dibuat');
+      let response;
+      if (editingTransaction) {
+        response = await api.put(`/transactions/${editingTransaction.id}`, payload);
+        toast.success('Transaksi berhasil diperbarui');
+      } else {
+        response = await api.post('/transactions', payload);
+        toast.success('Transaksi berhasil dibuat');
+      }
       
       if (shouldPrint) {
         printTransaction(response.data);
@@ -83,16 +124,15 @@ const Transactions = () => {
       
       setShowDialog(false);
       resetForm();
-      fetchData();
+      fetchTransactions();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Gagal membuat transaksi');
+      toast.error(error.response?.data?.detail || 'Gagal menyimpan transaksi');
     }
   };
   
   const handleQuickCustomerSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Get current user's branch or use first branch
       const branchId = quickCustomerForm.branch_id || customers[0]?.branch_id;
       
       const response = await api.post('/customers', {
@@ -102,13 +142,10 @@ const Transactions = () => {
       
       toast.success('Nasabah berhasil ditambahkan');
       
-      // Update customers list
-      await fetchData();
-      
-      // Set as selected customer
+      const customersRes = await api.get('/customers');
+      setCustomers(customersRes.data);
       setFormData({ ...formData, customer_id: response.data.id });
       
-      // Close dialog and reset
       setShowQuickCustomerDialog(false);
       setQuickCustomerForm({
         customer_type: 'perorangan',
@@ -125,28 +162,50 @@ const Transactions = () => {
       toast.error(error.response?.data?.detail || 'Gagal menambahkan nasabah');
     }
   };
+
+  const handleEdit = (transaction) => {
+    setEditingTransaction(transaction);
+    setFormData({
+      customer_id: transaction.customer_id,
+      transaction_type: transaction.transaction_type,
+      currency_id: transaction.currency_id,
+      amount: transaction.amount.toString(),
+      exchange_rate: transaction.exchange_rate.toString(),
+      voucher_number: transaction.voucher_number || '',
+      notes: transaction.notes || '',
+      delivery_channel: transaction.delivery_channel || 'kantor_kupva',
+      payment_method: transaction.payment_method || 'cash',
+      transaction_purpose: transaction.transaction_purpose || ''
+    });
+    setShowDialog(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+      try {
+        await api.delete(`/transactions/${id}`);
+        toast.success('Transaksi berhasil dihapus');
+        fetchTransactions();
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'Gagal menghapus transaksi');
+      }
+    }
+  };
   
   const printTransaction = (transaction) => {
-    const printWindow = window.open('', '_blank');
     const customer = customers.find(c => c.id === transaction.customer_id);
     const currency = currencies.find(c => c.id === transaction.currency_id);
+    const branch = branches.find(b => b.id === transaction.branch_id);
     
+    const printWindow = window.open('', '_blank');
     const printContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <title>Struk Transaksi - ${transaction.transaction_number}</title>
         <style>
-          @media print {
-            body { margin: 0; padding: 20px; font-family: 'Courier New', monospace; }
-          }
-          body { 
-            max-width: 300px; 
-            margin: 0 auto; 
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-          }
+          @media print { body { margin: 0; padding: 20px; font-family: 'Courier New', monospace; } }
+          body { max-width: 300px; margin: 0 auto; padding: 20px; font-family: 'Courier New', monospace; font-size: 12px; }
           .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 10px; }
           .header h1 { margin: 0; font-size: 20px; }
           .header p { margin: 5px 0; font-size: 10px; }
@@ -155,93 +214,57 @@ const Transactions = () => {
           .divider { border-top: 1px dashed #000; margin: 10px 0; }
           .total { font-size: 16px; font-weight: bold; margin-top: 10px; }
           .footer { text-align: center; margin-top: 20px; border-top: 2px dashed #000; padding-top: 10px; font-size: 10px; }
+          .signature { margin-top: 30px; text-align: center; }
+          .signature-line { border-top: 1px solid #000; width: 150px; margin: 40px auto 5px; }
         </style>
       </head>
       <body>
         <div class="header">
           <h1>MOZTEC</h1>
-          <p>Money Changer - Bali, Indonesia</p>
-          <p>Jl. Sunset Road No. 123, Denpasar</p>
-          <p>Telp: +62 361 123456</p>
+          <p>Money Changer - ${branch?.name || 'Bali, Indonesia'}</p>
+          <p>${branch?.address || 'Jl. Sunset Road No. 123, Denpasar'}</p>
+          <p>Telp: ${branch?.phone || '+62 361 123456'}</p>
         </div>
         
-        <div class="row">
-          <span class="label">No. Transaksi:</span>
-          <span>${transaction.transaction_number}</span>
-        </div>
-        <div class="row">
-          <span class="label">Tanggal:</span>
-          <span>${format(new Date(transaction.transaction_date || new Date()), 'dd/MM/yyyy HH:mm')}</span>
-        </div>
-        <div class="row">
-          <span class="label">Nasabah:</span>
-          <span>${customer?.name || transaction.customer_name}</span>
-        </div>
+        <div class="row"><span class="label">No. Transaksi:</span><span>${transaction.transaction_number}</span></div>
+        ${transaction.voucher_number ? `<div class="row"><span class="label">No. Voucher:</span><span>${transaction.voucher_number}</span></div>` : ''}
+        <div class="row"><span class="label">Tanggal:</span><span>${format(new Date(transaction.transaction_date || new Date()), 'dd/MM/yyyy HH:mm')}</span></div>
+        <div class="row"><span class="label">Kode Nasabah:</span><span>${transaction.customer_code || '-'}</span></div>
+        <div class="row"><span class="label">Nasabah:</span><span>${customer?.name || transaction.customer_name}</span></div>
+        <div class="row"><span class="label">Teller:</span><span>${transaction.accountant_name || '-'}</span></div>
         
         <div class="divider"></div>
         
-        <div class="row">
-          <span class="label">Tipe:</span>
-          <span>${transaction.transaction_type === 'buy' ? 'BELI' : 'JUAL'}</span>
-        </div>
-        <div class="row">
-          <span class="label">Mata Uang:</span>
-          <span>${currency?.code || transaction.currency_code}</span>
-        </div>
-        <div class="row">
-          <span class="label">Jumlah:</span>
-          <span>${parseFloat(formData.amount).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div class="row">
-          <span class="label">Kurs:</span>
-          <span>Rp ${parseFloat(formData.exchange_rate).toLocaleString('id-ID')}</span>
-        </div>
+        <div class="row"><span class="label">Tipe:</span><span>${transaction.transaction_type === 'beli' || transaction.transaction_type === 'buy' ? 'BELI' : 'JUAL'}</span></div>
+        <div class="row"><span class="label">Mata Uang:</span><span>${currency?.code || transaction.currency_code}</span></div>
+        <div class="row"><span class="label">Jumlah:</span><span>${parseFloat(transaction.amount).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</span></div>
+        <div class="row"><span class="label">Kurs:</span><span>Rp ${parseFloat(transaction.exchange_rate).toLocaleString('id-ID')}</span></div>
+        ${transaction.transaction_purpose ? `<div class="row"><span class="label">Tujuan:</span><span>${transaction.transaction_purpose}</span></div>` : ''}
         
         <div class="divider"></div>
         
-        <div class="row total">
-          <span class="label">TOTAL:</span>
-          <span>Rp ${(parseFloat(formData.amount) * parseFloat(formData.exchange_rate)).toLocaleString('id-ID', { minimumFractionDigits: 0 })}</span>
-        </div>
+        <div class="row total"><span class="label">TOTAL:</span><span>Rp ${parseFloat(transaction.total_idr).toLocaleString('id-ID', { minimumFractionDigits: 0 })}</span></div>
         
-        ${formData.delivery_channel ? `
+        ${transaction.delivery_channel ? `
         <div class="divider"></div>
-        <div class="row">
-          <span class="label">Delivery:</span>
-          <span>${formData.delivery_channel === 'kantor_kupva' ? 'Kantor Kupva' : formData.delivery_channel === 'online_merchant' ? 'Online Merchant' : 'Delivery Service'}</span>
-        </div>
+        <div class="row"><span class="label">Delivery:</span><span>${transaction.delivery_channel === 'kantor_kupva' ? 'Kantor Kupva' : transaction.delivery_channel === 'online_merchant' ? 'Online Merchant' : 'Delivery Service'}</span></div>
         ` : ''}
         
-        ${formData.payment_method ? `
-        <div class="row">
-          <span class="label">Pembayaran:</span>
-          <span>${formData.payment_method === 'cash' ? 'Cash' : 'Transfer'}</span>
-        </div>
-        ` : ''}
+        ${transaction.payment_method ? `<div class="row"><span class="label">Pembayaran:</span><span>${transaction.payment_method === 'cash' ? 'Cash' : 'Transfer'}</span></div>` : ''}
         
-        ${formData.notes ? `
-        <div class="divider"></div>
-        <div class="row">
-          <span class="label">Catatan:</span>
+        ${transaction.notes ? `<div class="divider"></div><div class="row"><span class="label">Catatan:</span></div><div style="margin-top: 5px;">${transaction.notes}</div>` : ''}
+        
+        <div class="signature">
+          <div class="signature-line"></div>
+          <p>Tanda Tangan</p>
         </div>
-        <div style="margin-top: 5px;">${formData.notes}</div>
-        ` : ''}
         
         <div class="footer">
           <p>Terima kasih atas kepercayaan Anda</p>
           <p>MOZTEC Money Changer</p>
         </div>
         
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-              setTimeout(function() {
-                window.close();
-              }, 100);
-            }, 500);
-          }
-        </script>
+        <script>window.onload = function() { setTimeout(function() { window.print(); setTimeout(function() { window.close(); }, 100); }, 500); }</script>
       </body>
       </html>
     `;
@@ -260,21 +283,27 @@ const Transactions = () => {
       voucher_number: '',
       notes: '',
       delivery_channel: 'kantor_kupva',
-      payment_method: 'cash'
+      payment_method: 'cash',
+      transaction_purpose: ''
     });
+    setEditingTransaction(null);
+  };
+
+  const clearFilters = () => {
+    setFilterBranch('');
+    setFilterCurrency('');
+    setFilterStartDate('');
+    setFilterEndDate('');
   };
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(value);
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
   };
 
   const filteredTransactions = transactions.filter(t => 
     t.transaction_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
+    t.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.customer_code || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const viewDetail = (transaction) => {
@@ -298,7 +327,7 @@ const Transactions = () => {
         </div>
         <Button
           data-testid="create-transaction-button"
-          onClick={() => setShowDialog(true)}
+          onClick={() => { resetForm(); setShowDialog(true); }}
           className="btn-primary px-6 py-3 rounded-lg flex items-center gap-2"
         >
           <Plus size={20} />
@@ -306,19 +335,91 @@ const Transactions = () => {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="glass-card rounded-xl p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6EE7B7]" size={20} />
-          <Input
-            data-testid="search-transaction-input"
-            type="text"
-            placeholder="Cari berdasarkan nomor transaksi atau nama nasabah..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
-          />
+      {/* Search and Filters */}
+      <div className="glass-card rounded-xl p-4 space-y-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6EE7B7]" size={20} />
+            <Input
+              data-testid="search-transaction-input"
+              type="text"
+              placeholder="Cari berdasarkan nomor transaksi, kode atau nama nasabah..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
+            />
+          </div>
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            <Filter size={18} />
+            Filter
+          </Button>
         </div>
+        
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-white/10">
+            {user?.role === 'admin' && (
+              <div>
+                <Label className="text-[#FEF3C7] text-sm">Cabang</Label>
+                <Select value={filterBranch} onValueChange={setFilterBranch}>
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue placeholder="Semua Cabang" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    <SelectItem value="" className="text-[#FEF3C7]">Semua Cabang</SelectItem>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id} className="text-[#FEF3C7]">
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label className="text-[#FEF3C7] text-sm">Mata Uang</Label>
+              <Select value={filterCurrency} onValueChange={setFilterCurrency}>
+                <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectValue placeholder="Semua Mata Uang" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#064E3B] border-white/10">
+                  <SelectItem value="" className="text-[#FEF3C7]">Semua Mata Uang</SelectItem>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.id} value={currency.id} className="text-[#FEF3C7]">
+                      {currency.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[#FEF3C7] text-sm">Tanggal Mulai</Label>
+              <Input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="bg-black/20 border-white/10 text-[#FEF3C7]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#FEF3C7] text-sm">Tanggal Akhir</Label>
+              <Input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="bg-black/20 border-white/10 text-[#FEF3C7]"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={clearFilters} className="btn-secondary w-full">
+                Reset Filter
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Transactions Table */}
@@ -335,7 +436,6 @@ const Transactions = () => {
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tipe</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Mata Uang</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Jumlah</th>
-                <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Kurs</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Total (IDR)</th>
                 <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold">Aksi</th>
               </tr>
@@ -358,7 +458,7 @@ const Transactions = () => {
                     </td>
                     <td className="py-4 px-4 text-[#FEF3C7]">{transaction.customer_name}</td>
                     <td className="py-4 px-4">
-                      {transaction.transaction_type === 'beli' ? (
+                      {transaction.transaction_type === 'beli' || transaction.transaction_type === 'buy' ? (
                         <span className="flex items-center gap-1 text-blue-400">
                           <ArrowDownRight size={16} /> Beli
                         </span>
@@ -374,26 +474,55 @@ const Transactions = () => {
                     <td className="py-4 px-4 text-right mono text-[#FEF3C7]">
                       {transaction.amount.toLocaleString('id-ID')}
                     </td>
-                    <td className="py-4 px-4 text-right mono text-[#FEF3C7]">
-                      {transaction.exchange_rate.toLocaleString('id-ID')}
-                    </td>
                     <td className="py-4 px-4 text-right mono text-[#D4AF37] font-semibold">
                       {formatCurrency(transaction.total_idr)}
                     </td>
-                    <td className="py-4 px-4 text-center">
-                      <button
-                        data-testid={`view-transaction-${transaction.id}`}
-                        onClick={() => viewDetail(transaction)}
-                        className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300"
-                      >
-                        <Eye size={18} />
-                      </button>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => viewDetail(transaction)}
+                          className="text-[#6EE7B7] hover:text-[#A7F3D0] transition-colors duration-300 p-1.5"
+                          title="Lihat Detail"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        {/* Reprint - Admin & Kasir */}
+                        {(user?.role === 'admin' || user?.role === 'kasir') && (
+                          <button
+                            onClick={() => printTransaction(transaction)}
+                            className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300 p-1.5"
+                            title="Cetak Ulang"
+                          >
+                            <Printer size={16} />
+                          </button>
+                        )}
+                        {/* Edit - Admin Only */}
+                        {user?.role === 'admin' && (
+                          <button
+                            onClick={() => handleEdit(transaction)}
+                            className="text-blue-400 hover:text-blue-300 transition-colors duration-300 p-1.5"
+                            title="Edit"
+                          >
+                            <Edit size={16} />
+                          </button>
+                        )}
+                        {/* Delete - Admin Only */}
+                        {user?.role === 'admin' && (
+                          <button
+                            onClick={() => handleDelete(transaction.id)}
+                            className="text-red-400 hover:text-red-300 transition-colors duration-300 p-1.5"
+                            title="Hapus"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="text-center py-12 text-[#6EE7B7]">
+                  <td colSpan="10" className="text-center py-12 text-[#6EE7B7]">
                     {searchTerm ? 'Tidak ada transaksi yang ditemukan' : 'Belum ada transaksi'}
                   </td>
                 </tr>
@@ -403,18 +532,18 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Create Transaction Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-2xl">
+      {/* Create/Edit Transaction Dialog */}
+      <Dialog open={showDialog} onOpenChange={(open) => { setShowDialog(open); if (!open) resetForm(); }}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
-              Transaksi Baru
+              {editingTransaction ? 'Edit Transaksi' : 'Transaksi Baru'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="customer" className="text-[#FEF3C7]">Nasabah</Label>
+                <Label htmlFor="customer" className="text-[#FEF3C7]">Nasabah *</Label>
                 <div className="flex gap-2">
                   <Select
                     value={formData.customer_id}
@@ -426,14 +555,13 @@ const Transactions = () => {
                     <SelectContent className="bg-[#064E3B] border-white/10">
                       {customers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id} className="text-[#FEF3C7]">
-                          {customer.name}
+                          {customer.customer_code ? `[${customer.customer_code}] ` : ''}{customer.name || customer.entity_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <button
                     type="button"
-                    data-testid="quick-add-customer-button"
                     onClick={() => setShowQuickCustomerDialog(true)}
                     className="px-3 py-2 bg-[#D4AF37] text-black rounded-lg hover:bg-[#D4AF37]/90 transition-all duration-300 font-bold text-lg"
                     title="Tambah Nasabah Baru"
@@ -444,40 +572,39 @@ const Transactions = () => {
               </div>
 
               <div>
-                <Label htmlFor="voucher_number" className="text-[#FEF3C7]">No. Voucher (Opsional)</Label>
+                <Label htmlFor="voucher_number" className="text-[#FEF3C7]">No. Voucher</Label>
                 <Input
-                  data-testid="transaction-voucher-input"
                   type="text"
                   value={formData.voucher_number}
                   onChange={(e) => setFormData({ ...formData, voucher_number: e.target.value })}
                   className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                  placeholder="Kosongkan jika tidak ada"
+                  placeholder="Opsional"
                 />
               </div>
 
               <div>
-                <Label htmlFor="transaction_type" className="text-[#FEF3C7]">Tipe Transaksi</Label>
+                <Label htmlFor="transaction_type" className="text-[#FEF3C7]">Tipe Transaksi *</Label>
                 <Select
                   value={formData.transaction_type}
                   onValueChange={(value) => setFormData({ ...formData, transaction_type: value })}
                 >
-                  <SelectTrigger data-testid="transaction-type-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
-                    <SelectItem value="jual" className="text-[#FEF3C7]">Jual (Kami Jual ke Customer / Customer Beli dari Kami)</SelectItem>
-                    <SelectItem value="beli" className="text-[#FEF3C7]">Beli (Kami Beli dari Customer / Customer Jual ke Kami)</SelectItem>
+                    <SelectItem value="jual" className="text-[#FEF3C7]">Jual (Kami Jual ke Customer)</SelectItem>
+                    <SelectItem value="beli" className="text-[#FEF3C7]">Beli (Kami Beli dari Customer)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="currency" className="text-[#FEF3C7]">Mata Uang</Label>
+                <Label htmlFor="currency" className="text-[#FEF3C7]">Mata Uang *</Label>
                 <Select
                   value={formData.currency_id}
                   onValueChange={(value) => setFormData({ ...formData, currency_id: value })}
                 >
-                  <SelectTrigger data-testid="transaction-currency-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
                     <SelectValue placeholder="Pilih mata uang" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
@@ -491,9 +618,8 @@ const Transactions = () => {
               </div>
 
               <div>
-                <Label htmlFor="amount" className="text-[#FEF3C7]">Jumlah</Label>
+                <Label htmlFor="amount" className="text-[#FEF3C7]">Jumlah *</Label>
                 <Input
-                  data-testid="transaction-amount-input"
                   type="number"
                   step="0.01"
                   value={formData.amount}
@@ -504,9 +630,8 @@ const Transactions = () => {
               </div>
 
               <div>
-                <Label htmlFor="exchange_rate" className="text-[#FEF3C7]">Kurs (IDR)</Label>
+                <Label htmlFor="exchange_rate" className="text-[#FEF3C7]">Kurs (IDR) *</Label>
                 <Input
-                  data-testid="transaction-rate-input"
                   type="number"
                   step="0.01"
                   value={formData.exchange_rate}
@@ -524,28 +649,34 @@ const Transactions = () => {
                     : 'Rp 0'}
                 </div>
               </div>
-            </div>
 
-            <div>
-              <Label htmlFor="notes" className="text-[#FEF3C7]">Catatan</Label>
-              <Input
-                data-testid="transaction-notes-input"
-                type="text"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                placeholder="Catatan tambahan (opsional)"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="delivery_channel" className="text-[#FEF3C7]">Delivery Channel</Label>
+                <Label className="text-[#FEF3C7]">Tujuan Transaksi</Label>
+                <Select
+                  value={formData.transaction_purpose}
+                  onValueChange={(value) => setFormData({ ...formData, transaction_purpose: value })}
+                >
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue placeholder="Pilih tujuan" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#064E3B] border-white/10">
+                    <SelectItem value="traveling" className="text-[#FEF3C7]">Traveling</SelectItem>
+                    <SelectItem value="bisnis" className="text-[#FEF3C7]">Bisnis</SelectItem>
+                    <SelectItem value="pendidikan" className="text-[#FEF3C7]">Pendidikan</SelectItem>
+                    <SelectItem value="investasi" className="text-[#FEF3C7]">Investasi</SelectItem>
+                    <SelectItem value="keluarga" className="text-[#FEF3C7]">Kiriman Keluarga</SelectItem>
+                    <SelectItem value="lainnya" className="text-[#FEF3C7]">Lainnya</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-[#FEF3C7]">Delivery Channel</Label>
                 <Select
                   value={formData.delivery_channel}
                   onValueChange={(value) => setFormData({ ...formData, delivery_channel: value })}
                 >
-                  <SelectTrigger data-testid="transaction-delivery-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
@@ -557,12 +688,12 @@ const Transactions = () => {
               </div>
 
               <div>
-                <Label htmlFor="payment_method" className="text-[#FEF3C7]">Metode Pembayaran</Label>
+                <Label className="text-[#FEF3C7]">Metode Pembayaran</Label>
                 <Select
                   value={formData.payment_method}
                   onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
                 >
-                  <SelectTrigger data-testid="transaction-payment-select" className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#064E3B] border-white/10">
@@ -573,26 +704,27 @@ const Transactions = () => {
               </div>
             </div>
 
+            <div>
+              <Label className="text-[#FEF3C7]">Catatan</Label>
+              <Input
+                type="text"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                placeholder="Catatan tambahan (opsional)"
+              />
+            </div>
+
             <div className="flex gap-3 pt-4">
-              <Button 
-                type="button"
-                onClick={(e) => handleSubmit(e, false)}
-                data-testid="transaction-save-button" 
-                className="btn-primary flex-1"
-              >
-                Simpan
+              <Button type="button" onClick={(e) => handleSubmit(e, false)} className="btn-primary flex-1">
+                {editingTransaction ? 'Perbarui' : 'Simpan'}
               </Button>
-              <Button 
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                data-testid="transaction-print-save-button" 
-                className="btn-primary flex-1 flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Cetak dan Simpan
-              </Button>
+              {!editingTransaction && (
+                <Button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                  <Printer size={18} />
+                  Cetak & Simpan
+                </Button>
+              )}
               <Button type="button" onClick={() => { setShowDialog(false); resetForm(); }} className="btn-secondary flex-1">
                 Batal
               </Button>
@@ -623,7 +755,7 @@ const Transactions = () => {
                 <div>
                   <p className="text-[#6EE7B7] text-sm">Tanggal</p>
                   <p className="text-[#FEF3C7] font-semibold">
-                    {format(new Date(selectedTransaction.transaction_date), 'dd MMMM yyyy', { locale: localeId })}
+                    {format(new Date(selectedTransaction.transaction_date), 'dd MMMM yyyy HH:mm', { locale: localeId })}
                   </p>
                 </div>
                 <div>
@@ -635,9 +767,13 @@ const Transactions = () => {
                   <p className="text-[#FEF3C7] font-semibold">{selectedTransaction.customer_name}</p>
                 </div>
                 <div>
+                  <p className="text-[#6EE7B7] text-sm">Teller</p>
+                  <p className="text-[#FEF3C7] font-semibold">{selectedTransaction.accountant_name || '-'}</p>
+                </div>
+                <div>
                   <p className="text-[#6EE7B7] text-sm">Tipe Transaksi</p>
-                  <p className="text-[#FEF3C7] font-semibold capitalize">
-                    {selectedTransaction.transaction_type === 'beli' ? 'Beli (Kami Beli)' : 'Jual (Kami Jual)'}
+                  <p className="text-[#FEF3C7] font-semibold">
+                    {selectedTransaction.transaction_type === 'beli' || selectedTransaction.transaction_type === 'buy' ? 'Beli' : 'Jual'}
                   </p>
                 </div>
                 <div>
@@ -646,22 +782,22 @@ const Transactions = () => {
                 </div>
                 <div>
                   <p className="text-[#6EE7B7] text-sm">Jumlah</p>
-                  <p className="text-[#FEF3C7] font-semibold mono">
-                    {selectedTransaction.amount.toLocaleString('id-ID')}
-                  </p>
+                  <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.amount.toLocaleString('id-ID')}</p>
                 </div>
                 <div>
                   <p className="text-[#6EE7B7] text-sm">Kurs (IDR)</p>
-                  <p className="text-[#FEF3C7] font-semibold mono">
-                    {selectedTransaction.exchange_rate.toLocaleString('id-ID')}
-                  </p>
+                  <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.exchange_rate.toLocaleString('id-ID')}</p>
                 </div>
                 <div>
                   <p className="text-[#6EE7B7] text-sm">Total (IDR)</p>
-                  <p className="text-[#D4AF37] font-bold mono text-xl">
-                    {formatCurrency(selectedTransaction.total_idr)}
-                  </p>
+                  <p className="text-[#D4AF37] font-bold mono text-xl">{formatCurrency(selectedTransaction.total_idr)}</p>
                 </div>
+                {selectedTransaction.transaction_purpose && (
+                  <div>
+                    <p className="text-[#6EE7B7] text-sm">Tujuan Transaksi</p>
+                    <p className="text-[#FEF3C7] font-semibold capitalize">{selectedTransaction.transaction_purpose}</p>
+                  </div>
+                )}
                 {selectedTransaction.delivery_channel && (
                   <div>
                     <p className="text-[#6EE7B7] text-sm">Delivery Channel</p>
@@ -674,9 +810,7 @@ const Transactions = () => {
                 {selectedTransaction.payment_method && (
                   <div>
                     <p className="text-[#6EE7B7] text-sm">Metode Pembayaran</p>
-                    <p className="text-[#FEF3C7] font-semibold">
-                      {selectedTransaction.payment_method === 'cash' ? 'Cash' : 'Transfer'}
-                    </p>
+                    <p className="text-[#FEF3C7] font-semibold">{selectedTransaction.payment_method === 'cash' ? 'Cash' : 'Transfer'}</p>
                   </div>
                 )}
               </div>
@@ -686,6 +820,17 @@ const Transactions = () => {
                   <p className="text-[#FEF3C7]">{selectedTransaction.notes}</p>
                 </div>
               )}
+              <div className="flex gap-3 pt-4">
+                {(user?.role === 'admin' || user?.role === 'kasir') && (
+                  <Button onClick={() => printTransaction(selectedTransaction)} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                    <Printer size={18} />
+                    Cetak Struk
+                  </Button>
+                )}
+                <Button onClick={() => setShowDetailDialog(false)} className="btn-secondary flex-1">
+                  Tutup
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -721,14 +866,12 @@ const Transactions = () => {
                 <div>
                   <Label className="text-[#FEF3C7]">Nama Lengkap *</Label>
                   <Input
-                    data-testid="quick-customer-name-input"
                     value={quickCustomerForm.name}
                     onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, name: e.target.value })}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
                     required
                   />
                 </div>
-
                 <div>
                   <Label className="text-[#FEF3C7]">Jenis Identitas</Label>
                   <Select 
@@ -745,22 +888,18 @@ const Transactions = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
                   <Label className="text-[#FEF3C7]">No. Identitas *</Label>
                   <Input
-                    data-testid="quick-customer-identity-input"
                     value={quickCustomerForm.identity_number}
                     onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, identity_number: e.target.value })}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
                     required
                   />
                 </div>
-
                 <div>
                   <Label className="text-[#FEF3C7]">Nomor Telepon *</Label>
                   <Input
-                    data-testid="quick-customer-phone-input"
                     value={quickCustomerForm.phone}
                     onChange={(e) => setQuickCustomerForm({ ...quickCustomerForm, phone: e.target.value })}
                     className="bg-black/20 border-white/10 text-[#FEF3C7]"
@@ -779,7 +918,6 @@ const Transactions = () => {
                     required
                   />
                 </div>
-
                 <div>
                   <Label className="text-[#FEF3C7]">NPWP *</Label>
                   <Input
@@ -789,7 +927,6 @@ const Transactions = () => {
                     required
                   />
                 </div>
-
                 <div>
                   <Label className="text-[#FEF3C7]">Telepon PIC *</Label>
                   <Input
@@ -803,7 +940,7 @@ const Transactions = () => {
             )}
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" data-testid="quick-customer-submit-button" className="btn-primary flex-1">
+              <Button type="submit" className="btn-primary flex-1">
                 Simpan Nasabah
               </Button>
               <Button 
