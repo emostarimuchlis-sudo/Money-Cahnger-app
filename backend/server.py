@@ -695,6 +695,10 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     
     customer_name = customer.get("name") or customer.get("entity_name", "")
     
+    # Set transaction date and accounting date (WITA timezone, closes at 24:00 WITA)
+    trx_date = transaction_data.transaction_date or datetime.now(timezone.utc)
+    accounting_date = get_accounting_date_wita()
+    
     transaction = Transaction(
         transaction_number=await generate_transaction_number(transaction_data.transaction_type, customer["branch_id"]),
         voucher_number=transaction_data.voucher_number if transaction_data.voucher_number else None,
@@ -716,7 +720,8 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
         delivery_channel=transaction_data.delivery_channel,
         payment_method=transaction_data.payment_method,
         transaction_purpose=transaction_data.transaction_purpose,
-        transaction_date=transaction_data.transaction_date or datetime.now(timezone.utc)
+        transaction_date=trx_date,
+        accounting_date_wita=accounting_date
     )
     
     transaction_dict = transaction.model_dump()
