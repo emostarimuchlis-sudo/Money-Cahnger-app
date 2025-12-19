@@ -637,6 +637,68 @@ async def get_transaction(transaction_id: str, current_user: User = Depends(get_
         transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
     return Transaction(**transaction)
 
+@api_router.put("/transactions/{transaction_id}", response_model=Transaction)
+async def update_transaction(transaction_id: str, transaction_data: TransactionCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can update transactions")
+    
+    existing = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Get customer and currency info
+    customer = await db.customers.find_one({"id": transaction_data.customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    currency = await db.currencies.find_one({"id": transaction_data.currency_id}, {"_id": 0})
+    if not currency:
+        raise HTTPException(status_code=404, detail="Currency not found")
+    
+    total_idr = transaction_data.amount * transaction_data.exchange_rate
+    customer_name = customer.get("name") or customer.get("entity_name", "")
+    
+    update_data = {
+        "customer_id": transaction_data.customer_id,
+        "customer_name": customer_name,
+        "customer_code": customer.get("customer_code"),
+        "transaction_type": transaction_data.transaction_type,
+        "currency_id": transaction_data.currency_id,
+        "currency_code": currency["code"],
+        "amount": transaction_data.amount,
+        "exchange_rate": transaction_data.exchange_rate,
+        "total_idr": total_idr,
+        "notes": transaction_data.notes,
+        "delivery_channel": transaction_data.delivery_channel,
+        "payment_method": transaction_data.payment_method,
+        "transaction_purpose": transaction_data.transaction_purpose,
+        "voucher_number": transaction_data.voucher_number
+    }
+    
+    await db.transactions.update_one({"id": transaction_id}, {"$set": update_data})
+    
+    updated = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
+    if isinstance(updated.get("created_at"), str):
+        updated["created_at"] = datetime.fromisoformat(updated["created_at"])
+    if isinstance(updated.get("transaction_date"), str):
+        updated["transaction_date"] = datetime.fromisoformat(updated["transaction_date"])
+    return Transaction(**updated)
+
+@api_router.delete("/transactions/{transaction_id}")
+async def delete_transaction(transaction_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can delete transactions")
+    
+    existing = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Also delete related cashbook entry
+    await db.cashbook_entries.delete_one({"reference_id": transaction_id, "reference_type": "transaction"})
+    await db.transactions.delete_one({"id": transaction_id})
+    
+    return {"message": "Transaction deleted successfully"}
+
 # ============= CASHBOOK ENDPOINTS =============
 
 @api_router.get("/cashbook")
