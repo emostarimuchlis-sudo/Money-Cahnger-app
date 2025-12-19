@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Users, Building2, Coins, Plus, Edit, Trash2 } from 'lucide-react';
+import { Users, Building2, Coins, Plus, Edit, Trash2, Settings2, Wallet } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
@@ -17,14 +17,30 @@ const Settings = () => {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showBranchDialog, setShowBranchDialog] = useState(false);
   const [showCurrencyDialog, setShowCurrencyDialog] = useState(false);
+  const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [selectedBranch, setSelectedBranch] = useState(null);
 
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'teller', branch_id: '' });
   const [branchForm, setBranchForm] = useState({ name: '', code: '', address: '', phone: '', is_headquarters: false });
   const [currencyForm, setCurrencyForm] = useState({ code: '', name: '', symbol: '' });
+  const [balanceForm, setBalanceForm] = useState({ opening_balance: 0, currency_balances: {} });
+  
+  // Company Settings
+  const [companySettings, setCompanySettings] = useState({
+    company_name: 'MOZTEC',
+    company_address: '',
+    company_phone: '',
+    company_email: '',
+    company_website: '',
+    company_license: '',
+    company_npwp: '',
+    receipt_footer: 'Terima kasih atas kepercayaan Anda'
+  });
 
   useEffect(() => {
     fetchData();
+    fetchCompanySettings();
   }, []);
 
   const fetchData = async () => {
@@ -41,6 +57,25 @@ const Settings = () => {
       toast.error('Gagal memuat data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await api.get('/settings/company');
+      setCompanySettings(response.data);
+    } catch (error) {
+      console.log('Using default company settings');
+    }
+  };
+
+  const handleCompanySettingsSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put('/settings/company', companySettings);
+      toast.success('Pengaturan perusahaan berhasil disimpan');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal menyimpan pengaturan');
     }
   };
 
@@ -116,6 +151,43 @@ const Settings = () => {
     setEditingItem(null);
   };
 
+  // Balance Management
+  const openBalanceDialog = async (branch) => {
+    setSelectedBranch(branch);
+    try {
+      const response = await api.get(`/branches/${branch.id}/balances`);
+      setBalanceForm({
+        opening_balance: response.data.opening_balance || 0,
+        currency_balances: response.data.currency_balances || {}
+      });
+    } catch (error) {
+      setBalanceForm({ opening_balance: 0, currency_balances: {} });
+    }
+    setShowBalanceDialog(true);
+  };
+
+  const handleBalanceSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/branches/${selectedBranch.id}/balances`, balanceForm);
+      toast.success('Saldo awal berhasil disimpan');
+      setShowBalanceDialog(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal menyimpan saldo');
+    }
+  };
+
+  const updateCurrencyBalance = (currencyCode, value) => {
+    setBalanceForm(prev => ({
+      ...prev,
+      currency_balances: {
+        ...prev.currency_balances,
+        [currencyCode]: parseFloat(value) || 0
+      }
+    }));
+  };
+
   // Currency Management
   const handleCurrencySubmit = async (e) => {
     e.preventDefault();
@@ -152,16 +224,9 @@ const Settings = () => {
     setEditingItem(null);
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="text-[#D4AF37] text-xl">Memuat...</div></div>;
-  }
-
   const handleDownloadBackup = async () => {
     try {
-      const response = await api.get('/backup/download', {
-        responseType: 'blob'
-      });
-      
+      const response = await api.get('/backup/download', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -169,12 +234,19 @@ const Settings = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
       toast.success('Backup berhasil diunduh');
     } catch (error) {
       toast.error('Gagal mengunduh backup');
     }
   };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value || 0);
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="text-[#D4AF37] text-xl">Memuat...</div></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -183,13 +255,9 @@ const Settings = () => {
           <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
             Pengaturan
           </h1>
-          <p className="text-[#D1FAE5] mt-2">Kelola pengguna, cabang, dan mata uang</p>
+          <p className="text-[#D1FAE5] mt-2">Kelola pengguna, cabang, mata uang, dan pengaturan perusahaan</p>
         </div>
-        <Button
-          data-testid="download-backup-button"
-          onClick={handleDownloadBackup}
-          className="btn-primary px-6 py-3 flex items-center gap-2"
-        >
+        <Button onClick={handleDownloadBackup} className="btn-primary px-6 py-3 flex items-center gap-2">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -197,28 +265,115 @@ const Settings = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="glass-card p-1">
-          <TabsTrigger value="users" data-testid="tab-users" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+      <Tabs defaultValue="company" className="space-y-6">
+        <TabsList className="glass-card p-1 flex flex-wrap gap-1">
+          <TabsTrigger value="company" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+            <Settings2 size={18} className="mr-2" /> Perusahaan
+          </TabsTrigger>
+          <TabsTrigger value="users" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
             <Users size={18} className="mr-2" /> Pengguna
           </TabsTrigger>
-          <TabsTrigger value="branches" data-testid="tab-branches" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+          <TabsTrigger value="branches" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
             <Building2 size={18} className="mr-2" /> Cabang
           </TabsTrigger>
-          <TabsTrigger value="currencies" data-testid="tab-currencies" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+          <TabsTrigger value="currencies" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
             <Coins size={18} className="mr-2" /> Mata Uang
           </TabsTrigger>
         </TabsList>
+
+        {/* Company Tab */}
+        <TabsContent value="company">
+          <div className="glass-card rounded-xl p-6">
+            <h2 className="text-xl font-bold text-[#D4AF37] mb-6">Profil Perusahaan</h2>
+            <form onSubmit={handleCompanySettingsSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#FEF3C7]">Nama Perusahaan</Label>
+                  <Input
+                    value={companySettings.company_name}
+                    onChange={(e) => setCompanySettings({...companySettings, company_name: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="MOZTEC Money Changer"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">No. Izin BI</Label>
+                  <Input
+                    value={companySettings.company_license}
+                    onChange={(e) => setCompanySettings({...companySettings, company_license: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="No. xxx/xxx/xxx"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-[#FEF3C7]">Alamat</Label>
+                  <Input
+                    value={companySettings.company_address}
+                    onChange={(e) => setCompanySettings({...companySettings, company_address: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="Jl. Sunset Road No. 123, Denpasar, Bali"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">Telepon</Label>
+                  <Input
+                    value={companySettings.company_phone}
+                    onChange={(e) => setCompanySettings({...companySettings, company_phone: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="+62 361 123456"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">Email</Label>
+                  <Input
+                    value={companySettings.company_email}
+                    onChange={(e) => setCompanySettings({...companySettings, company_email: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="info@moztec.com"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">Website</Label>
+                  <Input
+                    value={companySettings.company_website}
+                    onChange={(e) => setCompanySettings({...companySettings, company_website: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="www.moztec.com"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#FEF3C7]">NPWP</Label>
+                  <Input
+                    value={companySettings.company_npwp}
+                    onChange={(e) => setCompanySettings({...companySettings, company_npwp: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="xx.xxx.xxx.x-xxx.xxx"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-[#FEF3C7]">Footer Struk</Label>
+                  <Input
+                    value={companySettings.receipt_footer}
+                    onChange={(e) => setCompanySettings({...companySettings, receipt_footer: e.target.value})}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                    placeholder="Terima kasih atas kepercayaan Anda"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit" className="btn-primary px-8">
+                  Simpan Pengaturan
+                </Button>
+              </div>
+            </form>
+          </div>
+        </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="users">
           <div className="space-y-4">
             <div className="flex justify-end">
-              <Button
-                data-testid="add-user-button"
-                onClick={() => { resetUserForm(); setShowUserDialog(true); }}
-                className="btn-primary px-6 py-3 flex items-center gap-2"
-              >
+              <Button onClick={() => { resetUserForm(); setShowUserDialog(true); }} className="btn-primary px-6 py-3 flex items-center gap-2">
                 <Plus size={20} /> Tambah Pengguna
               </Button>
             </div>
@@ -234,7 +389,7 @@ const Settings = () => {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
+                    <tr key={user.id} className="border-b border-white/5 hover:bg-white/5">
                       <td className="py-4 px-4 text-[#FEF3C7] font-semibold">{user.name}</td>
                       <td className="py-4 px-4 text-[#FEF3C7]">{user.email}</td>
                       <td className="py-4 px-4">
@@ -244,10 +399,7 @@ const Settings = () => {
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors duration-300 p-2"
-                          >
+                          <button onClick={() => handleDeleteUser(user.id)} className="text-red-400 hover:text-red-300 p-2">
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -264,11 +416,7 @@ const Settings = () => {
         <TabsContent value="branches">
           <div className="space-y-4">
             <div className="flex justify-end">
-              <Button
-                data-testid="add-branch-button"
-                onClick={() => { resetBranchForm(); setShowBranchDialog(true); }}
-                className="btn-primary px-6 py-3 flex items-center gap-2"
-              >
+              <Button onClick={() => { resetBranchForm(); setShowBranchDialog(true); }} className="btn-primary px-6 py-3 flex items-center gap-2">
                 <Plus size={20} /> Tambah Cabang
               </Button>
             </div>
@@ -280,12 +428,13 @@ const Settings = () => {
                     <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Nama</th>
                     <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Alamat</th>
                     <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Telepon</th>
+                    <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Saldo Awal</th>
                     <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {branches.map((branch) => (
-                    <tr key={branch.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
+                    <tr key={branch.id} className="border-b border-white/5 hover:bg-white/5">
                       <td className="py-4 px-4">
                         <span className="mono text-[#D4AF37] font-bold">{branch.code}</span>
                       </td>
@@ -297,18 +446,25 @@ const Settings = () => {
                       </td>
                       <td className="py-4 px-4 text-[#FEF3C7]">{branch.address}</td>
                       <td className="py-4 px-4 text-[#FEF3C7]">{branch.phone}</td>
+                      <td className="py-4 px-4 text-[#6EE7B7] mono font-semibold">
+                        {formatCurrency(branch.opening_balance)}
+                      </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center justify-center gap-2">
                           <button
+                            onClick={() => openBalanceDialog(branch)}
+                            className="text-[#6EE7B7] hover:text-[#A7F3D0] p-2"
+                            title="Atur Saldo Awal"
+                          >
+                            <Wallet size={18} />
+                          </button>
+                          <button
                             onClick={() => { setEditingItem(branch); setBranchForm(branch); setShowBranchDialog(true); }}
-                            className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300 p-2"
+                            className="text-[#D4AF37] hover:text-[#FCD34D] p-2"
                           >
                             <Edit size={18} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteBranch(branch.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors duration-300 p-2"
-                          >
+                          <button onClick={() => handleDeleteBranch(branch.id)} className="text-red-400 hover:text-red-300 p-2">
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -325,11 +481,7 @@ const Settings = () => {
         <TabsContent value="currencies">
           <div className="space-y-4">
             <div className="flex justify-end">
-              <Button
-                data-testid="add-currency-button"
-                onClick={() => { resetCurrencyForm(); setShowCurrencyDialog(true); }}
-                className="btn-primary px-6 py-3 flex items-center gap-2"
-              >
+              <Button onClick={() => { resetCurrencyForm(); setShowCurrencyDialog(true); }} className="btn-primary px-6 py-3 flex items-center gap-2">
                 <Plus size={20} /> Tambah Mata Uang
               </Button>
             </div>
@@ -345,7 +497,7 @@ const Settings = () => {
                 </thead>
                 <tbody>
                   {currencies.map((currency) => (
-                    <tr key={currency.id} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
+                    <tr key={currency.id} className="border-b border-white/5 hover:bg-white/5">
                       <td className="py-4 px-4">
                         <span className="mono text-[#D4AF37] font-bold text-lg">{currency.code}</span>
                       </td>
@@ -355,14 +507,11 @@ const Settings = () => {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => { setEditingItem(currency); setCurrencyForm(currency); setShowCurrencyDialog(true); }}
-                            className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300 p-2"
+                            className="text-[#D4AF37] hover:text-[#FCD34D] p-2"
                           >
                             <Edit size={18} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteCurrency(currency.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors duration-300 p-2"
-                          >
+                          <button onClick={() => handleDeleteCurrency(currency.id)} className="text-red-400 hover:text-red-300 p-2">
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -455,8 +604,57 @@ const Settings = () => {
               <Input value={branchForm.phone} onChange={(e) => setBranchForm({...branchForm, phone: e.target.value})} className="bg-black/20 border-white/10 text-[#FEF3C7]" required />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="submit" data-testid="branch-submit-button" className="btn-primary flex-1">Simpan</Button>
+              <Button type="submit" className="btn-primary flex-1">Simpan</Button>
               <Button type="button" onClick={() => { setShowBranchDialog(false); resetBranchForm(); }} className="btn-secondary flex-1">Batal</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Balance Dialog */}
+      <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]">
+              Saldo Awal - {selectedBranch?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleBalanceSubmit} className="space-y-4 mt-4">
+            <div>
+              <Label className="text-[#FEF3C7]">Saldo Awal IDR (Buku Kas)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={balanceForm.opening_balance}
+                onChange={(e) => setBalanceForm({...balanceForm, opening_balance: parseFloat(e.target.value) || 0})}
+                className="bg-black/20 border-white/10 text-[#FEF3C7]"
+              />
+            </div>
+            
+            <div className="pt-4 border-t border-white/10">
+              <Label className="text-[#D4AF37] text-lg">Saldo Awal Per Mata Uang (Valas)</Label>
+              <p className="text-[#6EE7B7] text-sm mb-4">Untuk perhitungan mutasi valas</p>
+              
+              <div className="space-y-3">
+                {currencies.map((currency) => (
+                  <div key={currency.id} className="flex items-center gap-4">
+                    <span className="mono text-[#D4AF37] font-bold w-16">{currency.code}</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={balanceForm.currency_balances[currency.code] || ''}
+                      onChange={(e) => updateCurrencyBalance(currency.code, e.target.value)}
+                      className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1"
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" className="btn-primary flex-1">Simpan Saldo</Button>
+              <Button type="button" onClick={() => setShowBalanceDialog(false)} className="btn-secondary flex-1">Batal</Button>
             </div>
           </form>
         </DialogContent>
@@ -484,7 +682,7 @@ const Settings = () => {
               <Input value={currencyForm.name} onChange={(e) => setCurrencyForm({...currencyForm, name: e.target.value})} className="bg-black/20 border-white/10 text-[#FEF3C7]" placeholder="US Dollar" required />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="submit" data-testid="currency-submit-button" className="btn-primary flex-1">Simpan</Button>
+              <Button type="submit" className="btn-primary flex-1">Simpan</Button>
               <Button type="button" onClick={() => { setShowCurrencyDialog(false); resetCurrencyForm(); }} className="btn-secondary flex-1">Batal</Button>
             </div>
           </form>
