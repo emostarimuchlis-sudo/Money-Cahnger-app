@@ -128,11 +128,24 @@ const MutasiValasNew = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
-          Mutasi Valas
-        </h1>
-        <p className="text-[#D1FAE5] mt-2">Pencatatan mutasi mata uang asing berdasarkan transaksi</p>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+            Mutasi Valas
+          </h1>
+          <p className="text-[#D1FAE5] mt-2">Pencatatan mutasi mata uang asing berdasarkan transaksi</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={handlePrintTable} className="btn-secondary flex items-center gap-2" disabled={mutasi.length === 0}>
+            <Printer size={18} /> Cetak
+          </Button>
+          <Button onClick={handleExportExcel} className="btn-secondary flex items-center gap-2" disabled={mutasi.length === 0}>
+            <FileSpreadsheet size={18} /> Excel
+          </Button>
+          <Button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2" disabled={mutasi.length === 0}>
+            <FileText size={18} /> PDF
+          </Button>
+        </div>
       </div>
 
       {/* Info Card */}
