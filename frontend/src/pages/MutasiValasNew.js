@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Coins, Calendar } from 'lucide-react';
+import { Coins, Calendar, Printer, FileSpreadsheet, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import { exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
 const MutasiValasNew = () => {
   const { user } = useAuth();
