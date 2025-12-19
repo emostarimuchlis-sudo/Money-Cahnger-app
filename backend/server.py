@@ -893,7 +893,7 @@ async def calculate_mutasi_valas(
     current_user: User = Depends(get_current_user)
 ):
     """Calculate mutasi valas from transactions"""
-    query = {}
+    query = {"is_deleted": {"$ne": True}}  # Exclude soft-deleted transactions
     
     # Branch filter
     if current_user.role != UserRole.ADMIN:
