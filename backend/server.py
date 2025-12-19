@@ -834,7 +834,7 @@ async def delete_transaction(transaction_id: str, current_user: User = Depends(g
 
 @api_router.get("/cashbook")
 async def get_cashbook(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
-    query = {}
+    query = {"is_deleted": {"$ne": True}}  # Exclude soft-deleted entries
     target_branch_id = None
     
     if current_user.role != UserRole.ADMIN:
