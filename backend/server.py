@@ -503,6 +503,21 @@ async def login(credentials: UserLogin):
     
     token = create_access_token({"sub": user["id"], "email": user["email"], "role": user["role"]})
     
+    # Log login activity
+    await log_user_activity(
+        user_id=user["id"],
+        user_name=user["name"],
+        user_email=user["email"],
+        action="login",
+        details="User logged in successfully"
+    )
+    
+    # Update last login time
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}}
+    )
+    
     user_obj = User(**user)
     return {"token": token, "user": user_obj}
 
