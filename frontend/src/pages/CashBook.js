@@ -48,7 +48,7 @@ const CashBook = () => {
     if (selectedBranch || user?.branch_id) {
       fetchCashbook();
     }
-  }, [selectedBranch, user]);
+  }, [selectedBranch, user, periodDate]);
 
   const fetchBranches = async () => {
     try {
