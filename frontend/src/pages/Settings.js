@@ -532,6 +532,11 @@ const Settings = () => {
             </div>
           </div>
         </TabsContent>
+
+        {/* Activity Log Tab */}
+        <TabsContent value="activity">
+          <ActivityLog />
+        </TabsContent>
       </Tabs>
 
       {/* User Dialog */}
