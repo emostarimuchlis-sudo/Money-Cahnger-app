@@ -498,6 +498,78 @@ const CashBook = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Transaction Detail Dialog */}
+      <Dialog open={showTransactionDetail} onOpenChange={setShowTransactionDetail}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]">Detail Transaksi</DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4 mt-4">
+              <div className="bg-emerald-900/30 rounded-lg p-4 border border-emerald-700/50">
+                <p className="text-gray-400 text-sm">No. Transaksi</p>
+                <p className="text-[#D4AF37] font-bold text-lg font-mono">{selectedTransaction.transaction_number}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-gray-400 text-sm">Tanggal</p>
+                  <p className="text-white">{selectedTransaction.transaction_date ? format(new Date(selectedTransaction.transaction_date), 'dd MMMM yyyy HH:mm', { locale: localeId }) : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Tipe</p>
+                  <span className={`px-3 py-1 rounded text-sm font-bold ${
+                    selectedTransaction.transaction_type === 'jual' || selectedTransaction.transaction_type === 'sell'
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {selectedTransaction.transaction_type === 'jual' || selectedTransaction.transaction_type === 'sell' ? 'JUAL' : 'BELI'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Nasabah</p>
+                  <p className="text-white">{selectedTransaction.customer_name}</p>
+                  <p className="text-[#D4AF37] text-sm font-mono">{selectedTransaction.customer_code}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Cabang</p>
+                  <p className="text-white">{selectedTransaction.branch_name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Mata Uang</p>
+                  <p className="text-white font-bold">{selectedTransaction.currency_code}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Jumlah</p>
+                  <p className="text-white font-mono">{new Intl.NumberFormat('id-ID').format(selectedTransaction.amount)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Kurs</p>
+                  <p className="text-white font-mono">{formatCurrency(selectedTransaction.exchange_rate)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Total IDR</p>
+                  <p className="text-[#D4AF37] font-bold text-lg">{formatCurrency(selectedTransaction.total_idr)}</p>
+                </div>
+              </div>
+
+              {selectedTransaction.notes && (
+                <div>
+                  <p className="text-gray-400 text-sm">Catatan</p>
+                  <p className="text-white">{selectedTransaction.notes}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setShowTransactionDetail(false)} className="btn-secondary">
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
