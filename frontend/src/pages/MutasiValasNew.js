@@ -174,8 +174,9 @@ const MutasiValasNew = () => {
         <div className="flex flex-col lg:flex-row gap-4 items-center">
           {/* Period Navigation */}
           <div className="flex items-center gap-2">
-            <Button onClick={() => navigateDay(-1)} className="btn-secondary px-3 py-2">
+            <Button onClick={() => navigateDay(-1)} className="btn-secondary px-4 py-2 flex items-center gap-1">
               <ChevronLeft size={20} />
+              <span className="hidden sm:inline">Sebelumnya</span>
             </Button>
             <div className="flex items-center gap-2 bg-black/20 rounded-lg px-4 py-2 min-w-[280px] justify-center">
               <Calendar size={18} className="text-[#D4AF37]" />
@@ -189,10 +190,11 @@ const MutasiValasNew = () => {
                 {format(new Date(periodDate), 'EEEE', { locale: localeId })}
               </span>
             </div>
-            <Button onClick={() => navigateDay(1)} className="btn-secondary px-3 py-2">
+            <Button onClick={() => navigateDay(1)} className="btn-secondary px-4 py-2 flex items-center gap-1">
+              <span className="hidden sm:inline">Berikutnya</span>
               <ChevronRight size={20} />
             </Button>
-            <Button onClick={() => setPeriodDate(format(new Date(), 'yyyy-MM-dd'))} className="btn-secondary text-sm px-4">
+            <Button onClick={() => setPeriodDate(format(new Date(), 'yyyy-MM-dd'))} className="btn-primary text-sm px-4">
               Hari Ini
             </Button>
           </div>
