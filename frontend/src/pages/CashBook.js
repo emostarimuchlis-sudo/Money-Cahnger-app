@@ -173,6 +173,7 @@ const CashBook = () => {
   // Export columns configuration
   const exportColumns = [
     { header: 'Tanggal', key: 'date', accessor: (row) => formatDateExport(row.date) },
+    { header: 'Referensi', key: 'reference_id', accessor: (row) => row.reference_id || '-' },
     { header: 'Tipe', key: 'entry_type', accessor: (row) => row.entry_type === 'debit' ? 'Debit' : 'Kredit' },
     { header: 'Keterangan', key: 'description' },
     { header: 'Jumlah', key: 'amount', accessor: (row) => formatCurrencyExport(row.amount) }
