@@ -428,6 +428,45 @@ async def generate_transaction_number(transaction_type: str, branch_id: str):
     
     return f"TRX-MBA-{type_indicator}-{seq_number}-{branch_code}-{date_str}"
 
+# Helper function to log user activity
+async def log_user_activity(user_id: str, user_name: str, user_email: str, action: str, details: str = None, ip_address: str = None, user_agent: str = None):
+    """Log user activity to database"""
+    log_entry = UserActivityLog(
+        user_id=user_id,
+        user_name=user_name,
+        user_email=user_email,
+        action=action,
+        details=details,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    log_dict = log_entry.model_dump()
+    log_dict["timestamp"] = log_dict["timestamp"].isoformat()
+    await db.user_activity_logs.insert_one(log_dict)
+
+# Helper function to get SIPESAT period dates
+def get_sipesat_period_dates(year: int, period: int):
+    """Get start and end dates for SIPESAT period"""
+    period_months = {
+        1: (1, 3),   # Jan - Mar
+        2: (4, 6),   # Apr - Jun
+        3: (7, 9),   # Jul - Sep
+        4: (10, 12)  # Oct - Dec
+    }
+    start_month, end_month = period_months[period]
+    start_date = f"{year}-{str(start_month).zfill(2)}-01"
+    
+    # Get last day of end month
+    if end_month in [1, 3, 5, 7, 8, 10, 12]:
+        end_day = 31
+    elif end_month in [4, 6, 9, 11]:
+        end_day = 30
+    else:  # February
+        end_day = 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28
+    
+    end_date = f"{year}-{str(end_month).zfill(2)}-{end_day}"
+    return start_date, end_date
+
 # ============= AUTH ENDPOINTS =============
 
 @api_router.post("/auth/register")
