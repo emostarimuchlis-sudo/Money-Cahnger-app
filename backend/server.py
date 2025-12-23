@@ -297,6 +297,7 @@ class CompanySettings(BaseModel):
     company_website: str = ""
     company_license: str = ""  # Nomor izin BI
     company_npwp: str = ""
+    idpjk: str = ""  # ID Pengguna Jasa Keuangan untuk SIPESAT
     receipt_footer: str = "Terima kasih atas kepercayaan Anda"
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -308,6 +309,7 @@ class CompanySettingsUpdate(BaseModel):
     company_website: Optional[str] = None
     company_license: Optional[str] = None
     company_npwp: Optional[str] = None
+    idpjk: Optional[str] = None
     receipt_footer: Optional[str] = None
 
 # Multi-Currency Transaction Item
