@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { FileText, Download, Calendar, Users, FileSpreadsheet, Printer, Building2 } from 'lucide-react';
+import { FileText, Download, Calendar, Users, FileSpreadsheet, Printer, Building2, Lock, Unlock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -17,17 +16,39 @@ const Reports = () => {
   const { user } = useAuth();
   const [reportData, setReportData] = useState(null);
   const [sipesatData, setSipesatData] = useState(null);
+  const [sipesatStatus, setSipesatStatus] = useState({});
   const [loading, setLoading] = useState(false);
+  const [lockingPeriod, setLockingPeriod] = useState(false);
+  
+  // Transaction report filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  // SIPESAT filters
+  const [sipesatYear, setSipesatYear] = useState(new Date().getFullYear().toString());
+  const [sipesatPeriod, setSipesatPeriod] = useState('');
+  
   const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('all');
   const [companySettings, setCompanySettings] = useState({});
+
+  const periodNames = {
+    '1': 'Periode 1 (Januari - Maret)',
+    '2': 'Periode 2 (April - Juni)',
+    '3': 'Periode 3 (Juli - September)',
+    '4': 'Periode 4 (Oktober - Desember)'
+  };
 
   useEffect(() => {
     fetchBranches();
     fetchCompanySettings();
   }, []);
+
+  useEffect(() => {
+    if (sipesatYear) {
+      fetchSipesatStatus();
+    }
+  }, [sipesatYear, selectedBranch]);
 
   const fetchBranches = async () => {
     try {
@@ -44,6 +65,20 @@ const Reports = () => {
       setCompanySettings(response.data);
     } catch (error) {
       console.log('Using default company settings');
+    }
+  };
+
+  const fetchSipesatStatus = async () => {
+    try {
+      const response = await api.get('/reports/sipesat/status', {
+        params: { 
+          year: parseInt(sipesatYear), 
+          branch_id: selectedBranch === 'all' ? undefined : selectedBranch 
+        }
+      });
+      setSipesatStatus(response.data);
+    } catch (error) {
+      console.error('Failed to fetch SIPESAT status');
     }
   };
 
@@ -68,15 +103,19 @@ const Reports = () => {
   };
 
   const fetchSipesat = async () => {
-    if (!startDate || !endDate) {
-      toast.error('Pilih tanggal mulai dan tanggal akhir');
+    if (!sipesatYear || !sipesatPeriod) {
+      toast.error('Pilih tahun dan periode');
       return;
     }
 
     setLoading(true);
     try {
       const response = await api.get('/reports/sipesat', {
-        params: { start_date: startDate, end_date: endDate, branch_id: selectedBranch === 'all' ? undefined : selectedBranch }
+        params: { 
+          year: parseInt(sipesatYear), 
+          period: parseInt(sipesatPeriod), 
+          branch_id: selectedBranch === 'all' ? undefined : selectedBranch 
+        }
       });
       setSipesatData(response.data);
       toast.success('Data SIPESAT berhasil dimuat');
@@ -84,6 +123,35 @@ const Reports = () => {
       toast.error('Gagal memuat data SIPESAT');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const lockSipesatPeriod = async () => {
+    if (!sipesatYear || !sipesatPeriod) {
+      toast.error('Pilih tahun dan periode terlebih dahulu');
+      return;
+    }
+
+    if (!window.confirm(`Apakah Anda yakin ingin mengunci ${periodNames[sipesatPeriod]} ${sipesatYear}?\n\nSetelah dikunci, data tidak dapat diubah dan nasabah tidak akan muncul di periode berikutnya.`)) {
+      return;
+    }
+
+    setLockingPeriod(true);
+    try {
+      const response = await api.post('/reports/sipesat/lock', null, {
+        params: { 
+          year: parseInt(sipesatYear), 
+          period: parseInt(sipesatPeriod), 
+          branch_id: selectedBranch === 'all' ? undefined : selectedBranch 
+        }
+      });
+      toast.success(response.data.message);
+      fetchSipesatStatus();
+      fetchSipesat();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal mengunci periode');
+    } finally {
+      setLockingPeriod(false);
     }
   };
 
@@ -129,7 +197,7 @@ const Reports = () => {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'SIPESAT');
-    XLSX.writeFile(wb, `SIPESAT_${startDate}_${endDate}.xlsx`);
+    XLSX.writeFile(wb, `SIPESAT_${sipesatYear}_P${sipesatPeriod}.xlsx`);
     toast.success('Data SIPESAT berhasil diekspor ke Excel');
   };
 
@@ -170,6 +238,9 @@ const Reports = () => {
     .header h1 { font-size: 14px; color: #1e3a5f; margin-bottom: 3px; }
     .header .subtitle { font-size: 11px; color: #666; }
     .header .company { font-size: 12px; font-weight: bold; color: #d4af37; margin-bottom: 5px; }
+    .header .status { font-size: 10px; margin-top: 5px; padding: 3px 8px; display: inline-block; border-radius: 4px; }
+    .header .status.locked { background: #10B981; color: white; }
+    .header .status.draft { background: #F59E0B; color: white; }
     table { width: 100%; border-collapse: collapse; }
     th { background: #1e3a5f; color: white; padding: 6px 4px; text-align: left; font-size: 8px; }
     td { padding: 5px 4px; border-bottom: 1px solid #ddd; font-size: 8px; }
@@ -183,7 +254,10 @@ const Reports = () => {
   <div class="header">
     <div class="company">${companySettings.company_name || 'Mulia Bali Valuta'}</div>
     <h1>SIPESAT - Sistem Informasi Pengguna Jasa Terpadu</h1>
-    <div class="subtitle">Periode: ${startDate} s/d ${endDate}</div>
+    <div class="subtitle">${sipesatData.summary.periode}</div>
+    <div class="status ${sipesatData.is_locked ? 'locked' : 'draft'}">
+      ${sipesatData.is_locked ? '🔒 TERKUNCI' : '📝 DRAFT'}
+    </div>
   </div>
   
   <table>
@@ -209,11 +283,12 @@ const Reports = () => {
   <div class="summary">
     <strong>Ringkasan:</strong> ${sipesatData.summary.total_nasabah} Nasabah 
     (Perorangan: ${sipesatData.summary.perorangan}, Badan Usaha: ${sipesatData.summary.badan_usaha})
+    ${sipesatData.summary.previously_reported ? `<br/><em>Nasabah sudah dilaporkan di periode sebelumnya: ${sipesatData.summary.previously_reported}</em>` : ''}
   </div>
   
   <div class="footer">
     Dicetak pada: ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: localeId })} | 
-    Dokumen ini sah tanpa tanda tangan
+    ${sipesatData.is_locked ? `Dikunci oleh: ${sipesatData.locked_by_name} pada ${format(new Date(sipesatData.locked_at), 'dd MMM yyyy HH:mm', { locale: localeId })}` : 'Status: Draft - Belum Dikunci'}
   </div>
   
   <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
@@ -241,6 +316,13 @@ const Reports = () => {
         { name: 'Penjualan', value: reportData.summary.total_sell },
       ]
     : [];
+
+  // Generate year options (current year - 5 to current year + 1)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [];
+  for (let y = currentYear - 5; y <= currentYear + 1; y++) {
+    yearOptions.push(y);
+  }
 
   return (
     <div className="space-y-6">
@@ -274,20 +356,20 @@ const Reports = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label className="text-[#FEF3C7]">Tanggal Mulai</Label>
-                <Input
+                <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  className="w-full bg-black/20 border border-white/10 text-[#FEF3C7] rounded-md px-3 py-2"
                 />
               </div>
               <div>
                 <Label className="text-[#FEF3C7]">Tanggal Akhir</Label>
-                <Input
+                <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                  className="w-full bg-black/20 border border-white/10 text-[#FEF3C7] rounded-md px-3 py-2"
                 />
               </div>
               {user?.role === 'admin' && (
@@ -392,7 +474,51 @@ const Reports = () => {
             </h4>
             <p className="text-gray-300 text-sm">
               Laporan ini berisi data nasabah yang melakukan transaksi pada periode tertentu sesuai format pelaporan Bank Indonesia.
+              <br />
+              <span className="text-amber-400">• Nasabah yang sudah dilaporkan pada periode sebelumnya tidak akan muncul lagi di periode berikutnya.</span>
+              <br />
+              <span className="text-emerald-400">• Gunakan tombol "Kunci Periode" untuk memfinalisasi data agar tidak berubah.</span>
             </p>
+          </div>
+
+          {/* Period Status Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map((p) => {
+              const status = sipesatStatus[p] || { locked: false };
+              const periodLabel = ['Jan-Mar', 'Apr-Jun', 'Jul-Sep', 'Okt-Des'][p - 1];
+              return (
+                <div 
+                  key={p} 
+                  className={`glass-card rounded-lg p-4 border-2 transition-all ${
+                    status.locked 
+                      ? 'border-emerald-500/50 bg-emerald-900/20' 
+                      : 'border-amber-500/30 bg-amber-900/10'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[#FEF3C7] font-semibold">P{p}</span>
+                    {status.locked ? (
+                      <Lock size={16} className="text-emerald-400" />
+                    ) : (
+                      <Unlock size={16} className="text-amber-400" />
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-xs">{periodLabel}</p>
+                  {status.locked ? (
+                    <div className="mt-2">
+                      <p className="text-emerald-400 text-xs flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Terkunci
+                      </p>
+                      <p className="text-gray-500 text-xs">{status.customer_count} nasabah</p>
+                    </div>
+                  ) : (
+                    <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
+                      <AlertCircle size={12} /> Belum dikunci
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Filter Section */}
@@ -401,24 +527,33 @@ const Reports = () => {
               <Calendar className="inline mr-2" size={24} />
               Periode Laporan SIPESAT
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
-                <Label className="text-[#FEF3C7]">Tanggal Mulai</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                />
+                <Label className="text-[#FEF3C7]">Tahun</Label>
+                <Select value={sipesatYear} onValueChange={setSipesatYear}>
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue placeholder="Pilih Tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map(y => (
+                      <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label className="text-[#FEF3C7]">Tanggal Akhir</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
-                />
+                <Label className="text-[#FEF3C7]">Periode</Label>
+                <Select value={sipesatPeriod} onValueChange={setSipesatPeriod}>
+                  <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                    <SelectValue placeholder="Pilih Periode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Periode 1 (Jan - Mar)</SelectItem>
+                    <SelectItem value="2">Periode 2 (Apr - Jun)</SelectItem>
+                    <SelectItem value="3">Periode 3 (Jul - Sep)</SelectItem>
+                    <SelectItem value="4">Periode 4 (Okt - Des)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {user?.role === 'admin' && (
                 <div>
@@ -441,14 +576,55 @@ const Reports = () => {
                   {loading ? 'Memuat...' : 'Generate SIPESAT'}
                 </Button>
               </div>
+              {user?.role === 'admin' && sipesatData && !sipesatData.is_locked && (
+                <div className="flex items-end">
+                  <Button 
+                    onClick={lockSipesatPeriod} 
+                    disabled={lockingPeriod || !sipesatData?.data?.length} 
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2"
+                  >
+                    <Lock size={16} />
+                    {lockingPeriod ? 'Mengunci...' : 'Kunci Periode'}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* SIPESAT Data */}
           {sipesatData && (
             <>
+              {/* Status Banner */}
+              <div className={`rounded-lg p-4 mb-6 flex items-center gap-3 ${
+                sipesatData.is_locked 
+                  ? 'bg-emerald-900/30 border border-emerald-500/50' 
+                  : 'bg-amber-900/30 border border-amber-500/50'
+              }`}>
+                {sipesatData.is_locked ? (
+                  <>
+                    <Lock size={24} className="text-emerald-400" />
+                    <div>
+                      <p className="text-emerald-400 font-semibold">Periode Terkunci</p>
+                      <p className="text-gray-400 text-sm">
+                        Dikunci oleh {sipesatData.locked_by_name} pada {format(new Date(sipesatData.locked_at), 'dd MMMM yyyy HH:mm', { locale: localeId })}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Unlock size={24} className="text-amber-400" />
+                    <div>
+                      <p className="text-amber-400 font-semibold">Status: Draft</p>
+                      <p className="text-gray-400 text-sm">
+                        Data belum dikunci. Klik "Kunci Periode" untuk memfinalisasi data.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
               {/* Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="glass-card rounded-xl p-4 text-center">
                   <p className="text-[#6EE7B7] text-sm mb-1">Total Nasabah</p>
                   <p className="text-2xl font-bold text-[#FEF3C7]">{sipesatData.summary.total_nasabah}</p>
@@ -461,6 +637,13 @@ const Reports = () => {
                   <p className="text-[#6EE7B7] text-sm mb-1">Badan Usaha (2)</p>
                   <p className="text-2xl font-bold text-emerald-400">{sipesatData.summary.badan_usaha}</p>
                 </div>
+                {sipesatData.summary.previously_reported > 0 && (
+                  <div className="glass-card rounded-xl p-4 text-center bg-gray-800/50">
+                    <p className="text-gray-400 text-sm mb-1">Sudah Dilaporkan</p>
+                    <p className="text-2xl font-bold text-gray-500">{sipesatData.summary.previously_reported}</p>
+                    <p className="text-gray-500 text-xs">periode sebelumnya</p>
+                  </div>
+                )}
               </div>
 
               {/* Table */}
@@ -502,7 +685,7 @@ const Reports = () => {
                       )) : (
                         <tr>
                           <td colSpan="10" className="py-8 text-center text-gray-500">
-                            Tidak ada data untuk periode ini
+                            Tidak ada data nasabah baru untuk periode ini
                           </td>
                         </tr>
                       )}
