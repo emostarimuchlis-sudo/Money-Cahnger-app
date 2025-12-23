@@ -20,6 +20,8 @@ const CashBook = () => {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showTransactionDetail, setShowTransactionDetail] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [companySettings, setCompanySettings] = useState({});
   
   // Filter states
@@ -27,6 +29,8 @@ const CashBook = () => {
   const [filterTransactionType, setFilterTransactionType] = useState('all'); // all, pembelian, penjualan
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
+  // Period date for daily view
+  const [periodDate, setPeriodDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   
   const [formData, setFormData] = useState({
     entry_type: 'debit',
