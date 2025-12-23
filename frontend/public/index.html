@@ -20,6 +20,7 @@
         <style>
             #emergent-badge, 
             a[href*="emergent.sh"][id="emergent-badge"],
+            a[href*="emergent-badge"],
             [id="emergent-badge"] {
                 display: none !important;
                 visibility: hidden !important;
@@ -29,8 +30,43 @@
                 height: 0 !important;
                 position: absolute !important;
                 left: -9999px !important;
+                top: -9999px !important;
             }
         </style>
+        <script>
+            // Remove Emergent badge on load and continuously
+            function hideEmergentBadge() {
+                var badge = document.getElementById('emergent-badge');
+                if (badge) {
+                    badge.style.display = 'none';
+                    badge.style.visibility = 'hidden';
+                    badge.remove();
+                }
+                // Also find by href
+                var badges = document.querySelectorAll('a[href*="emergent"]');
+                badges.forEach(function(b) {
+                    if (b.id === 'emergent-badge' || b.textContent.includes('Emergent')) {
+                        b.style.display = 'none';
+                        b.remove();
+                    }
+                });
+            }
+            // Run immediately, on DOMContentLoaded, on load, and periodically
+            hideEmergentBadge();
+            document.addEventListener('DOMContentLoaded', hideEmergentBadge);
+            window.addEventListener('load', function() {
+                hideEmergentBadge();
+                setTimeout(hideEmergentBadge, 100);
+                setTimeout(hideEmergentBadge, 500);
+                setTimeout(hideEmergentBadge, 1000);
+                setTimeout(hideEmergentBadge, 2000);
+            });
+            // Mutation observer to catch dynamically added badge
+            var observer = new MutationObserver(function(mutations) {
+                hideEmergentBadge();
+            });
+            observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+        </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--
         These two scripts have been added for the Visual Edits, please do not edit or remove them
