@@ -1359,6 +1359,88 @@ async def get_recent_notifications(current_user: User = Depends(get_current_user
     
     return notifications
 
+# ============= SIPESAT (Sistem Informasi Pengguna Jasa Terpadu) =============
+
+@api_router.get("/reports/sipesat")
+async def get_sipesat_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    SIPESAT - Sistem Informasi Pengguna Jasa Terpadu
+    Format: IDPJK, NASABAH (1=perorangan, 2=badan usaha), Nama, Tempat Lahir, 
+            Tanggal Lahir, Alamat, KTP, Identitas Lain, Kepesertaan, NPWP
+    """
+    # Get company settings for IDPJK
+    company_settings = await db.company_settings.find_one({"id": "company_settings"}, {"_id": 0})
+    idpjk = company_settings.get("idpjk", "") if company_settings else ""
+    
+    # Build query for transactions
+    query = {"is_deleted": {"$ne": True}}
+    
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+    
+    if start_date and end_date:
+        query["transaction_date"] = {"$gte": start_date, "$lte": end_date}
+    
+    # Get all transactions in period
+    transactions = await db.transactions.find(query, {"_id": 0}).to_list(10000)
+    
+    # Get unique customer IDs
+    customer_ids = list(set([t.get("customer_id") for t in transactions if t.get("customer_id")]))
+    
+    # Get customer details
+    customers = await db.customers.find({"id": {"$in": customer_ids}}, {"_id": 0}).to_list(10000)
+    customer_map = {c["id"]: c for c in customers}
+    
+    # Build SIPESAT data
+    sipesat_data = []
+    processed_customers = set()
+    
+    for txn in transactions:
+        customer_id = txn.get("customer_id")
+        if not customer_id or customer_id in processed_customers:
+            continue
+        
+        processed_customers.add(customer_id)
+        customer = customer_map.get(customer_id, {})
+        
+        if not customer:
+            continue
+        
+        is_perorangan = customer.get("customer_type") == "perorangan"
+        
+        # Build record
+        record = {
+            "idpjk": idpjk,
+            "jenis_nasabah": 1 if is_perorangan else 2,  # 1=perorangan, 2=badan usaha
+            "nama": customer.get("name") if is_perorangan else customer.get("entity_name", ""),
+            "tempat_lahir": customer.get("birth_place", "") if is_perorangan else "",
+            "tanggal_lahir": customer.get("birth_date", "") if is_perorangan else "",
+            "alamat": customer.get("domicile_address") or customer.get("id_address") or customer.get("entity_address", ""),
+            "ktp": customer.get("identity_number", "") if is_perorangan and customer.get("identity_type") == "KTP" else "",
+            "identitas_lain": customer.get("identity_number", "") if is_perorangan and customer.get("identity_type") != "KTP" else (customer.get("npwp", "") if not is_perorangan else ""),
+            "kepesertaan": customer.get("customer_code", ""),  # Kode nasabah di aplikasi
+            "npwp": customer.get("npwp", "") if not is_perorangan else ""
+        }
+        
+        sipesat_data.append(record)
+    
+    return {
+        "data": sipesat_data,
+        "summary": {
+            "total_nasabah": len(sipesat_data),
+            "perorangan": sum(1 for d in sipesat_data if d["jenis_nasabah"] == 1),
+            "badan_usaha": sum(1 for d in sipesat_data if d["jenis_nasabah"] == 2),
+            "periode": f"{start_date or 'Semua'} - {end_date or 'Semua'}"
+        }
+    }
+
 # ============= DATABASE BACKUP =============
 
 @api_router.get("/backup/download")
