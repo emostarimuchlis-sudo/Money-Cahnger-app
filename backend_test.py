@@ -221,25 +221,50 @@ class MBAMoneyChangerTester:
         return success1 and success2 and success3
 
     def test_mutasi_valas_calculate(self):
-        """Test Mutasi Valas calculation with new logic"""
-        # Test with last 30 days
-        end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        
-        success, response = self.run_test(
-            "Mutasi Valas Calculate (New Logic)",
+        """Test Mutasi Valas calculation with period-based logic"""
+        # Test with period_date (today)
+        today = datetime.now().strftime('%Y-%m-%d')
+        success1, response1 = self.run_test(
+            "Mutasi Valas Calculate - Period Date (Today)",
             "GET",
-            f"mutasi-valas/calculate?start_date={start_date}&end_date={end_date}",
+            f"mutasi-valas/calculate?period_date={today}",
             200
         )
-        if success:
-            print(f"   Found {len(response)} currency mutations")
-            for mutation in response[:3]:  # Show first 3
+        if success1:
+            print(f"   Period {today}: Found {len(response1)} currency mutations")
+            for mutation in response1[:3]:  # Show first 3
                 print(f"   {mutation.get('currency_code')}: Stock Awal {mutation.get('beginning_stock_valas', 0)}, "
                       f"Stock Akhir {mutation.get('ending_stock_valas', 0)}, "
                       f"Avg Rate {mutation.get('avg_rate', 0)}, "
                       f"P/L {mutation.get('profit_loss', 0)}")
-        return success
+        
+        # Test with period_date (yesterday)
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        success2, response2 = self.run_test(
+            "Mutasi Valas Calculate - Period Date (Yesterday)",
+            "GET",
+            f"mutasi-valas/calculate?period_date={yesterday}",
+            200
+        )
+        if success2:
+            print(f"   Period {yesterday}: Found {len(response2)} currency mutations")
+            for mutation in response2[:2]:  # Show first 2
+                print(f"   {mutation.get('currency_code')}: Stock Awal {mutation.get('beginning_stock_valas', 0)}, "
+                      f"Stock Akhir {mutation.get('ending_stock_valas', 0)}")
+        
+        # Test with date range (backward compatibility)
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        success3, response3 = self.run_test(
+            "Mutasi Valas Calculate - Date Range (Backward Compatible)",
+            "GET",
+            f"mutasi-valas/calculate?start_date={start_date}&end_date={end_date}",
+            200
+        )
+        if success3:
+            print(f"   Date Range {start_date} to {end_date}: Found {len(response3)} currency mutations")
+        
+        return success1 and success2 and success3
 
     def test_reports_transactions(self):
         """Test transaction reports"""
