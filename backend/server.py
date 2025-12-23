@@ -992,7 +992,6 @@ async def calculate_mutasi_valas(
             prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
             prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
             prev_sell_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
-            prev_sell_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
             
             prev_ending_valas = initial_valas + prev_buy_valas - prev_sell_valas
             
