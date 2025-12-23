@@ -1,40 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Coins, Calendar, Printer, FileSpreadsheet, FileText } from 'lucide-react';
+import { Coins, Calendar, Printer, FileSpreadsheet, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import { exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 
 const MutasiValasNew = () => {
   const { user } = useAuth();
   const [mutasi, setMutasi] = useState([]);
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [companySettings, setCompanySettings] = useState({});
+  
+  // Period date for daily view
+  const [periodDate, setPeriodDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   useEffect(() => {
     fetchCompanySettings();
     fetchBranches();
-    // Set default dates (last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
-    setEndDate(today.toISOString().split('T')[0]);
   }, []);
 
   useEffect(() => {
-    if (startDate && endDate) {
+    if (periodDate) {
       fetchMutasi();
     }
-  }, [selectedBranch, startDate, endDate, user]);
+  }, [selectedBranch, periodDate, user]);
 
   const fetchBranches = async () => {
     try {
@@ -63,13 +60,20 @@ const MutasiValasNew = () => {
     setLoading(true);
     try {
       const branchParam = user?.role === 'admin' && selectedBranch ? `&branch_id=${selectedBranch}` : '';
-      const response = await api.get(`/mutasi-valas/calculate?start_date=${startDate}&end_date=${endDate}${branchParam}`);
+      const response = await api.get(`/mutasi-valas/calculate?period_date=${periodDate}${branchParam}`);
       setMutasi(response.data);
     } catch (error) {
       toast.error('Gagal memuat mutasi valas');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Navigate to previous/next day
+  const navigateDay = (direction) => {
+    const current = new Date(periodDate);
+    current.setDate(current.getDate() + direction);
+    setPeriodDate(format(current, 'yyyy-MM-dd'));
   };
 
   const formatCurrency = (value) => {
@@ -103,12 +107,21 @@ const MutasiValasNew = () => {
   ];
 
   const handleExportExcel = () => {
-    exportToExcel(mutasi, exportColumns, 'Mutasi_Valas');
+    if (mutasi.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+    exportToExcel(mutasi, exportColumns, `Mutasi_Valas_${periodDate}`);
     toast.success('Export Excel berhasil');
   };
 
   const handleExportPDF = () => {
-    exportToPDF(mutasi, exportColumns, 'Mutasi_Valas', `Laporan Mutasi Valas (${startDate} - ${endDate})`, {
+    if (mutasi.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+    const formattedDate = format(new Date(periodDate), 'dd MMMM yyyy', { locale: localeId });
+    exportToPDF(mutasi, exportColumns, `Mutasi_Valas_${periodDate}`, `Laporan Mutasi Valas - ${formattedDate}`, {
       name: companySettings.company_name || 'Mulia Bali Valuta',
       address: companySettings.company_address || '',
       phone: companySettings.company_phone || ''
@@ -117,13 +130,21 @@ const MutasiValasNew = () => {
   };
 
   const handlePrintTable = () => {
-    printTable(mutasi, exportColumns, `Laporan Mutasi Valas (${startDate} - ${endDate})`, {
+    if (mutasi.length === 0) {
+      toast.error('Tidak ada data untuk dicetak');
+      return;
+    }
+    const formattedDate = format(new Date(periodDate), 'dd MMMM yyyy', { locale: localeId });
+    printTable(mutasi, exportColumns, `Laporan Mutasi Valas - ${formattedDate}`, {
       name: companySettings.company_name || 'Mulia Bali Valuta',
       address: companySettings.company_address || '',
       phone: companySettings.company_phone || '',
       footer: companySettings.receipt_footer || 'Terima kasih'
     });
   };
+
+  // Check if there's any transaction for the period
+  const hasTransactions = mutasi.some(item => item.transaction_count > 0);
 
   return (
     <div className="space-y-6">
@@ -133,7 +154,7 @@ const MutasiValasNew = () => {
           <h1 className="text-4xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
             Mutasi Valas
           </h1>
-          <p className="text-[#D1FAE5] mt-2">Pencatatan mutasi mata uang asing berdasarkan transaksi</p>
+          <p className="text-[#D1FAE5] mt-2">Pencatatan mutasi mata uang asing per hari</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button onClick={handlePrintTable} className="btn-secondary flex items-center gap-2" disabled={mutasi.length === 0}>
@@ -148,53 +169,40 @@ const MutasiValasNew = () => {
         </div>
       </div>
 
-      {/* Info Card */}
+      {/* Period Navigation & Filters */}
       <div className="glass-card rounded-xl p-6">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-[#D4AF37]/20">
-            <Coins className="text-[#D4AF37]" size={32} />
+        <div className="flex flex-col lg:flex-row gap-4 items-center">
+          {/* Period Navigation */}
+          <div className="flex items-center gap-2">
+            <Button onClick={() => navigateDay(-1)} className="btn-secondary px-3 py-2">
+              <ChevronLeft size={20} />
+            </Button>
+            <div className="flex items-center gap-2 bg-black/20 rounded-lg px-4 py-2 min-w-[280px] justify-center">
+              <Calendar size={18} className="text-[#D4AF37]" />
+              <Input 
+                type="date" 
+                value={periodDate} 
+                onChange={(e) => setPeriodDate(e.target.value)}
+                className="bg-transparent border-none text-[#FEF3C7] w-40 text-center"
+              />
+              <span className="text-[#6EE7B7] text-sm hidden md:inline">
+                {format(new Date(periodDate), 'EEEE', { locale: localeId })}
+              </span>
+            </div>
+            <Button onClick={() => navigateDay(1)} className="btn-secondary px-3 py-2">
+              <ChevronRight size={20} />
+            </Button>
+            <Button onClick={() => setPeriodDate(format(new Date(), 'yyyy-MM-dd'))} className="btn-secondary text-sm px-4">
+              Hari Ini
+            </Button>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-[#FEF3C7] mb-2">Tentang Mutasi Valas</h3>
-            <p className="text-[#D1FAE5] leading-relaxed">
-              Mutasi valas dihitung otomatis dari transaksi. <strong>Pembelian</strong> adalah saat kami membeli dari customer (customer jual). 
-              <strong> Penjualan</strong> adalah saat kami jual ke customer (customer beli).
-            </p>
-          </div>
-        </div>
-      </div>
 
-      {/* Filter Section */}
-      <div className="glass-card rounded-xl p-6">
-        <h3 className="text-xl font-bold text-[#FEF3C7] mb-4 flex items-center gap-2">
-          <Calendar size={24} />
-          Filter Periode
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Label className="text-[#FEF3C7]">Tanggal Mulai</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-black/20 border-white/10 text-[#FEF3C7]"
-            />
-          </div>
-          <div>
-            <Label className="text-[#FEF3C7]">Tanggal Akhir</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="bg-black/20 border-white/10 text-[#FEF3C7]"
-            />
-          </div>
+          {/* Branch Selector */}
           {user?.role === 'admin' && branches.length > 0 && (
-            <div>
-              <Label className="text-[#FEF3C7]">Cabang</Label>
+            <div className="w-full lg:w-64">
               <Select value={selectedBranch} onValueChange={setSelectedBranch}>
                 <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
-                  <SelectValue />
+                  <SelectValue placeholder="Pilih Cabang" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#064E3B] border-white/10">
                   {branches.map((branch) => (
@@ -206,137 +214,166 @@ const MutasiValasNew = () => {
               </Select>
             </div>
           )}
-          <div className="flex items-end">
-            <Button
-              onClick={fetchMutasi}
-              disabled={loading || !startDate || !endDate}
-              className="btn-primary w-full"
-            >
-              {loading ? 'Memuat...' : 'Lihat Mutasi'}
-            </Button>
+        </div>
+
+        {/* Current Period Display */}
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <p className="text-[#D4AF37] text-lg font-semibold text-center">
+            Periode: {format(new Date(periodDate), 'dd MMMM yyyy', { locale: localeId })}
+          </p>
+        </div>
+      </div>
+
+      {/* Info Card */}
+      <div className="glass-card rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-[#D4AF37]/20">
+            <Coins className="text-[#D4AF37]" size={24} />
+          </div>
+          <div className="text-sm">
+            <p className="text-[#D1FAE5]">
+              <strong>Saldo Awal</strong> = Saldo Akhir hari sebelumnya. 
+              <strong> Pembelian</strong> = beli dari nasabah. 
+              <strong> Penjualan</strong> = jual ke nasabah.
+            </p>
           </div>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="glass-card rounded-xl p-8 text-center">
+          <p className="text-[#D4AF37] text-lg">Memuat data...</p>
+        </div>
+      )}
+
       {/* Mutasi Table */}
-      <div className="glass-card rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-white/5">
-              <tr>
-                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold" rowSpan="2">Valas</th>
-                <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-l border-r border-white/10" colSpan="2">
-                  Stock Awal
-                </th>
-                <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-r border-white/10" colSpan="2">
-                  Pembelian
-                </th>
-                <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-r border-white/10" colSpan="2">
-                  Penjualan
-                </th>
-                <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-r border-white/10" colSpan="2">
-                  Stock Akhir
-                </th>
-                <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold" rowSpan="2">Avg Rate</th>
-                <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold" rowSpan="2">Laba/Rugi</th>
-              </tr>
-              <tr>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-l border-white/10">Valas</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium">Valas</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium">Valas</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium">Valas</th>
-                <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mutasi.length > 0 ? (
-                mutasi.map((item) => (
-                  <tr key={item.currency_code} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
-                    <td className="py-4 px-4">
-                      <div>
-                        <span className="mono text-[#D4AF37] font-bold text-lg">{item.currency_code}</span>
-                        <p className="text-xs text-[#6EE7B7]">{item.currency_name}</p>
-                      </div>
-                    </td>
-                    
-                    {/* Stock Awal */}
-                    <td className="py-4 px-4 text-center mono text-[#FEF3C7] border-l border-white/10">
-                      {formatCurrency(item.beginning_stock_valas)}
-                    </td>
-                    <td className="py-4 px-4 text-center mono text-[#FEF3C7] border-r border-white/10">
-                      {formatIDR(item.beginning_stock_idr)}
-                    </td>
-                    
-                    {/* Pembelian */}
-                    <td className="py-4 px-4 text-center mono text-emerald-400 font-semibold">
-                      {formatCurrency(item.purchase_valas)}
-                    </td>
-                    <td className="py-4 px-4 text-center mono text-emerald-400 font-semibold border-r border-white/10">
-                      {formatIDR(item.purchase_idr)}
-                    </td>
-                    
-                    {/* Penjualan */}
-                    <td className="py-4 px-4 text-center mono text-red-400 font-semibold">
-                      {formatCurrency(item.sale_valas)}
-                    </td>
-                    <td className="py-4 px-4 text-center mono text-red-400 font-semibold border-r border-white/10">
-                      {formatIDR(item.sale_idr)}
-                    </td>
-                    
-                    {/* Stock Akhir */}
-                    <td className="py-4 px-4 text-center mono text-[#D4AF37] font-bold">
-                      {formatCurrency(item.ending_stock_valas)}
-                    </td>
-                    <td className="py-4 px-4 text-center mono text-[#D4AF37] font-bold border-r border-white/10">
-                      {formatIDR(item.ending_stock_idr)}
-                    </td>
-                    
-                    {/* Avg Rate - Hide if ending stock is 0 */}
-                    <td className="py-4 px-4 text-center mono text-[#FEF3C7]">
-                      {item.ending_stock_valas > 0 ? formatCurrency(item.avg_rate) : '-'}
-                    </td>
-                    
-                    {/* Laba/Rugi */}
-                    <td className="py-4 px-4 text-center mono font-bold">
-                      <span className={item.profit_loss >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        {formatIDR(item.profit_loss)}
-                      </span>
+      {!loading && (
+        <div className="glass-card rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-white/5">
+                <tr>
+                  <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold" rowSpan="2">Valas</th>
+                  <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-l border-r border-white/10" colSpan="2">
+                    Stock Awal
+                  </th>
+                  <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-r border-white/10" colSpan="2">
+                    Pembelian
+                  </th>
+                  <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-r border-white/10" colSpan="2">
+                    Penjualan
+                  </th>
+                  <th className="text-center py-2 px-4 text-[#D4AF37] font-semibold border-r border-white/10" colSpan="2">
+                    Stock Akhir
+                  </th>
+                  <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold" rowSpan="2">Avg Rate</th>
+                  <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold" rowSpan="2">Laba/Rugi</th>
+                </tr>
+                <tr>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-l border-white/10">Valas</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium">Valas</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium">Valas</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium">Valas</th>
+                  <th className="text-center py-2 px-4 text-[#6EE7B7] text-sm font-medium border-r border-white/10">Rupiah</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mutasi.length > 0 ? (
+                  mutasi.map((item) => (
+                    <tr key={item.currency_code} className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300">
+                      <td className="py-4 px-4">
+                        <div>
+                          <span className="mono text-[#D4AF37] font-bold text-lg">{item.currency_code}</span>
+                          <p className="text-xs text-[#6EE7B7]">{item.currency_name}</p>
+                        </div>
+                      </td>
+                      
+                      {/* Stock Awal */}
+                      <td className="py-4 px-4 text-center mono text-[#FEF3C7] border-l border-white/10">
+                        {formatCurrency(item.beginning_stock_valas)}
+                      </td>
+                      <td className="py-4 px-4 text-center mono text-[#FEF3C7] border-r border-white/10">
+                        {formatIDR(item.beginning_stock_idr)}
+                      </td>
+                      
+                      {/* Pembelian */}
+                      <td className="py-4 px-4 text-center mono text-emerald-400 font-semibold">
+                        {item.purchase_valas > 0 ? formatCurrency(item.purchase_valas) : '-'}
+                      </td>
+                      <td className="py-4 px-4 text-center mono text-emerald-400 font-semibold border-r border-white/10">
+                        {item.purchase_idr > 0 ? formatIDR(item.purchase_idr) : '-'}
+                      </td>
+                      
+                      {/* Penjualan */}
+                      <td className="py-4 px-4 text-center mono text-red-400 font-semibold">
+                        {item.sale_valas > 0 ? formatCurrency(item.sale_valas) : '-'}
+                      </td>
+                      <td className="py-4 px-4 text-center mono text-red-400 font-semibold border-r border-white/10">
+                        {item.sale_idr > 0 ? formatIDR(item.sale_idr) : '-'}
+                      </td>
+                      
+                      {/* Stock Akhir */}
+                      <td className="py-4 px-4 text-center mono text-[#D4AF37] font-bold">
+                        {formatCurrency(item.ending_stock_valas)}
+                      </td>
+                      <td className="py-4 px-4 text-center mono text-[#D4AF37] font-bold border-r border-white/10">
+                        {formatIDR(item.ending_stock_idr)}
+                      </td>
+                      
+                      {/* Avg Rate */}
+                      <td className="py-4 px-4 text-center mono text-[#FEF3C7]">
+                        {item.ending_stock_valas > 0 ? formatCurrency(item.avg_rate) : '-'}
+                      </td>
+                      
+                      {/* Laba/Rugi */}
+                      <td className="py-4 px-4 text-center mono font-bold">
+                        <span className={item.profit_loss >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          {item.profit_loss !== 0 ? formatIDR(item.profit_loss) : '-'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="11" className="text-center py-12 text-[#6EE7B7]">
+                      Tidak ada data mata uang aktif
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="11" className="text-center py-12 text-[#6EE7B7]">
-                    {loading ? 'Memuat data...' : 'Tidak ada data mutasi untuk periode yang dipilih'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary */}
       {mutasi.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card rounded-xl p-6">
-            <p className="text-[#6EE7B7] text-sm mb-2">Total Pembelian</p>
-            <p className="text-2xl font-bold text-emerald-400 mono">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="glass-card rounded-xl p-4">
+            <p className="text-[#6EE7B7] text-sm mb-1">Transaksi Hari Ini</p>
+            <p className="text-2xl font-bold text-[#FEF3C7] mono">
+              {mutasi.reduce((sum, item) => sum + item.transaction_count, 0)}
+            </p>
+          </div>
+          <div className="glass-card rounded-xl p-4">
+            <p className="text-[#6EE7B7] text-sm mb-1">Total Pembelian</p>
+            <p className="text-xl font-bold text-emerald-400 mono">
               {formatIDR(mutasi.reduce((sum, item) => sum + item.purchase_idr, 0))}
             </p>
           </div>
-          <div className="glass-card rounded-xl p-6">
-            <p className="text-[#6EE7B7] text-sm mb-2">Total Penjualan</p>
-            <p className="text-2xl font-bold text-red-400 mono">
+          <div className="glass-card rounded-xl p-4">
+            <p className="text-[#6EE7B7] text-sm mb-1">Total Penjualan</p>
+            <p className="text-xl font-bold text-red-400 mono">
               {formatIDR(mutasi.reduce((sum, item) => sum + item.sale_idr, 0))}
             </p>
           </div>
-          <div className="glass-card rounded-xl p-6">
-            <p className="text-[#6EE7B7] text-sm mb-2">Total Laba/Rugi</p>
-            <p className={`text-2xl font-bold mono ${
+          <div className="glass-card rounded-xl p-4">
+            <p className="text-[#6EE7B7] text-sm mb-1">Laba/Rugi Hari Ini</p>
+            <p className={`text-xl font-bold mono ${
               mutasi.reduce((sum, item) => sum + item.profit_loss, 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
             }`}>
               {formatIDR(mutasi.reduce((sum, item) => sum + item.profit_loss, 0))}
