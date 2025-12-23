@@ -350,7 +350,10 @@ def main():
         ("Cashbook (Buku Kas)", tester.test_cashbook),
         ("Mutasi Valas (New Logic)", tester.test_mutasi_valas_calculate),
         ("Transaction Reports", tester.test_reports_transactions),
-        ("SIPESAT Reports (New)", tester.test_reports_sipesat),
+        ("SIPESAT Reports (Period-based)", tester.test_reports_sipesat),
+        ("SIPESAT Status (All Periods)", tester.test_sipesat_status),
+        ("Activity Logs (New Feature)", tester.test_activity_logs),
+        ("Users Online Status (New Feature)", tester.test_users_online_status),
         ("Company Settings", tester.test_company_settings),
     ]
     
