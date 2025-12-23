@@ -239,8 +239,9 @@ const CashBook = () => {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Period Navigation */}
           <div className="flex items-center gap-2">
-            <Button onClick={() => navigateDay(-1)} className="btn-secondary px-3">
-              ←
+            <Button onClick={() => navigateDay(-1)} className="btn-secondary px-4 py-2 flex items-center gap-1">
+              <span>←</span>
+              <span className="hidden sm:inline">Sebelumnya</span>
             </Button>
             <div className="flex items-center gap-2 bg-black/20 rounded-lg px-4 py-2">
               <Calendar size={18} className="text-[#D4AF37]" />
@@ -251,10 +252,11 @@ const CashBook = () => {
                 className="bg-transparent border-none text-[#FEF3C7] w-40"
               />
             </div>
-            <Button onClick={() => navigateDay(1)} className="btn-secondary px-3">
-              →
+            <Button onClick={() => navigateDay(1)} className="btn-secondary px-4 py-2 flex items-center gap-1">
+              <span className="hidden sm:inline">Berikutnya</span>
+              <span>→</span>
             </Button>
-            <Button onClick={() => setPeriodDate(format(new Date(), 'yyyy-MM-dd'))} className="btn-secondary text-sm">
+            <Button onClick={() => setPeriodDate(format(new Date(), 'yyyy-MM-dd'))} className="btn-primary text-sm px-4">
               Hari Ini
             </Button>
           </div>
