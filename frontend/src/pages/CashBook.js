@@ -240,6 +240,28 @@ const CashBook = () => {
       {/* Branch Selector & Filters */}
       <div className="glass-card rounded-xl p-4 space-y-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          {/* Period Navigation */}
+          <div className="flex items-center gap-2">
+            <Button onClick={() => navigateDay(-1)} className="btn-secondary px-3">
+              ←
+            </Button>
+            <div className="flex items-center gap-2 bg-black/20 rounded-lg px-4 py-2">
+              <Calendar size={18} className="text-[#D4AF37]" />
+              <Input 
+                type="date" 
+                value={periodDate} 
+                onChange={(e) => setPeriodDate(e.target.value)}
+                className="bg-transparent border-none text-[#FEF3C7] w-40"
+              />
+            </div>
+            <Button onClick={() => navigateDay(1)} className="btn-secondary px-3">
+              →
+            </Button>
+            <Button onClick={() => setPeriodDate(format(new Date(), 'yyyy-MM-dd'))} className="btn-secondary text-sm">
+              Hari Ini
+            </Button>
+          </div>
+
           {user?.role === 'admin' && (
             <div className="w-full lg:w-64">
               <Label className="text-[#FEF3C7] text-sm">Cabang</Label>
