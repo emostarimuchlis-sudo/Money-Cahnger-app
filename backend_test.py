@@ -229,14 +229,14 @@ class MBAMoneyChangerTester:
         return success
 
     def test_reports_sipesat(self):
-        """Test SIPESAT reports (new feature)"""
-        end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        """Test SIPESAT reports with new period-based system"""
+        # Test with year and period parameters (new system)
+        current_year = datetime.now().year
         
         success, response = self.run_test(
-            "SIPESAT Reports (New Feature)",
+            "SIPESAT Reports (Period-based System)",
             "GET",
-            f"reports/sipesat?start_date={start_date}&end_date={end_date}",
+            f"reports/sipesat?year={current_year}&period=4",
             200
         )
         if success:
@@ -246,6 +246,58 @@ class MBAMoneyChangerTester:
             print(f"   Summary - Total Nasabah: {summary.get('total_nasabah', 0)}")
             print(f"   Summary - Perorangan: {summary.get('perorangan', 0)}")
             print(f"   Summary - Badan Usaha: {summary.get('badan_usaha', 0)}")
+            print(f"   Status: {response.get('status', 'N/A')}")
+            print(f"   Is Locked: {response.get('is_locked', False)}")
+        return success
+
+    def test_sipesat_status(self):
+        """Test SIPESAT status endpoint for all periods"""
+        current_year = datetime.now().year
+        
+        success, response = self.run_test(
+            "SIPESAT Status (All Periods)",
+            "GET",
+            f"reports/sipesat/status?year={current_year}",
+            200
+        )
+        if success:
+            print(f"   Status for year {current_year}:")
+            for period, status in response.items():
+                locked_status = "🔒 Locked" if status.get('locked', False) else "🔓 Unlocked"
+                customer_count = status.get('customer_count', 0)
+                print(f"   Period {period}: {locked_status} ({customer_count} customers)")
+        return success
+
+    def test_activity_logs(self):
+        """Test activity logs endpoint (new feature)"""
+        success, response = self.run_test(
+            "Activity Logs (New Feature)",
+            "GET",
+            "activity-logs?limit=10",
+            200
+        )
+        if success:
+            print(f"   Found {len(response)} activity log entries")
+            for log in response[:3]:  # Show first 3
+                print(f"   {log.get('timestamp', 'N/A')}: {log.get('user_name', 'Unknown')} - {log.get('action', 'Unknown')}")
+        return success
+
+    def test_users_online_status(self):
+        """Test users online status endpoint (new feature)"""
+        success, response = self.run_test(
+            "Users Online Status (New Feature)",
+            "GET",
+            "users/online-status",
+            200
+        )
+        if success:
+            users = response.get('users', [])
+            online_count = response.get('online_count', 0)
+            total_count = response.get('total_count', 0)
+            print(f"   Online Users: {online_count}/{total_count}")
+            for user in users[:3]:  # Show first 3
+                status = "🟢 Online" if user.get('is_online', False) else "🔴 Offline"
+                print(f"   {user.get('name', 'Unknown')}: {status}")
         return success
 
     def test_company_settings(self):
