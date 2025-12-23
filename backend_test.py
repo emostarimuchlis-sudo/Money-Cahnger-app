@@ -171,21 +171,54 @@ class MBAMoneyChangerTester:
         return success
 
     def test_cashbook(self):
-        """Test cashbook endpoint (Buku Kas)"""
-        success, response = self.run_test(
-            "Get Cashbook (Buku Kas)",
+        """Test cashbook endpoint (Buku Kas) - both general and period-specific"""
+        # Test general cashbook
+        success1, response1 = self.run_test(
+            "Get Cashbook (Buku Kas) - General",
             "GET",
             "cashbook",
             200
         )
-        if success:
-            entries = response.get('entries', [])
+        if success1:
+            entries = response1.get('entries', [])
             print(f"   Found {len(entries)} cashbook entries")
-            print(f"   Opening Balance: {response.get('opening_balance', 0)}")
-            print(f"   Total Debit: {response.get('total_debit', 0)}")
-            print(f"   Total Credit: {response.get('total_credit', 0)}")
-            print(f"   Current Balance: {response.get('balance', 0)}")
-        return success
+            print(f"   Opening Balance: {response1.get('opening_balance', 0)}")
+            print(f"   Total Debit: {response1.get('total_debit', 0)}")
+            print(f"   Total Credit: {response1.get('total_credit', 0)}")
+            print(f"   Current Balance: {response1.get('balance', 0)}")
+        
+        # Test period-specific cashbook (today)
+        today = datetime.now().strftime('%Y-%m-%d')
+        success2, response2 = self.run_test(
+            "Get Cashbook (Buku Kas) - Period Specific (Today)",
+            "GET",
+            f"cashbook?period_date={today}",
+            200
+        )
+        if success2:
+            entries = response2.get('entries', [])
+            print(f"   Period {today}: Found {len(entries)} entries")
+            print(f"   Opening Balance: {response2.get('opening_balance', 0)}")
+            print(f"   Total Debit: {response2.get('total_debit', 0)}")
+            print(f"   Total Credit: {response2.get('total_credit', 0)}")
+            print(f"   Closing Balance: {response2.get('balance', 0)}")
+            print(f"   Period Date: {response2.get('period_date', 'N/A')}")
+        
+        # Test period-specific cashbook (yesterday)
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        success3, response3 = self.run_test(
+            "Get Cashbook (Buku Kas) - Period Specific (Yesterday)",
+            "GET",
+            f"cashbook?period_date={yesterday}",
+            200
+        )
+        if success3:
+            entries = response3.get('entries', [])
+            print(f"   Period {yesterday}: Found {len(entries)} entries")
+            print(f"   Opening Balance: {response3.get('opening_balance', 0)}")
+            print(f"   Closing Balance: {response3.get('balance', 0)}")
+        
+        return success1 and success2 and success3
 
     def test_mutasi_valas_calculate(self):
         """Test Mutasi Valas calculation with new logic"""
