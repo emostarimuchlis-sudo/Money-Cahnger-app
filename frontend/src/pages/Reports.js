@@ -56,7 +56,7 @@ const Reports = () => {
     setLoading(true);
     try {
       const response = await api.get('/reports/transactions', {
-        params: { start_date: startDate, end_date: endDate, branch_id: selectedBranch || undefined }
+        params: { start_date: startDate, end_date: endDate, branch_id: selectedBranch === 'all' ? undefined : selectedBranch }
       });
       setReportData(response.data);
       toast.success('Laporan berhasil dibuat');
@@ -76,7 +76,7 @@ const Reports = () => {
     setLoading(true);
     try {
       const response = await api.get('/reports/sipesat', {
-        params: { start_date: startDate, end_date: endDate, branch_id: selectedBranch || undefined }
+        params: { start_date: startDate, end_date: endDate, branch_id: selectedBranch === 'all' ? undefined : selectedBranch }
       });
       setSipesatData(response.data);
       toast.success('Data SIPESAT berhasil dimuat');
