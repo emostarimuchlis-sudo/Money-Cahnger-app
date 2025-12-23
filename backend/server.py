@@ -301,6 +301,34 @@ class CompanySettings(BaseModel):
     receipt_footer: str = "Terima kasih atas kepercayaan Anda"
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# User Activity Log Model
+class UserActivityLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    user_name: str
+    user_email: str
+    action: str  # login, logout, create_transaction, etc.
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# SIPESAT Report Model (for locking periods)
+class SipesatReport(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    year: int
+    period: int  # 1-4 (Q1-Q4)
+    branch_id: Optional[str] = None  # None = all branches
+    status: str = "draft"  # draft, locked
+    customer_ids: List[str] = []  # List of customer IDs reported in this period
+    data: List[dict] = []  # Snapshot of SIPESAT data when locked
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    locked_at: Optional[datetime] = None
+    locked_by: Optional[str] = None
+    locked_by_name: Optional[str] = None
+
 class CompanySettingsUpdate(BaseModel):
     company_name: Optional[str] = None
     company_address: Optional[str] = None
