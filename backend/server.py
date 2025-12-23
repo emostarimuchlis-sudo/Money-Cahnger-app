@@ -1446,36 +1446,88 @@ async def get_recent_notifications(current_user: User = Depends(get_current_user
 
 @api_router.get("/reports/sipesat")
 async def get_sipesat_report(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    year: Optional[int] = None,
+    period: Optional[int] = None,
     branch_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """
     SIPESAT - Sistem Informasi Pengguna Jasa Terpadu
-    Format: IDPJK, NASABAH (1=perorangan, 2=badan usaha), Nama, Tempat Lahir, 
-            Tanggal Lahir, Alamat, KTP, Identitas Lain, Kepesertaan, NPWP
+    Periode: 1 (Jan-Mar), 2 (Apr-Jun), 3 (Jul-Sep), 4 (Oct-Dec)
+    Nasabah hanya dilaporkan sekali - tidak muncul di periode berikutnya
     """
+    if not year or not period:
+        return {"data": [], "summary": {"total_nasabah": 0, "perorangan": 0, "badan_usaha": 0, "periode": ""}, "status": "draft", "is_locked": False}
+    
+    if period < 1 or period > 4:
+        raise HTTPException(status_code=400, detail="Period must be 1-4")
+    
     # Get company settings for IDPJK
     company_settings = await db.company_settings.find_one({"id": "company_settings"}, {"_id": 0})
     idpjk = company_settings.get("idpjk", "") if company_settings else ""
     
-    # Build query for transactions
-    query = {"is_deleted": {"$ne": True}}
-    
+    # Determine branch filter
+    target_branch_id = None
     if current_user.role != UserRole.ADMIN:
-        query["branch_id"] = current_user.branch_id
-    elif branch_id:
-        query["branch_id"] = branch_id
+        target_branch_id = current_user.branch_id
+    elif branch_id and branch_id != "all":
+        target_branch_id = branch_id
     
-    if start_date and end_date:
-        query["transaction_date"] = {"$gte": start_date, "$lte": end_date}
+    # Check if this period is already locked
+    lock_query = {"year": year, "period": period, "status": "locked"}
+    if target_branch_id:
+        lock_query["branch_id"] = target_branch_id
+    else:
+        lock_query["branch_id"] = None
+    
+    locked_report = await db.sipesat_reports.find_one(lock_query, {"_id": 0})
+    
+    if locked_report:
+        # Return locked data
+        period_names = {1: "Januari - Maret", 2: "April - Juni", 3: "Juli - September", 4: "Oktober - Desember"}
+        return {
+            "data": locked_report.get("data", []),
+            "summary": {
+                "total_nasabah": len(locked_report.get("data", [])),
+                "perorangan": sum(1 for d in locked_report.get("data", []) if d.get("jenis_nasabah") == 1),
+                "badan_usaha": sum(1 for d in locked_report.get("data", []) if d.get("jenis_nasabah") == 2),
+                "periode": f"Periode {period} ({period_names[period]}) {year}"
+            },
+            "status": "locked",
+            "is_locked": True,
+            "locked_at": locked_report.get("locked_at"),
+            "locked_by_name": locked_report.get("locked_by_name")
+        }
+    
+    # Generate fresh data
+    start_date, end_date = get_sipesat_period_dates(year, period)
+    
+    # Get all customers that were already reported in PREVIOUS locked periods of the same year
+    previously_reported_customer_ids = set()
+    prev_lock_query = {"year": year, "period": {"$lt": period}, "status": "locked"}
+    if target_branch_id:
+        prev_lock_query["branch_id"] = target_branch_id
+    else:
+        prev_lock_query["branch_id"] = None
+    
+    prev_reports = await db.sipesat_reports.find(prev_lock_query, {"_id": 0}).to_list(100)
+    for prev_report in prev_reports:
+        previously_reported_customer_ids.update(prev_report.get("customer_ids", []))
+    
+    # Build query for transactions in this period
+    query = {"is_deleted": {"$ne": True}}
+    if target_branch_id:
+        query["branch_id"] = target_branch_id
+    query["transaction_date"] = {"$gte": start_date, "$lte": end_date + "T23:59:59"}
     
     # Get all transactions in period
     transactions = await db.transactions.find(query, {"_id": 0}).to_list(10000)
     
-    # Get unique customer IDs
-    customer_ids = list(set([t.get("customer_id") for t in transactions if t.get("customer_id")]))
+    # Get unique customer IDs (excluding previously reported)
+    customer_ids = list(set([
+        t.get("customer_id") for t in transactions 
+        if t.get("customer_id") and t.get("customer_id") not in previously_reported_customer_ids
+    ]))
     
     # Get customer details
     customers = await db.customers.find({"id": {"$in": customer_ids}}, {"_id": 0}).to_list(10000)
@@ -1487,7 +1539,7 @@ async def get_sipesat_report(
     
     for txn in transactions:
         customer_id = txn.get("customer_id")
-        if not customer_id or customer_id in processed_customers:
+        if not customer_id or customer_id in processed_customers or customer_id in previously_reported_customer_ids:
             continue
         
         processed_customers.add(customer_id)
@@ -1500,19 +1552,22 @@ async def get_sipesat_report(
         
         # Build record
         record = {
+            "customer_id": customer_id,  # Include for locking
             "idpjk": idpjk,
-            "jenis_nasabah": 1 if is_perorangan else 2,  # 1=perorangan, 2=badan usaha
+            "jenis_nasabah": 1 if is_perorangan else 2,
             "nama": customer.get("name") if is_perorangan else customer.get("entity_name", ""),
             "tempat_lahir": customer.get("birth_place", "") if is_perorangan else "",
             "tanggal_lahir": customer.get("birth_date", "") if is_perorangan else "",
-            "alamat": customer.get("domicile_address") or customer.get("id_address") or customer.get("entity_address", ""),
+            "alamat": customer.get("domicile_address") or customer.get("identity_address") or customer.get("entity_address", ""),
             "ktp": customer.get("identity_number", "") if is_perorangan and customer.get("identity_type") == "KTP" else "",
             "identitas_lain": customer.get("identity_number", "") if is_perorangan and customer.get("identity_type") != "KTP" else (customer.get("npwp", "") if not is_perorangan else ""),
-            "kepesertaan": customer.get("customer_code", ""),  # Kode nasabah di aplikasi
+            "kepesertaan": customer.get("customer_code", ""),
             "npwp": customer.get("npwp", "") if not is_perorangan else ""
         }
         
         sipesat_data.append(record)
+    
+    period_names = {1: "Januari - Maret", 2: "April - Juni", 3: "Juli - September", 4: "Oktober - Desember"}
     
     return {
         "data": sipesat_data,
@@ -1520,8 +1575,191 @@ async def get_sipesat_report(
             "total_nasabah": len(sipesat_data),
             "perorangan": sum(1 for d in sipesat_data if d["jenis_nasabah"] == 1),
             "badan_usaha": sum(1 for d in sipesat_data if d["jenis_nasabah"] == 2),
-            "periode": f"{start_date or 'Semua'} - {end_date or 'Semua'}"
-        }
+            "periode": f"Periode {period} ({period_names[period]}) {year}",
+            "previously_reported": len(previously_reported_customer_ids)
+        },
+        "status": "draft",
+        "is_locked": False
+    }
+
+@api_router.post("/reports/sipesat/lock")
+async def lock_sipesat_report(
+    year: int,
+    period: int,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Lock SIPESAT report for a period - data becomes permanent"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can lock SIPESAT reports")
+    
+    if period < 1 or period > 4:
+        raise HTTPException(status_code=400, detail="Period must be 1-4")
+    
+    # Determine branch filter
+    target_branch_id = branch_id if branch_id and branch_id != "all" else None
+    
+    # Check if already locked
+    lock_query = {"year": year, "period": period}
+    if target_branch_id:
+        lock_query["branch_id"] = target_branch_id
+    else:
+        lock_query["branch_id"] = None
+    
+    existing = await db.sipesat_reports.find_one(lock_query, {"_id": 0})
+    if existing and existing.get("status") == "locked":
+        raise HTTPException(status_code=400, detail="Periode ini sudah dikunci")
+    
+    # Get current SIPESAT data
+    report_data = await get_sipesat_report(year=year, period=period, branch_id=branch_id, current_user=current_user)
+    
+    if not report_data.get("data"):
+        raise HTTPException(status_code=400, detail="Tidak ada data untuk dikunci")
+    
+    # Extract customer IDs
+    customer_ids = [d.get("customer_id") for d in report_data["data"] if d.get("customer_id")]
+    
+    # Create or update lock record
+    sipesat_report = {
+        "year": year,
+        "period": period,
+        "branch_id": target_branch_id,
+        "status": "locked",
+        "customer_ids": customer_ids,
+        "data": report_data["data"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "locked_at": datetime.now(timezone.utc).isoformat(),
+        "locked_by": current_user.id,
+        "locked_by_name": current_user.name
+    }
+    
+    if existing:
+        await db.sipesat_reports.update_one(
+            {"id": existing["id"]},
+            {"$set": sipesat_report}
+        )
+    else:
+        sipesat_report["id"] = str(uuid.uuid4())
+        await db.sipesat_reports.insert_one(sipesat_report)
+    
+    # Log activity
+    await log_user_activity(
+        user_id=current_user.id,
+        user_name=current_user.name,
+        user_email=current_user.email,
+        action="lock_sipesat",
+        details=f"Locked SIPESAT report for Year {year} Period {period}"
+    )
+    
+    period_names = {1: "Januari - Maret", 2: "April - Juni", 3: "Juli - September", 4: "Oktober - Desember"}
+    return {
+        "message": f"SIPESAT Periode {period} ({period_names[period]}) {year} berhasil dikunci",
+        "locked_customers": len(customer_ids)
+    }
+
+@api_router.get("/reports/sipesat/status")
+async def get_sipesat_status(
+    year: int,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get lock status for all periods in a year"""
+    target_branch_id = None
+    if current_user.role != UserRole.ADMIN:
+        target_branch_id = current_user.branch_id
+    elif branch_id and branch_id != "all":
+        target_branch_id = branch_id
+    
+    query = {"year": year}
+    if target_branch_id:
+        query["branch_id"] = target_branch_id
+    else:
+        query["branch_id"] = None
+    
+    reports = await db.sipesat_reports.find(query, {"_id": 0}).to_list(10)
+    
+    status = {}
+    for p in range(1, 5):
+        report = next((r for r in reports if r.get("period") == p), None)
+        if report and report.get("status") == "locked":
+            status[p] = {
+                "locked": True,
+                "locked_at": report.get("locked_at"),
+                "locked_by_name": report.get("locked_by_name"),
+                "customer_count": len(report.get("customer_ids", []))
+            }
+        else:
+            status[p] = {"locked": False}
+    
+    return status
+
+# ============= USER ACTIVITY LOG ENDPOINTS =============
+
+@api_router.get("/activity-logs")
+async def get_activity_logs(
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user)
+):
+    """Get user activity logs (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can view activity logs")
+    
+    query = {}
+    if user_id:
+        query["user_id"] = user_id
+    if action:
+        query["action"] = action
+    if start_date and end_date:
+        query["timestamp"] = {"$gte": start_date, "$lte": end_date + "T23:59:59"}
+    
+    logs = await db.user_activity_logs.find(query, {"_id": 0}).sort("timestamp", -1).limit(limit).to_list(limit)
+    
+    return logs
+
+@api_router.get("/users/online-status")
+async def get_users_online_status(current_user: User = Depends(get_current_user)):
+    """Get online/offline status of users based on last login"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can view user status")
+    
+    users = await db.users.find({"is_active": True}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    
+    # Consider user online if last login within 30 minutes
+    thirty_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=30)
+    
+    user_status = []
+    for user in users:
+        last_login = user.get("last_login")
+        is_online = False
+        
+        if last_login:
+            if isinstance(last_login, str):
+                last_login_dt = datetime.fromisoformat(last_login.replace('Z', '+00:00'))
+            else:
+                last_login_dt = last_login
+            
+            is_online = last_login_dt > thirty_mins_ago
+        
+        user_status.append({
+            "id": user["id"],
+            "name": user["name"],
+            "email": user["email"],
+            "role": user["role"],
+            "is_online": is_online,
+            "last_login": last_login
+        })
+    
+    # Sort: online users first, then by last login
+    user_status.sort(key=lambda x: (not x["is_online"], x["last_login"] or ""), reverse=True)
+    
+    return {
+        "users": user_status,
+        "online_count": sum(1 for u in user_status if u["is_online"]),
+        "total_count": len(user_status)
     }
 
 # ============= DATABASE BACKUP =============
