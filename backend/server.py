@@ -935,103 +935,142 @@ async def calculate_mutasi_valas(
     branch_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Calculate mutasi valas from transactions"""
-    query = {"is_deleted": {"$ne": True}}  # Exclude soft-deleted transactions
-    
+    """
+    Calculate mutasi valas from transactions with correct formulas:
+    1. Stock Awal (Valas) = Stock Akhir periode sebelumnya
+    2. Stock Awal (Rupiah) = Rupiah Stock Akhir periode sebelumnya
+    3. Pembelian = Akumulasi transaksi beli pada periode
+    4. Penjualan = Akumulasi transaksi jual pada periode
+    5. Stock Akhir (Valas) = Stock Awal + Pembelian - Penjualan
+    6. Average Rate = (Stock Awal Rupiah + Rupiah Pembelian) / (Stock Awal Valas + Pembelian Valas)
+    7. Stock Akhir (Rupiah) = Stock Akhir Valas * Average Rate
+    8. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
+    """
     # Branch filter
     if current_user.role != UserRole.ADMIN:
-        query["branch_id"] = current_user.branch_id
         target_branch_id = current_user.branch_id
     elif branch_id:
-        query["branch_id"] = branch_id
         target_branch_id = branch_id
     else:
         target_branch_id = None
     
-    # Date filter
-    if start_date and end_date:
-        query["transaction_date"] = {"$gte": start_date, "$lte": end_date}
-    
-    # Get all transactions
-    transactions = await db.transactions.find(query, {"_id": 0}).to_list(10000)
-    
     # Get all currencies
     currencies = await db.currencies.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    
+    # Get branch initial balances
+    branch_initial_balances = {}
+    branch_initial_idr = {}
+    if target_branch_id:
+        branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
+        if branch:
+            branch_initial_balances = branch.get("currency_balances", {})
+            branch_initial_idr = branch.get("currency_balances_idr", {})
+    
+    # Get previous period ending stock (if start_date is provided)
+    previous_ending_stocks = {}
+    previous_ending_idr = {}
+    
+    if start_date:
+        # Query transactions before this period to calculate previous ending stock
+        prev_query = {"is_deleted": {"$ne": True}}
+        if target_branch_id:
+            prev_query["branch_id"] = target_branch_id
+        prev_query["transaction_date"] = {"$lt": start_date}
+        
+        prev_transactions = await db.transactions.find(prev_query, {"_id": 0}).to_list(10000)
+        
+        for currency in currencies:
+            currency_code = currency["code"]
+            initial_valas = float(branch_initial_balances.get(currency_code, 0.0))
+            initial_idr = float(branch_initial_idr.get(currency_code, 0.0))
+            
+            # Calculate from previous transactions
+            prev_currency_txns = [t for t in prev_transactions if t.get("currency_code") == currency_code]
+            
+            prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
+            prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
+            prev_sell_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
+            prev_sell_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
+            
+            prev_ending_valas = initial_valas + prev_buy_valas - prev_sell_valas
+            
+            # Calculate previous avg rate
+            if (initial_valas + prev_buy_valas) > 0:
+                prev_avg_rate = (initial_idr + prev_buy_idr) / (initial_valas + prev_buy_valas)
+            else:
+                prev_avg_rate = 0
+            
+            prev_ending_idr = prev_ending_valas * prev_avg_rate
+            
+            previous_ending_stocks[currency_code] = prev_ending_valas
+            previous_ending_idr[currency_code] = prev_ending_idr
+    
+    # Query current period transactions
+    current_query = {"is_deleted": {"$ne": True}}
+    if target_branch_id:
+        current_query["branch_id"] = target_branch_id
+    if start_date and end_date:
+        current_query["transaction_date"] = {"$gte": start_date, "$lte": end_date}
+    
+    transactions = await db.transactions.find(current_query, {"_id": 0}).to_list(10000)
     
     # Calculate mutasi per currency
     mutasi_data = []
     
-    # Get branch opening balances if branch is specified
-    branch_currency_balances = {}
-    if target_branch_id:
-        branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
-        if branch:
-            branch_currency_balances = branch.get("currency_balances", {})
-    
     for currency in currencies:
         currency_code = currency["code"]
         
-        # Filter transactions for this currency
-        currency_transactions = [
-            t for t in transactions 
-            if t.get("currency_code") == currency_code
-        ]
+        # 1. Stock Awal = Stock Akhir periode sebelumnya atau initial balance
+        if start_date and currency_code in previous_ending_stocks:
+            beginning_stock_valas = previous_ending_stocks[currency_code]
+            beginning_stock_idr = previous_ending_idr[currency_code]
+        else:
+            beginning_stock_valas = float(branch_initial_balances.get(currency_code, 0.0))
+            beginning_stock_idr = float(branch_initial_idr.get(currency_code, 0.0))
         
-        # Get beginning stock from branch settings, or default to 0
-        beginning_stock_valas = float(branch_currency_balances.get(currency_code, 0.0))
-        # Calculate IDR equivalent using average market rate (assume purchase rate as baseline)
-        beginning_stock_idr = 0.0  # Will be calculated based on first transaction rate if needed
+        # Filter transactions for this currency in current period
+        currency_transactions = [t for t in transactions if t.get("currency_code") == currency_code]
         
-        # Display ALL currencies from master, regardless of transactions
+        # 2. Pembelian (beli dari nasabah)
+        purchase_valas = sum(t["amount"] for t in currency_transactions if t.get("transaction_type") in ["beli", "buy"])
+        purchase_idr = sum(t["total_idr"] for t in currency_transactions if t.get("transaction_type") in ["beli", "buy"])
         
-        # Calculate purchases (we buy from customer = customer sells to us = type "beli" or "buy")
-        purchase_valas = sum(
-            t["amount"] for t in currency_transactions 
-            if t.get("transaction_type") in ["beli", "buy"]
-        )
-        purchase_idr = sum(
-            t["total_idr"] for t in currency_transactions 
-            if t.get("transaction_type") in ["beli", "buy"]
-        )
+        # 3. Penjualan (jual ke nasabah)
+        sale_valas = sum(t["amount"] for t in currency_transactions if t.get("transaction_type") in ["jual", "sell"])
+        sale_idr = sum(t["total_idr"] for t in currency_transactions if t.get("transaction_type") in ["jual", "sell"])
         
-        # Calculate sales (we sell to customer = customer buys from us = type "jual" or "sell")
-        sale_valas = sum(
-            t["amount"] for t in currency_transactions 
-            if t.get("transaction_type") in ["jual", "sell"]
-        )
-        sale_idr = sum(
-            t["total_idr"] for t in currency_transactions 
-            if t.get("transaction_type") in ["jual", "sell"]
-        )
-        
-        # Calculate ending stock
+        # 4. Stock Akhir (Valas) = Stock Awal + Pembelian - Penjualan
         ending_stock_valas = beginning_stock_valas + purchase_valas - sale_valas
-        ending_stock_idr = beginning_stock_idr + purchase_idr - sale_idr
         
-        # Calculate average rate
-        avg_rate = 0.0
-        if ending_stock_valas != 0:
-            avg_rate = abs(ending_stock_idr / ending_stock_valas)
-        elif purchase_valas > 0:
-            avg_rate = purchase_idr / purchase_valas
+        # 5. Average Rate = (Stock Awal Rupiah + Rupiah Pembelian) / (Stock Awal Valas + Pembelian Valas)
+        total_valas_in = beginning_stock_valas + purchase_valas
+        total_idr_in = beginning_stock_idr + purchase_idr
         
-        # Calculate profit/loss
-        profit_loss = sale_idr - (sale_valas * avg_rate) if sale_valas > 0 else 0.0
+        if total_valas_in > 0:
+            avg_rate = total_idr_in / total_valas_in
+        else:
+            avg_rate = 0
+        
+        # 6. Stock Akhir (Rupiah) = Stock Akhir Valas * Average Rate
+        ending_stock_idr = ending_stock_valas * avg_rate
+        
+        # 7. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
+        profit_loss = (ending_stock_idr + sale_idr) - (beginning_stock_idr + purchase_idr)
         
         mutasi_data.append({
             "currency_code": currency_code,
             "currency_name": currency["name"],
-            "currency_symbol": currency["symbol"],
-            "beginning_stock_valas": beginning_stock_valas,
-            "beginning_stock_idr": beginning_stock_idr,
-            "purchase_valas": purchase_valas,
-            "purchase_idr": purchase_idr,
-            "sale_valas": sale_valas,
-            "sale_idr": sale_idr,
-            "ending_stock_valas": ending_stock_valas,
-            "ending_stock_idr": ending_stock_idr,
-            "avg_rate": avg_rate,
-            "profit_loss": profit_loss,
+            "currency_symbol": currency.get("symbol", ""),
+            "beginning_stock_valas": round(beginning_stock_valas, 2),
+            "beginning_stock_idr": round(beginning_stock_idr, 0),
+            "purchase_valas": round(purchase_valas, 2),
+            "purchase_idr": round(purchase_idr, 0),
+            "sale_valas": round(sale_valas, 2),
+            "sale_idr": round(sale_idr, 0),
+            "ending_stock_valas": round(ending_stock_valas, 2),
+            "ending_stock_idr": round(ending_stock_idr, 0),
+            "avg_rate": round(avg_rate, 2),
+            "profit_loss": round(profit_loss, 0),
             "transaction_count": len(currency_transactions)
         })
     
