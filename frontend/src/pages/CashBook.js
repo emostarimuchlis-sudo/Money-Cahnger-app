@@ -116,6 +116,38 @@ const CashBook = () => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value || 0);
   };
 
+  const formatDateExport = (date) => {
+    try {
+      return format(new Date(date), 'dd/MM/yyyy');
+    } catch { return date; }
+  };
+
+  const formatCurrencyExport = (value) => {
+    return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(value || 0);
+  };
+
+  // Navigate to previous/next day
+  const navigateDay = (direction) => {
+    const current = new Date(periodDate);
+    current.setDate(current.getDate() + direction);
+    setPeriodDate(format(current, 'yyyy-MM-dd'));
+  };
+
+  // View transaction detail
+  const viewTransactionDetail = async (entry) => {
+    if (entry.reference_id && entry.reference_type === 'transaction') {
+      try {
+        const response = await api.get(`/transactions/${entry.reference_id}`);
+        setSelectedTransaction(response.data);
+        setShowTransactionDetail(true);
+      } catch (error) {
+        toast.error('Gagal memuat detail transaksi');
+      }
+    } else {
+      toast.info('Entry ini bukan transaksi valas');
+    }
+  };
+
   // Apply client-side filters
   const filteredEntries = (cashbook?.entries || []).filter(entry => {
     // Filter by entry type (debit/credit)
