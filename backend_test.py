@@ -1,36 +1,19 @@
+#!/usr/bin/env python3
+
 import requests
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
-class MOZTECAPITester:
+class MBAMoneyChangerTester:
     def __init__(self, base_url="https://muliabali-fx.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_results = []
-        self.created_resources = {
-            'customers': [],
-            'currencies': [],
-            'branches': [],
-            'transactions': []
-        }
-
-    def log_test(self, name, success, details=""):
-        """Log test result"""
-        self.tests_run += 1
-        if success:
-            self.tests_passed += 1
-            print(f"✅ {name}")
-        else:
-            print(f"❌ {name} - {details}")
-        
-        self.test_results.append({
-            "test": name,
-            "success": success,
-            "details": details
-        })
+        self.user_data = None
+        self.customer_id = None
+        self.transaction_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
@@ -43,493 +26,311 @@ class MOZTECAPITester:
         if headers:
             test_headers.update(headers)
 
+        self.tests_run += 1
+        print(f"\n🔍 Testing {name}...")
+        print(f"   URL: {url}")
+        
         try:
             if method == 'GET':
-                response = requests.get(url, headers=test_headers)
+                response = requests.get(url, headers=test_headers, timeout=30)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=test_headers)
+                response = requests.post(url, json=data, headers=test_headers, timeout=30)
             elif method == 'PUT':
-                response = requests.put(url, json=data, headers=test_headers)
+                response = requests.put(url, json=data, headers=test_headers, timeout=30)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=test_headers)
+                response = requests.delete(url, headers=test_headers, timeout=30)
 
-            success = response.status_code == expected_status
+            print(f"   Status: {response.status_code}")
             
+            success = response.status_code == expected_status
             if success:
+                self.tests_passed += 1
+                print(f"✅ PASSED - {name}")
                 try:
-                    response_data = response.json()
-                    self.log_test(name, True)
-                    return True, response_data
+                    return True, response.json()
                 except:
-                    self.log_test(name, True, "No JSON response")
                     return True, {}
             else:
-                error_msg = f"Expected {expected_status}, got {response.status_code}"
+                print(f"❌ FAILED - {name}")
+                print(f"   Expected: {expected_status}, Got: {response.status_code}")
                 try:
-                    error_detail = response.json().get('detail', '')
-                    if error_detail:
-                        error_msg += f" - {error_detail}"
+                    error_data = response.json()
+                    print(f"   Error: {error_data}")
                 except:
-                    pass
-                self.log_test(name, False, error_msg)
+                    print(f"   Response: {response.text[:200]}")
                 return False, {}
 
         except Exception as e:
-            self.log_test(name, False, f"Exception: {str(e)}")
+            print(f"❌ FAILED - {name}")
+            print(f"   Error: {str(e)}")
             return False, {}
 
-    def test_authentication(self):
-        """Test admin login"""
-        print("\n🔐 Testing Authentication...")
+    def test_login(self):
+        """Test login with admin@moztec.com / admin123"""
         success, response = self.run_test(
-            "Admin Login",
+            "Login dengan admin@moztec.com / admin123",
             "POST",
             "auth/login",
             200,
             data={"email": "admin@moztec.com", "password": "admin123"}
         )
-        
         if success and 'token' in response:
             self.token = response['token']
-            print(f"   Token obtained: {self.token[:20]}...")
+            self.user_data = response.get('user', {})
+            print(f"   User: {self.user_data.get('name', 'Unknown')} ({self.user_data.get('role', 'Unknown')})")
             return True
         return False
 
-    def test_company_settings(self):
-        """Test company settings endpoints"""
-        print("\n🏢 Testing Company Settings...")
-        
-        # Test GET company settings
-        success, settings = self.run_test(
-            "GET Company Settings",
-            "GET",
-            "settings/company",
+    def test_dashboard_stats(self):
+        """Test dashboard statistics endpoint"""
+        success, response = self.run_test(
+            "Dashboard Statistics",
+            "GET", 
+            "dashboard/stats",
             200
         )
-        
         if success:
-            # Test PUT company settings
-            update_data = {
-                "company_name": "MOZTEC Money Changer Test",
-                "company_address": "Jl. Test Address No. 123",
-                "company_phone": "+62 361 999888",
-                "company_email": "test@moztec.com",
-                "company_license": "TEST-LICENSE-123",
-                "company_npwp": "12.345.678.9-012.345"
-            }
-            
-            success, updated = self.run_test(
-                "PUT Company Settings",
-                "PUT",
-                "settings/company",
-                200,
-                data=update_data
-            )
-            
-            if success:
-                # Verify the update
-                success, verify = self.run_test(
-                    "Verify Company Settings Update",
-                    "GET",
-                    "settings/company",
-                    200
-                )
-                
-                if success and verify.get('company_name') == update_data['company_name']:
-                    self.log_test("Company Settings Update Verification", True)
-                else:
-                    self.log_test("Company Settings Update Verification", False, "Data not updated correctly")
+            print(f"   Total Transactions Today: {response.get('total_transactions_today', 0)}")
+            print(f"   Total Revenue Today: {response.get('total_revenue_today', 0)}")
+            print(f"   Total Customers: {response.get('total_customers', 0)}")
+            print(f"   Total Branches: {response.get('total_branches', 0)}")
+        return success
 
-    def test_branch_balances(self):
-        """Test branch balance management"""
-        print("\n💰 Testing Branch Balance Management...")
-        
-        # First get branches
-        success, branches = self.run_test(
-            "GET Branches for Balance Test",
+    def test_branches(self):
+        """Test branches endpoint"""
+        success, response = self.run_test(
+            "Get Branches",
             "GET",
-            "branches",
+            "branches", 
             200
         )
-        
-        if success and branches:
-            branch_id = branches[0]['id']
-            
-            # Test GET branch balances
-            success, balances = self.run_test(
-                "GET Branch Balances",
-                "GET",
-                f"branches/{branch_id}/balances",
-                200
-            )
-            
-            if success:
-                # Test PUT branch balances
-                balance_update = {
-                    "opening_balance": 50000000.0,  # 50 million IDR
-                    "currency_balances": {
-                        "USD": 10000.0,
-                        "SGD": 5000.0,
-                        "EUR": 3000.0
-                    }
-                }
-                
-                success, updated = self.run_test(
-                    "PUT Branch Balances",
-                    "PUT",
-                    f"branches/{branch_id}/balances",
-                    200,
-                    data=balance_update
-                )
-                
-                if success:
-                    # Verify the update
-                    success, verify = self.run_test(
-                        "Verify Branch Balance Update",
-                        "GET",
-                        f"branches/{branch_id}/balances",
-                        200
-                    )
-                    
-                    if success and verify.get('opening_balance') == balance_update['opening_balance']:
-                        self.log_test("Branch Balance Update Verification", True)
-                    else:
-                        self.log_test("Branch Balance Update Verification", False, "Balance not updated correctly")
+        if success:
+            print(f"   Found {len(response)} branches")
+        return success
 
-    def test_multi_currency_transactions(self):
-        """Test multi-currency transaction creation"""
-        print("\n💱 Testing Multi-Currency Transactions...")
-        
-        # First get required data
-        customers_success, customers = self.run_test("GET Customers for Multi-Transaction", "GET", "customers", 200)
-        currencies_success, currencies = self.run_test("GET Currencies for Multi-Transaction", "GET", "currencies", 200)
-        
-        if customers_success and currencies_success and customers and len(currencies) >= 2:
-            customer_id = customers[0]['id']
-            
-            # Create multi-currency transaction
-            multi_transaction_data = {
-                "customer_id": customer_id,
-                "items": [
-                    {
-                        "currency_id": currencies[0]['id'],
-                        "transaction_type": "jual",
-                        "amount": 1000.0,
-                        "exchange_rate": 15500.0
-                    },
-                    {
-                        "currency_id": currencies[1]['id'] if len(currencies) > 1 else currencies[0]['id'],
-                        "transaction_type": "beli",
-                        "amount": 500.0,
-                        "exchange_rate": 11200.0
-                    }
-                ],
-                "voucher_number": f"MULTI-TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                "notes": "Multi-currency test transaction",
-                "delivery_channel": "kantor_kupva",
-                "payment_method": "cash",
-                "transaction_purpose": "testing"
-            }
-            
-            success, response = self.run_test(
-                "POST Multi-Currency Transaction",
-                "POST",
-                "transactions/multi",
-                200,
-                data=multi_transaction_data
-            )
-            
-            if success:
-                transactions_created = response.get('transactions', [])
-                if len(transactions_created) == 2:
-                    self.log_test("Multi-Currency Transaction Count Verification", True)
-                    
-                    # Store created transaction IDs for cleanup
-                    for transaction in transactions_created:
-                        self.created_resources['transactions'].append(transaction['id'])
-                        
-                    # Verify batch voucher number
-                    batch_voucher = response.get('batch_voucher')
-                    if batch_voucher and all(t.get('voucher_number') == batch_voucher for t in transactions_created):
-                        self.log_test("Multi-Currency Batch Voucher Verification", True)
-                    else:
-                        self.log_test("Multi-Currency Batch Voucher Verification", False, "Batch voucher not consistent")
-                else:
-                    self.log_test("Multi-Currency Transaction Count Verification", False, f"Expected 2 transactions, got {len(transactions_created)}")
-        else:
-            self.log_test("Multi-Currency Transaction", False, "Insufficient test data (customers or currencies)")
+    def test_currencies(self):
+        """Test currencies endpoint"""
+        success, response = self.run_test(
+            "Get Currencies",
+            "GET",
+            "currencies",
+            200
+        )
+        if success:
+            print(f"   Found {len(response)} currencies")
+        return success
 
-    def test_existing_endpoints(self):
-        """Test existing endpoints to ensure they still work"""
-        print("\n🔄 Testing Existing Endpoints...")
-        
-        # Test basic endpoints
-        endpoints_to_test = [
-            ("GET Branches", "GET", "branches", 200),
-            ("GET Currencies", "GET", "currencies", 200),
-            ("GET Customers", "GET", "customers", 200),
-            ("GET Transactions", "GET", "transactions", 200),
-            ("GET Dashboard Stats", "GET", "dashboard/stats", 200),
-            ("GET Users", "GET", "users", 200)
-        ]
-        
-        for name, method, endpoint, expected_status in endpoints_to_test:
-            self.run_test(name, method, endpoint, expected_status)
+    def test_customers(self):
+        """Test customers endpoint and get customer for transaction testing"""
+        success, response = self.run_test(
+            "Get Customers",
+            "GET",
+            "customers",
+            200
+        )
+        if success:
+            print(f"   Found {len(response)} customers")
+            if response:
+                self.customer_id = response[0]['id']
+                print(f"   Using customer: {response[0].get('name', response[0].get('entity_name', 'Unknown'))}")
+        return success
 
-    def test_single_transaction_creation(self):
-        """Test single transaction creation to ensure it still works"""
-        print("\n💳 Testing Single Transaction Creation...")
-        
-        # Get required data
-        customers_success, customers = self.run_test("GET Customers for Single Transaction", "GET", "customers", 200)
-        currencies_success, currencies = self.run_test("GET Currencies for Single Transaction", "GET", "currencies", 200)
-        
-        if customers_success and currencies_success and customers and currencies:
-            customer_id = customers[0]['id']
-            currency_id = currencies[0]['id']
+    def test_customer_transactions(self):
+        """Test customer transactions endpoint (for Buku Transaksi)"""
+        if not self.customer_id:
+            print("❌ No customer ID available for testing")
+            return False
             
-            single_transaction_data = {
-                "customer_id": customer_id,
-                "transaction_type": "jual",
-                "currency_id": currency_id,
-                "amount": 100.0,
-                "exchange_rate": 15500.0,
-                "voucher_number": f"SINGLE-TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                "notes": "Single transaction test",
-                "delivery_channel": "kantor_kupva",
-                "payment_method": "cash",
-                "transaction_purpose": "testing"
-            }
-            
-            success, response = self.run_test(
-                "POST Single Transaction",
-                "POST",
-                "transactions",
-                201,
-                data=single_transaction_data
-            )
-            
-            if success:
-                self.created_resources['transactions'].append(response['id'])
+        success, response = self.run_test(
+            "Get Customer Transactions (Buku Transaksi)",
+            "GET",
+            f"customers/{self.customer_id}/transactions",
+            200
+        )
+        if success:
+            transactions = response.get('transactions', [])
+            ytd_summary = response.get('ytd_summary', {})
+            print(f"   Found {len(transactions)} transactions")
+            print(f"   YTD Summary - Total: {ytd_summary.get('total_transactions', 0)}")
+            print(f"   YTD Summary - Buy: {ytd_summary.get('total_buy_idr', 0)}")
+            print(f"   YTD Summary - Sell: {ytd_summary.get('total_sell_idr', 0)}")
+        return success
 
-    def cleanup_test_data(self):
-        """Clean up test data (admin only)"""
-        print("\n🧹 Cleaning up test data...")
-        
-        # Delete test transactions
-        for transaction_id in self.created_resources['transactions']:
-            self.run_test(
-                f"DELETE Test Transaction {transaction_id[:8]}",
-                "DELETE",
-                f"transactions/{transaction_id}",
-                200
-            )
+    def test_transactions(self):
+        """Test transactions endpoint"""
+        success, response = self.run_test(
+            "Get Transactions",
+            "GET",
+            "transactions",
+            200
+        )
+        if success:
+            print(f"   Found {len(response)} transactions")
+            if response:
+                self.transaction_id = response[0]['id']
+        return success
 
-    def test_customer_gender_address_fields(self):
-        """Test customer creation with gender and address fields"""
-        print("\n👤 Testing Customer Gender & Address Fields...")
-        
-        # Get branches first
-        success, branches = self.run_test("GET Branches for Customer Test", "GET", "branches", 200)
-        
-        if success and branches:
-            branch_id = branches[0]['id']
-            
-            # Test customer creation with gender and address
-            customer_data = {
-                "customer_type": "perorangan",
-                "branch_id": branch_id,
-                "name": "Test Customer Gender Address",
-                "gender": "L",  # Test gender field
-                "identity_type": "KTP",
-                "identity_number": "1234567890123456",
-                "phone": "081234567890",
-                "domicile_address": "Jl. Test Address No. 123, Denpasar, Bali"  # Test address field
-            }
-            
-            success, response = self.run_test(
-                "POST Customer with Gender & Address",
-                "POST",
-                "customers",
-                200,
-                data=customer_data
-            )
-            
-            if success:
-                customer_id = response.get('id')
-                self.created_resources['customers'].append(customer_id)
-                
-                # Verify gender and address fields are saved
-                if response.get('gender') == 'L' and response.get('domicile_address'):
-                    self.log_test("Customer Gender & Address Fields Verification", True)
-                else:
-                    self.log_test("Customer Gender & Address Fields Verification", False, "Gender or address not saved correctly")
-                
-                return customer_id
-        return None
+    def test_cashbook(self):
+        """Test cashbook endpoint (Buku Kas)"""
+        success, response = self.run_test(
+            "Get Cashbook (Buku Kas)",
+            "GET",
+            "cashbook",
+            200
+        )
+        if success:
+            entries = response.get('entries', [])
+            print(f"   Found {len(entries)} cashbook entries")
+            print(f"   Opening Balance: {response.get('opening_balance', 0)}")
+            print(f"   Total Debit: {response.get('total_debit', 0)}")
+            print(f"   Total Credit: {response.get('total_credit', 0)}")
+            print(f"   Current Balance: {response.get('balance', 0)}")
+        return success
 
-    def test_transaction_number_format(self):
-        """Test new transaction number format: TRX-MBA-J/B-XXXXX-XXX-DDMMYY"""
-        print("\n🔢 Testing Transaction Number Format...")
-        
-        # Create a customer first if needed
-        customer_id = self.test_customer_gender_address_fields()
-        
-        if customer_id:
-            # Get currencies
-            success, currencies = self.run_test("GET Currencies for Transaction Number Test", "GET", "currencies", 200)
-            
-            if success and currencies:
-                currency_id = currencies[0]['id']
-                
-                # Test Jual transaction
-                jual_data = {
-                    "customer_id": customer_id,
-                    "transaction_type": "jual",
-                    "currency_id": currency_id,
-                    "amount": 100.0,
-                    "exchange_rate": 15500.0,
-                    "notes": "Test transaction number format - Jual"
-                }
-                
-                success, jual_response = self.run_test(
-                    "POST Jual Transaction for Number Format",
-                    "POST",
-                    "transactions",
-                    200,  # Changed to 200 as that's what the API returns
-                    data=jual_data
-                )
-                
-                if success:
-                    jual_number = jual_response.get('transaction_number', '')
-                    self.created_resources['transactions'].append(jual_response['id'])
-                    
-                    # Verify Jual format: TRX-MBA-J-XXXXX-XXX-DDMMYY
-                    if jual_number.startswith('TRX-MBA-J-') and len(jual_number.split('-')) == 6:
-                        self.log_test("Jual Transaction Number Format", True, f"Format: {jual_number}")
-                    else:
-                        self.log_test("Jual Transaction Number Format", False, f"Invalid format: {jual_number}")
-                
-                # Test Beli transaction
-                beli_data = {
-                    "customer_id": customer_id,
-                    "transaction_type": "beli",
-                    "currency_id": currency_id,
-                    "amount": 50.0,
-                    "exchange_rate": 15400.0,
-                    "notes": "Test transaction number format - Beli"
-                }
-                
-                success, beli_response = self.run_test(
-                    "POST Beli Transaction for Number Format",
-                    "POST",
-                    "transactions",
-                    200,  # Changed to 200 as that's what the API returns
-                    data=beli_data
-                )
-                
-                if success:
-                    beli_number = beli_response.get('transaction_number', '')
-                    self.created_resources['transactions'].append(beli_response['id'])
-                    
-                    # Verify Beli format: TRX-MBA-B-XXXXX-XXX-DDMMYY
-                    if beli_number.startswith('TRX-MBA-B-') and len(beli_number.split('-')) == 6:
-                        self.log_test("Beli Transaction Number Format", True, f"Format: {beli_number}")
-                    else:
-                        self.log_test("Beli Transaction Number Format", False, f"Invalid format: {beli_number}")
-
-    def test_company_name_settings(self):
-        """Test company name in settings for dashboard"""
-        print("\n🏢 Testing Company Name Settings...")
-        
-        # Test updating company name
-        update_data = {
-            "company_name": "Test Company Name Update"
-        }
+    def test_mutasi_valas_calculate(self):
+        """Test Mutasi Valas calculation with new logic"""
+        # Test with last 30 days
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         
         success, response = self.run_test(
-            "PUT Company Name Update",
-            "PUT",
-            "settings/company",
-            200,
-            data=update_data
+            "Mutasi Valas Calculate (New Logic)",
+            "GET",
+            f"mutasi-valas/calculate?start_date={start_date}&end_date={end_date}",
+            200
         )
-        
         if success:
-            # Verify the company name was updated
-            success, settings = self.run_test(
-                "GET Updated Company Settings",
-                "GET",
-                "settings/company",
-                200
-            )
+            print(f"   Found {len(response)} currency mutations")
+            for mutation in response[:3]:  # Show first 3
+                print(f"   {mutation.get('currency_code')}: Stock Awal {mutation.get('beginning_stock_valas', 0)}, "
+                      f"Stock Akhir {mutation.get('ending_stock_valas', 0)}, "
+                      f"Avg Rate {mutation.get('avg_rate', 0)}, "
+                      f"P/L {mutation.get('profit_loss', 0)}")
+        return success
+
+    def test_reports_transactions(self):
+        """Test transaction reports"""
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        success, response = self.run_test(
+            "Transaction Reports",
+            "GET",
+            f"reports/transactions?start_date={start_date}&end_date={end_date}",
+            200
+        )
+        if success:
+            transactions = response.get('transactions', [])
+            summary = response.get('summary', {})
+            print(f"   Found {len(transactions)} transactions in report")
+            print(f"   Summary - Total: {summary.get('total_transactions', 0)}")
+            print(f"   Summary - Buy: {summary.get('total_buy', 0)}")
+            print(f"   Summary - Sell: {summary.get('total_sell', 0)}")
+        return success
+
+    def test_reports_sipesat(self):
+        """Test SIPESAT reports (new feature)"""
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        success, response = self.run_test(
+            "SIPESAT Reports (New Feature)",
+            "GET",
+            f"reports/sipesat?start_date={start_date}&end_date={end_date}",
+            200
+        )
+        if success:
+            data = response.get('data', [])
+            summary = response.get('summary', {})
+            print(f"   Found {len(data)} SIPESAT records")
+            print(f"   Summary - Total Nasabah: {summary.get('total_nasabah', 0)}")
+            print(f"   Summary - Perorangan: {summary.get('perorangan', 0)}")
+            print(f"   Summary - Badan Usaha: {summary.get('badan_usaha', 0)}")
+        return success
+
+    def test_company_settings(self):
+        """Test company settings endpoint"""
+        success, response = self.run_test(
+            "Company Settings",
+            "GET",
+            "settings/company",
+            200
+        )
+        if success:
+            print(f"   Company: {response.get('company_name', 'N/A')}")
+            print(f"   IDPJK: {response.get('idpjk', 'N/A')}")
+        return success
+
+    def test_transaction_detail(self):
+        """Test transaction detail endpoint (for clickable references in Buku Kas)"""
+        if not self.transaction_id:
+            print("❌ No transaction ID available for testing")
+            return False
             
-            if success and settings.get('company_name') == update_data['company_name']:
-                self.log_test("Company Name Update Verification", True)
-                
-                # Reset to original name
-                reset_data = {"company_name": "MOZTEC"}
-                self.run_test(
-                    "Reset Company Name",
-                    "PUT",
-                    "settings/company",
-                    200,
-                    data=reset_data
-                )
-            else:
-                self.log_test("Company Name Update Verification", False, "Company name not updated correctly")
-
-    def cleanup_test_customers(self):
-        """Clean up test customers"""
-        print("\n🧹 Cleaning up test customers...")
-        
-        for customer_id in self.created_resources['customers']:
-            self.run_test(
-                f"DELETE Test Customer {customer_id[:8]}",
-                "DELETE",
-                f"customers/{customer_id}",
-                200
-            )
-
-    def run_all_tests(self):
-        """Run all tests focusing on the 4 specific features"""
-        print("🚀 Starting MOZTEC Money Changer API Tests - Update 4 Features")
-        print("Testing: 1) Gender & Address in Quick Customer, 2) Transaction Types, 3) Company Name, 4) Transaction Number Format")
-        print("=" * 80)
-        
-        # Authentication first
-        if not self.test_authentication():
-            print("❌ Authentication failed, stopping tests")
-            return False
-        
-        # Test the 4 specific features
-        self.test_customer_gender_address_fields()
-        self.test_transaction_number_format()
-        self.test_company_name_settings()
-        
-        # Test basic functionality to ensure nothing broke
-        self.test_existing_endpoints()
-        
-        # Cleanup
-        self.cleanup_test_data()
-        self.cleanup_test_customers()
-        
-        # Print summary
-        print("\n" + "=" * 80)
-        print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
-        print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%")
-        
-        if self.tests_passed == self.tests_run:
-            print("🎉 All tests passed!")
-            return True
-        else:
-            print(f"⚠️  {self.tests_run - self.tests_passed} tests failed")
-            return False
+        success, response = self.run_test(
+            "Transaction Detail (Clickable Reference)",
+            "GET",
+            f"transactions/{self.transaction_id}",
+            200
+        )
+        if success:
+            print(f"   Transaction: {response.get('transaction_number', 'N/A')}")
+            print(f"   Customer: {response.get('customer_name', 'N/A')}")
+            print(f"   Amount: {response.get('total_idr', 0)}")
+        return success
 
 def main():
-    tester = MOZTECAPITester()
-    success = tester.run_all_tests()
-    return 0 if success else 1
+    print("🚀 Starting MBA Money Changer Backend API Testing")
+    print("=" * 60)
+    
+    tester = MBAMoneyChangerTester()
+    
+    # Test sequence based on the requirements
+    tests = [
+        ("Login Authentication", tester.test_login),
+        ("Dashboard Statistics", tester.test_dashboard_stats),
+        ("Branches Management", tester.test_branches),
+        ("Currencies Management", tester.test_currencies),
+        ("Customers Management", tester.test_customers),
+        ("Customer Transactions (Buku Transaksi)", tester.test_customer_transactions),
+        ("Transactions Management", tester.test_transactions),
+        ("Transaction Detail (Clickable Reference)", tester.test_transaction_detail),
+        ("Cashbook (Buku Kas)", tester.test_cashbook),
+        ("Mutasi Valas (New Logic)", tester.test_mutasi_valas_calculate),
+        ("Transaction Reports", tester.test_reports_transactions),
+        ("SIPESAT Reports (New)", tester.test_reports_sipesat),
+        ("Company Settings", tester.test_company_settings),
+    ]
+    
+    failed_tests = []
+    
+    for test_name, test_func in tests:
+        print(f"\n{'='*20} {test_name} {'='*20}")
+        try:
+            if not test_func():
+                failed_tests.append(test_name)
+        except Exception as e:
+            print(f"❌ EXCEPTION in {test_name}: {str(e)}")
+            failed_tests.append(test_name)
+    
+    # Print final results
+    print(f"\n{'='*60}")
+    print(f"📊 FINAL RESULTS")
+    print(f"{'='*60}")
+    print(f"✅ Tests Passed: {tester.tests_passed}/{tester.tests_run}")
+    print(f"❌ Tests Failed: {len(failed_tests)}")
+    
+    if failed_tests:
+        print(f"\n🔴 Failed Tests:")
+        for test in failed_tests:
+            print(f"   - {test}")
+    else:
+        print(f"\n🎉 ALL TESTS PASSED!")
+    
+    success_rate = (tester.tests_passed / tester.tests_run * 100) if tester.tests_run > 0 else 0
+    print(f"\n📈 Success Rate: {success_rate:.1f}%")
+    
+    return 0 if len(failed_tests) == 0 else 1
 
 if __name__ == "__main__":
     sys.exit(main())
