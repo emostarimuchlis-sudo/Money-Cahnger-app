@@ -960,8 +960,16 @@ async def delete_transaction(transaction_id: str, current_user: User = Depends(g
 # ============= CASHBOOK ENDPOINTS =============
 
 @api_router.get("/cashbook")
-async def get_cashbook(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
-    query = {"is_deleted": {"$ne": True}}  # Exclude soft-deleted entries
+async def get_cashbook(
+    branch_id: Optional[str] = None, 
+    period_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get cashbook entries for a specific period (day).
+    Opening balance = closing balance of previous day.
+    """
+    query = {"is_deleted": {"$ne": True}}
     target_branch_id = None
     
     if current_user.role != UserRole.ADMIN:
@@ -971,30 +979,59 @@ async def get_cashbook(branch_id: Optional[str] = None, current_user: User = Dep
         query["branch_id"] = branch_id
         target_branch_id = branch_id
     
-    entries = await db.cashbook_entries.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    # If period_date is provided, filter by that specific date
+    if period_date:
+        # Get entries only for the specified date
+        query["date"] = {
+            "$gte": period_date + "T00:00:00",
+            "$lte": period_date + "T23:59:59"
+        }
+        
+        # Calculate opening balance from all entries BEFORE this date
+        prev_query = {"is_deleted": {"$ne": True}}
+        if target_branch_id:
+            prev_query["branch_id"] = target_branch_id
+        prev_query["date"] = {"$lt": period_date + "T00:00:00"}
+        
+        prev_entries = await db.cashbook_entries.find(prev_query, {"_id": 0}).to_list(10000)
+        
+        # Get initial opening balance from branch
+        initial_balance = 0.0
+        if target_branch_id:
+            branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
+            if branch:
+                initial_balance = branch.get("opening_balance", 0.0)
+        
+        # Calculate opening balance = initial + all previous debits - all previous credits
+        prev_debit = sum(e["amount"] for e in prev_entries if e["entry_type"] == "debit")
+        prev_credit = sum(e["amount"] for e in prev_entries if e["entry_type"] == "credit")
+        opening_balance = initial_balance + prev_debit - prev_credit
+    else:
+        # No period filter - return all entries (backward compatible)
+        opening_balance = 0.0
+        if target_branch_id:
+            branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
+            if branch:
+                opening_balance = branch.get("opening_balance", 0.0)
+    
+    entries = await db.cashbook_entries.find(query, {"_id": 0}).sort("date", 1).to_list(1000)
     for entry in entries:
         if isinstance(entry.get("created_at"), str):
             entry["created_at"] = datetime.fromisoformat(entry["created_at"])
         if isinstance(entry.get("date"), str):
             entry["date"] = datetime.fromisoformat(entry["date"])
     
-    # Get opening balance from branch
-    opening_balance = 0.0
-    if target_branch_id:
-        branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
-        if branch:
-            opening_balance = branch.get("opening_balance", 0.0)
-    
     total_debit = sum(e["amount"] for e in entries if e["entry_type"] == "debit")
     total_credit = sum(e["amount"] for e in entries if e["entry_type"] == "credit")
-    balance = opening_balance + total_debit - total_credit
+    closing_balance = opening_balance + total_debit - total_credit
     
     return {
         "entries": entries,
         "opening_balance": opening_balance,
         "total_debit": total_debit,
         "total_credit": total_credit,
-        "balance": balance
+        "balance": closing_balance,
+        "period_date": period_date
     }
 
 @api_router.post("/cashbook", response_model=CashBookEntry)
