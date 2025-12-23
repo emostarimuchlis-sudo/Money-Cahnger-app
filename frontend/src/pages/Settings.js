@@ -280,6 +280,9 @@ const Settings = () => {
           <TabsTrigger value="currencies" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
             <Coins size={18} className="mr-2" /> Mata Uang
           </TabsTrigger>
+          <TabsTrigger value="activity" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+            <Activity size={18} className="mr-2" /> Log Aktivitas
+          </TabsTrigger>
         </TabsList>
 
         {/* Company Tab */}
