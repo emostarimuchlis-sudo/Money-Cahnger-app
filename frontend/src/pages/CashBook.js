@@ -78,8 +78,13 @@ const CashBook = () => {
     try {
       const branchId = selectedBranch || user?.branch_id;
       let url = `/cashbook?branch_id=${branchId}`;
-      if (filterStartDate) url += `&start_date=${filterStartDate}`;
-      if (filterEndDate) url += `&end_date=${filterEndDate}`;
+      // Use period date for daily view
+      if (periodDate) {
+        url += `&start_date=${periodDate}&end_date=${periodDate}`;
+      } else if (filterStartDate) {
+        url += `&start_date=${filterStartDate}`;
+      }
+      if (filterEndDate && !periodDate) url += `&end_date=${filterEndDate}`;
       
       const response = await api.get(url);
       setCashbook(response.data);
