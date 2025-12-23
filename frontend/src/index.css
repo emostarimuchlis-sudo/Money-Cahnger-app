@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide Emergent badge */
+#emergent-badge,
+a[id="emergent-badge"],
+a[href*="emergent-badge"],
+a[href*="emergent.sh"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -99999px !important;
+  top: -99999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
 @layer base {
   :root {
     --background: 2 44 34;
