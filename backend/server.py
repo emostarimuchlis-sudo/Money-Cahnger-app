@@ -1051,6 +1051,7 @@ async def create_cashbook_entry(entry_data: CashBookEntryCreate, current_user: U
 
 @api_router.get("/mutasi-valas/calculate")
 async def calculate_mutasi_valas(
+    period_date: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     branch_id: Optional[str] = None,
@@ -1058,6 +1059,9 @@ async def calculate_mutasi_valas(
 ):
     """
     Calculate mutasi valas from transactions with correct formulas:
+    If period_date is provided, calculates for that specific day.
+    Otherwise uses start_date/end_date range (backward compatible).
+    
     1. Stock Awal (Valas) = Stock Akhir periode sebelumnya
     2. Stock Awal (Rupiah) = Rupiah Stock Akhir periode sebelumnya
     3. Pembelian = Akumulasi transaksi beli pada periode
@@ -1067,6 +1071,11 @@ async def calculate_mutasi_valas(
     7. Stock Akhir (Rupiah) = Stock Akhir Valas * Average Rate
     8. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
     """
+    # If period_date is provided, use it as single day period
+    if period_date:
+        start_date = period_date
+        end_date = period_date
+    
     # Branch filter
     if current_user.role != UserRole.ADMIN:
         target_branch_id = current_user.branch_id
@@ -1096,7 +1105,7 @@ async def calculate_mutasi_valas(
         prev_query = {"is_deleted": {"$ne": True}}
         if target_branch_id:
             prev_query["branch_id"] = target_branch_id
-        prev_query["transaction_date"] = {"$lt": start_date}
+        prev_query["transaction_date"] = {"$lt": start_date + "T00:00:00"}
         
         prev_transactions = await db.transactions.find(prev_query, {"_id": 0}).to_list(10000)
         
@@ -1130,7 +1139,10 @@ async def calculate_mutasi_valas(
     if target_branch_id:
         current_query["branch_id"] = target_branch_id
     if start_date and end_date:
-        current_query["transaction_date"] = {"$gte": start_date, "$lte": end_date}
+        current_query["transaction_date"] = {
+            "$gte": start_date + "T00:00:00", 
+            "$lte": end_date + "T23:59:59"
+        }
     
     transactions = await db.transactions.find(current_query, {"_id": 0}).to_list(10000)
     
