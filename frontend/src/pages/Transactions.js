@@ -1138,7 +1138,7 @@ const Transactions = () => {
                 </div>
                 <div>
                   <p className="text-[#6EE7B7] text-sm">No. Voucher</p>
-                  <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.voucher_number || '-'}</p>
+                  <p className="text-[#FEF3C7] font-semibold mono">{selectedTransaction.voucher_number || ''}</p>
                 </div>
                 <div>
                   <p className="text-[#6EE7B7] text-sm">Tanggal</p>
