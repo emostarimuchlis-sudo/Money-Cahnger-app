@@ -732,7 +732,9 @@ const Transactions = () => {
                       <span className="mono text-[#6EE7B7] text-xs">{transaction.transaction_number}</span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="mono text-[#FEF3C7] text-xs">{transaction.voucher_number || '-'}</span>
+                      {transaction.voucher_number ? (
+                        <span className="mono text-[#FEF3C7] text-xs">{transaction.voucher_number}</span>
+                      ) : null}
                     </td>
                     <td className="py-4 px-4 text-[#FEF3C7] text-sm">
                       {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: localeId })}
