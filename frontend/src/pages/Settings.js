@@ -627,7 +627,7 @@ const Settings = () => {
 
       {/* Balance Dialog */}
       <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
-        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#D4AF37]">
               Saldo Awal - {selectedBranch?.name}
@@ -649,24 +649,52 @@ const Settings = () => {
               
               <div className="pt-4 border-t border-white/10">
                 <Label className="text-[#D4AF37] text-lg">Saldo Awal Per Mata Uang (Valas)</Label>
-                <p className="text-[#6EE7B7] text-sm mb-4">Untuk perhitungan mutasi valas</p>
+                <p className="text-[#6EE7B7] text-sm mb-4">Untuk perhitungan mutasi valas - isi jumlah valas DAN nilai rupiahnya</p>
                 
-                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-2 px-2 py-2 bg-emerald-900/30 rounded-t-lg border-b border-white/10">
+                  <div className="col-span-2 text-[#D4AF37] text-sm font-semibold">Kode</div>
+                  <div className="col-span-4 text-[#D4AF37] text-sm font-semibold">Jumlah Valas</div>
+                  <div className="col-span-4 text-[#D4AF37] text-sm font-semibold">Nilai IDR</div>
+                  <div className="col-span-2 text-[#D4AF37] text-sm font-semibold">Nama</div>
+                </div>
+                
+                <div className="space-y-1 max-h-[35vh] overflow-y-auto">
                   {currencies.map((currency) => (
-                    <div key={currency.id} className="flex items-center gap-4 p-2 bg-black/10 rounded-lg">
-                      <span className="mono text-[#D4AF37] font-bold w-16">{currency.code}</span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={balanceForm.currency_balances[currency.code] || ''}
-                        onChange={(e) => updateCurrencyBalance(currency.code, e.target.value)}
-                        className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1"
-                        placeholder="0"
-                      />
-                      <span className="text-xs text-gray-400 w-20">{currency.name}</span>
+                    <div key={currency.id} className="grid grid-cols-12 gap-2 items-center p-2 bg-black/10 hover:bg-black/20 rounded">
+                      <div className="col-span-2">
+                        <span className="mono text-[#D4AF37] font-bold">{currency.code}</span>
+                      </div>
+                      <div className="col-span-4">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={balanceForm.currency_balances[currency.code] || ''}
+                          onChange={(e) => updateCurrencyBalance(currency.code, e.target.value)}
+                          className="bg-black/20 border-white/10 text-[#FEF3C7] text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <Input
+                          type="number"
+                          step="1"
+                          value={balanceForm.currency_balances_idr?.[currency.code] || ''}
+                          onChange={(e) => updateCurrencyBalanceIdr(currency.code, e.target.value)}
+                          className="bg-black/20 border-white/10 text-[#FEF3C7] text-sm"
+                          placeholder="Rp 0"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-xs text-gray-400 truncate">{currency.name}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
+                
+                <p className="text-xs text-amber-400 mt-2">
+                  * Nilai IDR = Total Rupiah yang dikeluarkan untuk membeli valas tersebut (untuk menghitung rata-rata kurs)
+                </p>
               </div>
             </div>
             
