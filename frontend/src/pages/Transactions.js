@@ -450,15 +450,35 @@ const Transactions = () => {
 
   // Filter customers for dropdown (search + sorted by most recent)
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return customers;
-    const search = customerSearch.toLowerCase();
-    return customers.filter(c => 
-      (c.name || '').toLowerCase().includes(search) ||
-      (c.entity_name || '').toLowerCase().includes(search) ||
-      (c.customer_code || '').toLowerCase().includes(search) ||
-      (c.identity_number || '').toLowerCase().includes(search)
-    );
-  }, [customers, customerSearch]);
+    // Get user's branch customers only (or all for admin)
+    let branchCustomers = customers;
+    if (user?.role !== 'admin' && user?.branch_id) {
+      branchCustomers = customers.filter(c => c.branch_id === user.branch_id);
+    }
+    
+    // If search term exists, filter by search
+    if (customerSearch && customerSearch.length > 0) {
+      const search = customerSearch.toLowerCase();
+      const filtered = branchCustomers.filter(c => 
+        (c.name || '').toLowerCase().includes(search) ||
+        (c.entity_name || '').toLowerCase().includes(search) ||
+        (c.customer_code || '').toLowerCase().includes(search) ||
+        (c.identity_number || '').toLowerCase().includes(search) ||
+        (c.phone || '').toLowerCase().includes(search)
+      );
+      // Return up to 10 results when searching
+      return filtered.slice(0, 10);
+    }
+    
+    // If no search, show max 10 most recent customers
+    // Sort by created_at descending and take first 10
+    const sorted = [...branchCustomers].sort((a, b) => {
+      const dateA = new Date(a.created_at || 0);
+      const dateB = new Date(b.created_at || 0);
+      return dateB - dateA;
+    });
+    return sorted.slice(0, 10);
+  }, [customers, customerSearch, user]);
 
   // Export functions
   const exportColumns = [
