@@ -320,7 +320,7 @@ const Transactions = () => {
     }
   };
   
-  const printTransaction = (transaction) => {
+  const printTransaction = (transaction, signatureData = null) => {
     // Validate transaction data before printing
     if (!transaction || !transaction.transaction_number) {
       toast.error('Data transaksi tidak valid untuk dicetak');
@@ -348,6 +348,18 @@ const Transactions = () => {
     const customerPhone = customer?.phone || customer?.pic_phone || '-';
     const currencyCode = currency?.code || transaction.currency_code || 'N/A';
     const branchName = branch?.name || transaction.branch_name || 'N/A';
+    
+    // Signature section - either show captured signature or empty line
+    const signatureSection = signatureData 
+      ? `<div class="signature">
+           <p style="margin-bottom: 5px;">Tanda Tangan Nasabah:</p>
+           <img src="${signatureData}" style="max-width: 150px; max-height: 60px; border-bottom: 1px solid #000;" />
+           <p style="margin-top: 5px;">${customerName}</p>
+         </div>`
+      : `<div class="signature">
+           <div class="signature-line"></div>
+           <p>Tanda Tangan Nasabah</p>
+         </div>`;
     
     const printWindow = window.open('', '_blank');
     const printContent = `
@@ -406,10 +418,7 @@ const Transactions = () => {
         
         ${transaction.notes ? `<div class="divider"></div><div class="row"><span class="label">Catatan:</span></div><div style="margin-top: 5px;">${transaction.notes}</div>` : ''}
         
-        <div class="signature">
-          <div class="signature-line"></div>
-          <p>Tanda Tangan</p>
-        </div>
+        ${signatureSection}
         
         <div class="footer">
           <p>${receiptFooter}</p>
@@ -423,6 +432,24 @@ const Transactions = () => {
     
     printWindow.document.write(printContent);
     printWindow.document.close();
+  };
+  
+  // Print with signature - opens signature dialog first
+  const printWithSignature = (transaction) => {
+    setPendingPrintTransaction(transaction);
+    setCustomerSignature(null);
+    setShowSignatureDialog(true);
+  };
+  
+  // Handle signature save and print
+  const handleSignatureSave = (signatureData) => {
+    setCustomerSignature(signatureData);
+    if (pendingPrintTransaction) {
+      printTransaction(pendingPrintTransaction, signatureData);
+    }
+    setShowSignatureDialog(false);
+    setPendingPrintTransaction(null);
+    toast.success('Struk dengan tanda tangan berhasil dicetak');
   };
 
   const resetForm = () => {
