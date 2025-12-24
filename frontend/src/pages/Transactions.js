@@ -1294,6 +1294,26 @@ const Transactions = () => {
           </form>
         </DialogContent>
       </Dialog>
+      
+      {/* Signature Dialog */}
+      <Dialog open={showSignatureDialog} onOpenChange={setShowSignatureDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]">
+              Tanda Tangan Nasabah
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <SignaturePad 
+              onSave={handleSignatureSave}
+              onCancel={() => {
+                setShowSignatureDialog(false);
+                setPendingPrintTransaction(null);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
