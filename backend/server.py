@@ -2156,6 +2156,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_db_client():
+    """Create database indexes on startup for better performance"""
+    try:
+        # Transactions indexes
+        await db.transactions.create_index("id", unique=True)
+        await db.transactions.create_index("branch_id")
+        await db.transactions.create_index("customer_id")
+        await db.transactions.create_index("transaction_date")
+        await db.transactions.create_index("currency_code")
+        await db.transactions.create_index([("branch_id", 1), ("transaction_date", -1)])
+        
+        # Customers indexes
+        await db.customers.create_index("id", unique=True)
+        await db.customers.create_index("branch_id")
+        await db.customers.create_index("name")
+        await db.customers.create_index("customer_code")
+        
+        # Cashbook entries indexes
+        await db.cashbook_entries.create_index("id", unique=True)
+        await db.cashbook_entries.create_index("branch_id")
+        await db.cashbook_entries.create_index("date")
+        await db.cashbook_entries.create_index([("branch_id", 1), ("date", -1)])
+        
+        # Users indexes
+        await db.users.create_index("id", unique=True)
+        await db.users.create_index("email", unique=True)
+        
+        # Branches indexes
+        await db.branches.create_index("id", unique=True)
+        await db.branches.create_index("code", unique=True)
+        
+        # Currencies indexes
+        await db.currencies.create_index("id", unique=True)
+        await db.currencies.create_index("code", unique=True)
+        
+        logger.info("Database indexes created successfully")
+    except Exception as e:
+        logger.error(f"Error creating indexes: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
