@@ -254,11 +254,17 @@ const Transactions = () => {
         branch_id: branchId
       });
       
-      toast.success('Nasabah berhasil ditambahkan');
+      toast.success('Nasabah berhasil ditambahkan dan dipilih');
       
+      // Refresh customers list
       const customersRes = await api.get('/customers');
       setCustomers(customersRes.data);
+      
+      // Auto-select the new customer in the form
       setFormData({ ...formData, customer_id: response.data.id });
+      
+      // Clear customer search
+      setCustomerSearch('');
       
       setShowQuickCustomerDialog(false);
       setQuickCustomerForm({
