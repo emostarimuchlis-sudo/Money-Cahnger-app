@@ -811,7 +811,8 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     
     transaction_dict = transaction.model_dump()
     transaction_dict["created_at"] = transaction_dict["created_at"].isoformat()
-    transaction_dict["transaction_date"] = transaction_dict["transaction_date"].isoformat()
+    # Keep transaction_date as datetime object for proper MongoDB queries
+    # MongoDB can store datetime natively and query comparisons work correctly
     
     await db.transactions.insert_one(transaction_dict)
     
