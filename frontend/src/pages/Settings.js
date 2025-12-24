@@ -159,10 +159,11 @@ const Settings = () => {
       const response = await api.get(`/branches/${branch.id}/balances`);
       setBalanceForm({
         opening_balance: response.data.opening_balance || 0,
-        currency_balances: response.data.currency_balances || {}
+        currency_balances: response.data.currency_balances || {},
+        currency_balances_idr: response.data.currency_balances_idr || {}
       });
     } catch (error) {
-      setBalanceForm({ opening_balance: 0, currency_balances: {} });
+      setBalanceForm({ opening_balance: 0, currency_balances: {}, currency_balances_idr: {} });
     }
     setShowBalanceDialog(true);
   };
