@@ -769,13 +769,22 @@ const Transactions = () => {
                         </button>
                         {/* Reprint - Admin & Kasir */}
                         {(user?.role === 'admin' || user?.role === 'kasir') && (
-                          <button
-                            onClick={() => printTransaction(transaction)}
-                            className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300 p-1.5"
-                            title="Cetak Ulang"
-                          >
-                            <Printer size={16} />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => printTransaction(transaction)}
+                              className="text-[#D4AF37] hover:text-[#FCD34D] transition-colors duration-300 p-1.5"
+                              title="Cetak Ulang"
+                            >
+                              <Printer size={16} />
+                            </button>
+                            <button
+                              onClick={() => printWithSignature(transaction)}
+                              className="text-emerald-400 hover:text-emerald-300 transition-colors duration-300 p-1.5"
+                              title="Cetak dengan Tanda Tangan"
+                            >
+                              <PenTool size={16} />
+                            </button>
+                          </>
                         )}
                         {/* Edit - Admin Only */}
                         {user?.role === 'admin' && (
