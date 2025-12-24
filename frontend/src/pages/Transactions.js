@@ -235,7 +235,19 @@ const Transactions = () => {
   const handleQuickCustomerSubmit = async (e) => {
     e.preventDefault();
     try {
-      const branchId = quickCustomerForm.branch_id || customers[0]?.branch_id;
+      // Get branch_id from form, or user's branch, or first branch available
+      let branchId = quickCustomerForm.branch_id;
+      if (!branchId && user?.branch_id) {
+        branchId = user.branch_id;
+      }
+      if (!branchId && branches.length > 0) {
+        branchId = branches[0].id;
+      }
+      
+      if (!branchId) {
+        toast.error('Cabang tidak ditemukan. Silakan pilih cabang terlebih dahulu.');
+        return;
+      }
       
       const response = await api.post('/customers', {
         ...quickCustomerForm,
@@ -258,6 +270,8 @@ const Transactions = () => {
         phone: '',
         pic_phone: '',
         identity_type: 'KTP',
+        gender: 'L',
+        domicile_address: '',
         branch_id: ''
       });
     } catch (error) {
