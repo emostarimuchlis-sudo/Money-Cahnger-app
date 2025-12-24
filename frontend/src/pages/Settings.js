@@ -189,6 +189,16 @@ const Settings = () => {
     }));
   };
 
+  const updateCurrencyBalanceIdr = (currencyCode, value) => {
+    setBalanceForm(prev => ({
+      ...prev,
+      currency_balances_idr: {
+        ...prev.currency_balances_idr,
+        [currencyCode]: parseFloat(value) || 0
+      }
+    }));
+  };
+
   // Currency Management
   const handleCurrencySubmit = async (e) => {
     e.preventDefault();
