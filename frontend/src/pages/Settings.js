@@ -25,7 +25,7 @@ const Settings = () => {
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'teller', branch_id: '' });
   const [branchForm, setBranchForm] = useState({ name: '', code: '', address: '', phone: '', is_headquarters: false });
   const [currencyForm, setCurrencyForm] = useState({ code: '', name: '', symbol: '' });
-  const [balanceForm, setBalanceForm] = useState({ opening_balance: 0, currency_balances: {} });
+  const [balanceForm, setBalanceForm] = useState({ opening_balance: 0, currency_balances: {}, currency_balances_idr: {} });
   
   // Company Settings
   const [companySettings, setCompanySettings] = useState({
