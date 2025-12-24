@@ -166,3 +166,39 @@ agent_communication:
       - /app/frontend/src/components/TransactionBook.js
       
       CREDENTIALS: admin@moztec.com / admin123
+
+#====================================================================================================
+# BUG FIX UPDATE - December 24, 2025
+#====================================================================================================
+
+agent_communication:
+  - agent: "main"
+    message: |
+      BUG FIX COMPLETED: Single Currency Transactions Not Updating Mutasi Valas
+      
+      ROOT CAUSE:
+      - transaction_date was being stored as ISO string (via .isoformat()) in single-currency endpoint
+      - But MongoDB query used datetime objects for comparison
+      - This caused type mismatch: comparing datetime with string failed silently
+      
+      FIX APPLIED IN /app/backend/server.py:
+      1. Removed .isoformat() conversion for transaction_date in create_transaction endpoint (line 814)
+         - Now transaction_date is stored as native datetime object
+      
+      2. Added normalize_transaction_date() helper in calculate_mutasi_valas endpoint
+         - Handles both string (old data) and datetime (new data) formats
+         - Converts both to naive datetime for consistent comparison
+      
+      3. Changed query strategy: fetch all transactions then filter in Python
+         - More robust for handling mixed data formats (backward compatible)
+      
+      TESTING COMPLETED:
+      - Backend API test via curl: ✅ PASS
+        - POST /api/transactions creates single-currency transaction correctly
+        - GET /api/mutasi-valas/calculate returns correct data with transaction_count > 0
+      
+      - Frontend UI test via screenshot: ✅ PASS
+        - Mutasi Valas page shows USD and EUR transactions correctly
+        - Transaksi page lists all 3 test transactions
+      
+      CREDENTIALS: admin@moztec.com / admin123
