@@ -2041,13 +2041,15 @@ async def create_multi_transaction(transaction_data: MultiTransactionCreate, cur
         await db.transactions.insert_one(transaction.model_dump())
         
         # Create cashbook entry for each transaction
-        entry_type = "debit" if item.transaction_type in ["beli", "buy"] else "credit"
+        # Sell (jual) = Money receives IDR = DEBIT (cash in)
+        # Buy (beli) = Money pays IDR = CREDIT (cash out)
+        entry_type = "debit" if item.transaction_type in ["jual", "sell"] else "credit"
         cashbook_entry = CashBookEntry(
             branch_id=customer["branch_id"],
             date=transaction.transaction_date,
             entry_type=entry_type,
             amount=total_idr,
-            description=f"{'Pembelian' if entry_type == 'debit' else 'Penjualan'} {currency['code']} - {customer_name}",
+            description=f"{'Penjualan' if entry_type == 'debit' else 'Pembelian'} {currency['code']} - {customer_name}",
             reference_type="transaction",
             reference_id=transaction.id
         )
