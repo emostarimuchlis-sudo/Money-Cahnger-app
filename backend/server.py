@@ -2065,6 +2065,59 @@ async def create_multi_transaction(transaction_data: MultiTransactionCreate, cur
         "transactions": created_transactions
     }
 
+# ============= DATA MIGRATION ENDPOINT =============
+
+@api_router.post("/migrate/fix-cashbook-entries")
+async def fix_cashbook_entries(current_user: User = Depends(get_current_user)):
+    """
+    One-time migration to fix cashbook entries with incorrect entry_type.
+    Penjualan (sell/jual) should be DEBIT (cash in)
+    Pembelian (buy/beli) should be CREDIT (cash out)
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Get all transactions
+    txns = await db.transactions.find({}).to_list(100000)
+    txn_map = {t['id']: t for t in txns}
+    
+    # Get all cashbook entries
+    entries = await db.cashbook_entries.find({}).to_list(100000)
+    
+    fixed_count = 0
+    fixed_entries = []
+    
+    for entry in entries:
+        ref_id = entry.get('reference_id')
+        if ref_id and ref_id in txn_map:
+            txn = txn_map[ref_id]
+            txn_type = txn.get('transaction_type')
+            
+            # Determine correct entry_type
+            # sell/jual = DEBIT (cash in)
+            # buy/beli = CREDIT (cash out)
+            correct_entry_type = "debit" if txn_type in ["sell", "jual"] else "credit"
+            current_entry_type = entry.get('entry_type')
+            
+            if current_entry_type != correct_entry_type:
+                await db.cashbook_entries.update_one(
+                    {"id": entry['id']},
+                    {"$set": {"entry_type": correct_entry_type}}
+                )
+                fixed_entries.append({
+                    "entry_id": entry['id'],
+                    "description": entry.get('description', '')[:50],
+                    "transaction_type": txn_type,
+                    "old_entry_type": current_entry_type,
+                    "new_entry_type": correct_entry_type
+                })
+                fixed_count += 1
+    
+    return {
+        "message": f"Fixed {fixed_count} cashbook entries",
+        "fixed_entries": fixed_entries
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
