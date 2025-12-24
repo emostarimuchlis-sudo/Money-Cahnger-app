@@ -971,57 +971,84 @@ async def get_cashbook(
     Get cashbook entries for a specific period (day).
     Opening balance = closing balance of previous day.
     """
-    query = {"is_deleted": {"$ne": True}}
+    from datetime import datetime as dt
+    
+    # Helper function to normalize date to datetime for comparison
+    def normalize_date(entry_date):
+        """Convert date to naive datetime object for comparison"""
+        if entry_date is None:
+            return None
+        if isinstance(entry_date, dt):
+            if entry_date.tzinfo is not None:
+                return entry_date.replace(tzinfo=None)
+            return entry_date
+        if isinstance(entry_date, str):
+            try:
+                parsed = dt.fromisoformat(entry_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
     target_branch_id = None
     
     if current_user.role != UserRole.ADMIN:
-        query["branch_id"] = current_user.branch_id
         target_branch_id = current_user.branch_id
     elif branch_id:
-        query["branch_id"] = branch_id
         target_branch_id = branch_id
     
-    # If period_date is provided, filter by that specific date
+    # Fetch ALL cashbook entries for the branch and filter in Python
+    # This handles mixed date formats (datetime objects and ISO strings)
+    all_query = {"is_deleted": {"$ne": True}}
+    if target_branch_id:
+        all_query["branch_id"] = target_branch_id
+    
+    all_entries = await db.cashbook_entries.find(all_query, {"_id": 0}).to_list(10000)
+    
+    # Get initial opening balance from branch
+    initial_balance = 0.0
+    if target_branch_id:
+        branch_doc = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
+        if branch_doc:
+            initial_balance = branch_doc.get("opening_balance", 0.0)
+    
     if period_date:
-        # Get entries only for the specified date
-        query["date"] = {
-            "$gte": period_date + "T00:00:00",
-            "$lte": period_date + "T23:59:59"
-        }
+        # Parse period date boundaries
+        period_start = dt.fromisoformat(period_date + "T00:00:00")
+        period_end = dt.fromisoformat(period_date + "T23:59:59")
         
-        # Calculate opening balance from all entries BEFORE this date
-        prev_query = {"is_deleted": {"$ne": True}}
-        if target_branch_id:
-            prev_query["branch_id"] = target_branch_id
-        prev_query["date"] = {"$lt": period_date + "T00:00:00"}
+        # Filter entries for this period and calculate previous period totals
+        prev_entries = []
+        current_entries = []
         
-        prev_entries = await db.cashbook_entries.find(prev_query, {"_id": 0}).to_list(10000)
+        for entry in all_entries:
+            entry_date = normalize_date(entry.get("date"))
+            if entry_date:
+                if entry_date < period_start:
+                    prev_entries.append(entry)
+                elif period_start <= entry_date <= period_end:
+                    current_entries.append(entry)
         
-        # Get initial opening balance from branch
-        initial_balance = 0.0
-        if target_branch_id:
-            branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
-            if branch:
-                initial_balance = branch.get("opening_balance", 0.0)
-        
-        # Calculate opening balance = initial + all previous debits - all previous credits
+        # Calculate opening balance from previous entries
         prev_debit = sum(e["amount"] for e in prev_entries if e["entry_type"] == "debit")
         prev_credit = sum(e["amount"] for e in prev_entries if e["entry_type"] == "credit")
         opening_balance = initial_balance + prev_debit - prev_credit
+        
+        entries = current_entries
     else:
-        # No period filter - return all entries (backward compatible)
-        opening_balance = 0.0
-        if target_branch_id:
-            branch = await db.branches.find_one({"id": target_branch_id}, {"_id": 0})
-            if branch:
-                opening_balance = branch.get("opening_balance", 0.0)
+        # No period filter - return all entries
+        opening_balance = initial_balance
+        entries = all_entries
     
-    entries = await db.cashbook_entries.find(query, {"_id": 0}).sort("date", 1).to_list(1000)
+    # Sort entries by date
+    entries.sort(key=lambda x: normalize_date(x.get("date")) or dt.min)
+    
+    # Normalize datetime fields for JSON response
     for entry in entries:
         if isinstance(entry.get("created_at"), str):
             entry["created_at"] = datetime.fromisoformat(entry["created_at"])
         if isinstance(entry.get("date"), str):
-            entry["date"] = datetime.fromisoformat(entry["date"])
+            entry["date"] = datetime.fromisoformat(entry["date"].replace('Z', '+00:00'))
     
     total_debit = sum(e["amount"] for e in entries if e["entry_type"] == "debit")
     total_credit = sum(e["amount"] for e in entries if e["entry_type"] == "credit")
