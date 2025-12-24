@@ -352,7 +352,60 @@ const MutasiValasNew = () => {
         </div>
       )}
 
-      {/* Summary */}
+      {/* Summary Table IDR */}
+      {mutasi.length > 0 && (
+        <div className="glass-card rounded-xl overflow-hidden">
+          <div className="bg-emerald-900/50 px-4 py-3 border-b border-white/10">
+            <h3 className="text-lg font-bold text-[#D4AF37]">Ringkasan Total Rupiah</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-white/5">
+                <tr>
+                  <th className="text-left py-3 px-4 text-[#D4AF37] font-semibold">Keterangan</th>
+                  <th className="text-right py-3 px-4 text-[#D4AF37] font-semibold">Jumlah (IDR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-white/5">
+                  <td className="py-3 px-4 text-[#FEF3C7]">Total Stock Awal (Rupiah)</td>
+                  <td className="py-3 px-4 text-right mono text-[#FEF3C7] font-semibold">
+                    {formatIDR(mutasi.reduce((sum, item) => sum + item.beginning_stock_idr, 0))}
+                  </td>
+                </tr>
+                <tr className="border-b border-white/5 bg-emerald-900/10">
+                  <td className="py-3 px-4 text-emerald-400">+ Total Pembelian (Rupiah)</td>
+                  <td className="py-3 px-4 text-right mono text-emerald-400 font-semibold">
+                    {formatIDR(mutasi.reduce((sum, item) => sum + item.purchase_idr, 0))}
+                  </td>
+                </tr>
+                <tr className="border-b border-white/5 bg-red-900/10">
+                  <td className="py-3 px-4 text-red-400">- Total Penjualan (Rupiah)</td>
+                  <td className="py-3 px-4 text-right mono text-red-400 font-semibold">
+                    {formatIDR(mutasi.reduce((sum, item) => sum + item.sale_idr, 0))}
+                  </td>
+                </tr>
+                <tr className="border-b border-white/5">
+                  <td className="py-3 px-4 text-[#D4AF37] font-bold">Total Stock Akhir (Rupiah)</td>
+                  <td className="py-3 px-4 text-right mono text-[#D4AF37] font-bold text-lg">
+                    {formatIDR(mutasi.reduce((sum, item) => sum + item.ending_stock_idr, 0))}
+                  </td>
+                </tr>
+                <tr className="bg-white/5">
+                  <td className="py-3 px-4 text-[#FEF3C7] font-bold">Laba/Rugi Hari Ini</td>
+                  <td className={`py-3 px-4 text-right mono font-bold text-lg ${
+                    mutasi.reduce((sum, item) => sum + item.profit_loss, 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
+                    {formatIDR(mutasi.reduce((sum, item) => sum + item.profit_loss, 0))}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Summary Cards */}
       {mutasi.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="glass-card rounded-xl p-4">
