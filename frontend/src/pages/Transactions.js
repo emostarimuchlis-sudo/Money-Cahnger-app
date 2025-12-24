@@ -839,32 +839,83 @@ const Transactions = () => {
             {/* Customer & Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <Label className="text-[#FEF3C7]">Cari Nasabah</Label>
-                <Input
-                  type="text"
-                  placeholder="Ketik nama, kode, atau no. identitas nasabah..."
-                  value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
-                  className="bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
-                />
+                <Label className="text-[#FEF3C7]">Cari & Pilih Nasabah *</Label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Ketik nama, kode, atau no. identitas untuk mencari nasabah..."
+                    value={customerSearch}
+                    onChange={(e) => {
+                      setCustomerSearch(e.target.value);
+                      // Clear selection when typing
+                      if (e.target.value && formData.customer_id) {
+                        setFormData({ ...formData, customer_id: '' });
+                      }
+                    }}
+                    className="bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
+                  />
+                  {/* Customer Search Results Dropdown */}
+                  {customerSearch && filteredCustomers.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-[#064E3B] border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          onClick={() => {
+                            setFormData({ ...formData, customer_id: customer.id });
+                            setCustomerSearch(customer.customer_code ? `[${customer.customer_code}] ${customer.name || customer.entity_name}` : (customer.name || customer.entity_name));
+                          }}
+                          className="px-4 py-3 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-[#FEF3C7] font-medium">{customer.name || customer.entity_name}</p>
+                              <p className="text-[#6EE7B7] text-xs">
+                                {customer.customer_code && <span className="mr-2">[{customer.customer_code}]</span>}
+                                {customer.identity_number || customer.npwp || ''}
+                              </p>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded ${customer.customer_type === 'perorangan' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                              {customer.customer_type === 'perorangan' ? 'Individu' : 'Badan Usaha'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {customerSearch && filteredCustomers.length === 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-[#064E3B] border border-white/10 rounded-lg shadow-xl p-4 text-center">
+                      <p className="text-[#6EE7B7] text-sm">Nasabah tidak ditemukan</p>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowQuickCustomerDialog(true)} 
+                        className="mt-2 text-[#D4AF37] hover:underline text-sm"
+                      >
+                        + Tambah Nasabah Baru
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {/* Selected Customer Display */}
+                {formData.customer_id && (
+                  <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
+                    <span className="text-emerald-400 text-sm">
+                      ✓ Nasabah terpilih: {customers.find(c => c.id === formData.customer_id)?.name || customers.find(c => c.id === formData.customer_id)?.entity_name || 'N/A'}
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => { setFormData({ ...formData, customer_id: '' }); setCustomerSearch(''); }}
+                      className="text-red-400 hover:text-red-300 text-xs"
+                    >
+                      Ganti
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
-                <Label className="text-[#FEF3C7]">Nasabah *</Label>
-                <div className="flex gap-2">
-                  <Select value={formData.customer_id} onValueChange={(value) => { setFormData({ ...formData, customer_id: value }); setCustomerSearch(''); }}>
-                    <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1">
-                      <SelectValue placeholder="Pilih nasabah" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#064E3B] border-white/10 max-h-60">
-                      {filteredCustomers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id} className="text-[#FEF3C7]">
-                          {customer.customer_code ? `[${customer.customer_code}] ` : ''}{customer.name || customer.entity_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <button type="button" onClick={() => setShowQuickCustomerDialog(true)} className="px-3 py-2 bg-[#D4AF37] text-black rounded-lg hover:bg-[#D4AF37]/90 font-bold text-lg">+</button>
-                </div>
+                <Label className="text-[#FEF3C7]">Tambah Nasabah Baru</Label>
+                <button type="button" onClick={() => setShowQuickCustomerDialog(true)} className="w-full px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 rounded-lg hover:bg-[#D4AF37]/30 flex items-center justify-center gap-2">
+                  <Plus size={18} /> Nasabah Baru
+                </button>
               </div>
               <div>
                 <Label className="text-[#FEF3C7]">No. Voucher</Label>
