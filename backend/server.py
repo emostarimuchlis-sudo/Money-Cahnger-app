@@ -2266,6 +2266,38 @@ async def get_transactions_by_date(date: str, current_user: User = Depends(get_c
         "transactions": transactions_on_date
     }
 
+@api_router.delete("/admin/cashbook/by-description")
+async def delete_cashbook_entries_by_description(
+    description: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete cashbook entries by description (Admin only).
+    Use this to delete specific manual entries like "Test", "Test 2", etc.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Find entries with matching description (case-insensitive)
+    entries = await db.cashbook_entries.find({
+        "description": {"$regex": f"^{description}$", "$options": "i"}
+    }).to_list(1000)
+    
+    if len(entries) == 0:
+        return {
+            "message": f"No cashbook entries found with description '{description}'",
+            "deleted_entries": 0
+        }
+    
+    entry_ids = [e['id'] for e in entries]
+    result = await db.cashbook_entries.delete_many({"id": {"$in": entry_ids}})
+    
+    return {
+        "message": f"Successfully deleted {result.deleted_count} entries with description '{description}'",
+        "deleted_entries": result.deleted_count,
+        "entries": [{"id": e['id'], "description": e.get('description'), "amount": e.get('amount')} for e in entries]
+    }
+
 @api_router.delete("/admin/cashbook/by-date/{date}")
 async def delete_cashbook_entries_by_date(date: str, current_user: User = Depends(get_current_user)):
     """
