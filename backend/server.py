@@ -2266,6 +2266,127 @@ async def get_transactions_by_date(date: str, current_user: User = Depends(get_c
         "transactions": transactions_on_date
     }
 
+@api_router.delete("/admin/cashbook/by-date/{date}")
+async def delete_cashbook_entries_by_date(date: str, current_user: User = Depends(get_current_user)):
+    """
+    Delete all cashbook entries for a specific date (Admin only).
+    Date format: YYYY-MM-DD (e.g., 2025-12-25)
+    This deletes MANUAL entries only (not transaction-linked entries).
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from datetime import datetime as dt
+    
+    # Parse date
+    try:
+        target_date = dt.strptime(date, "%Y-%m-%d")
+        start_datetime = dt(target_date.year, target_date.month, target_date.day, 0, 0, 0)
+        end_datetime = dt(target_date.year, target_date.month, target_date.day, 23, 59, 59)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Helper function to normalize date
+    def normalize_date(entry_date):
+        if entry_date is None:
+            return None
+        if isinstance(entry_date, dt):
+            if entry_date.tzinfo is not None:
+                return entry_date.replace(tzinfo=None)
+            return entry_date
+        if isinstance(entry_date, str):
+            try:
+                parsed = dt.fromisoformat(entry_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
+    # Find all cashbook entries on the specified date
+    all_entries = await db.cashbook_entries.find({}).to_list(100000)
+    
+    entries_to_delete = []
+    for entry in all_entries:
+        entry_date = normalize_date(entry.get('date'))
+        if entry_date and start_datetime <= entry_date <= end_datetime:
+            entries_to_delete.append({
+                "id": entry['id'],
+                "entry_type": entry.get('entry_type'),
+                "description": entry.get('description'),
+                "amount": entry.get('amount'),
+                "reference_type": entry.get('reference_type')
+            })
+    
+    if len(entries_to_delete) == 0:
+        return {
+            "message": f"No cashbook entries found on {date}",
+            "deleted_entries": 0,
+            "entries": []
+        }
+    
+    # Get entry IDs
+    entry_ids = [e['id'] for e in entries_to_delete]
+    
+    # Delete entries
+    result = await db.cashbook_entries.delete_many({"id": {"$in": entry_ids}})
+    
+    return {
+        "message": f"Successfully deleted {result.deleted_count} cashbook entries on {date}",
+        "deleted_entries": result.deleted_count,
+        "entries": entries_to_delete
+    }
+
+@api_router.get("/admin/cashbook/by-date/{date}")
+async def get_cashbook_entries_by_date(date: str, current_user: User = Depends(get_current_user)):
+    """
+    Get all cashbook entries for a specific date (Admin only).
+    Date format: YYYY-MM-DD (e.g., 2025-12-25)
+    Use this to preview before deleting.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from datetime import datetime as dt
+    
+    # Parse date
+    try:
+        target_date = dt.strptime(date, "%Y-%m-%d")
+        start_datetime = dt(target_date.year, target_date.month, target_date.day, 0, 0, 0)
+        end_datetime = dt(target_date.year, target_date.month, target_date.day, 23, 59, 59)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Helper function to normalize date
+    def normalize_date(entry_date):
+        if entry_date is None:
+            return None
+        if isinstance(entry_date, dt):
+            if entry_date.tzinfo is not None:
+                return entry_date.replace(tzinfo=None)
+            return entry_date
+        if isinstance(entry_date, str):
+            try:
+                parsed = dt.fromisoformat(entry_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
+    # Find all cashbook entries on the specified date
+    all_entries = await db.cashbook_entries.find({}, {"_id": 0}).to_list(100000)
+    
+    entries_on_date = []
+    for entry in all_entries:
+        entry_date = normalize_date(entry.get('date'))
+        if entry_date and start_datetime <= entry_date <= end_datetime:
+            entries_on_date.append(entry)
+    
+    return {
+        "date": date,
+        "total_entries": len(entries_on_date),
+        "entries": entries_on_date
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
