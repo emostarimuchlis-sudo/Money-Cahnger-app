@@ -627,46 +627,50 @@ const Settings = () => {
 
       {/* Balance Dialog */}
       <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
-        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-xl">
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-[#D4AF37]">
               Saldo Awal - {selectedBranch?.name}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleBalanceSubmit} className="space-y-4 mt-4">
-            <div>
-              <Label className="text-[#FEF3C7]">Saldo Awal IDR (Buku Kas)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={balanceForm.opening_balance}
-                onChange={(e) => setBalanceForm({...balanceForm, opening_balance: parseFloat(e.target.value) || 0})}
-                className="bg-black/20 border-white/10 text-[#FEF3C7]"
-              />
-            </div>
-            
-            <div className="pt-4 border-t border-white/10">
-              <Label className="text-[#D4AF37] text-lg">Saldo Awal Per Mata Uang (Valas)</Label>
-              <p className="text-[#6EE7B7] text-sm mb-4">Untuk perhitungan mutasi valas</p>
+          <form onSubmit={handleBalanceSubmit} className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto space-y-4 mt-4 pr-2">
+              <div>
+                <Label className="text-[#FEF3C7]">Saldo Awal IDR (Buku Kas)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={balanceForm.opening_balance}
+                  onChange={(e) => setBalanceForm({...balanceForm, opening_balance: parseFloat(e.target.value) || 0})}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7]"
+                />
+                <p className="text-xs text-[#6EE7B7] mt-1">Saldo kas Rupiah awal untuk Buku Kas</p>
+              </div>
               
-              <div className="space-y-3">
-                {currencies.map((currency) => (
-                  <div key={currency.id} className="flex items-center gap-4">
-                    <span className="mono text-[#D4AF37] font-bold w-16">{currency.code}</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={balanceForm.currency_balances[currency.code] || ''}
-                      onChange={(e) => updateCurrencyBalance(currency.code, e.target.value)}
-                      className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1"
-                      placeholder="0"
-                    />
-                  </div>
-                ))}
+              <div className="pt-4 border-t border-white/10">
+                <Label className="text-[#D4AF37] text-lg">Saldo Awal Per Mata Uang (Valas)</Label>
+                <p className="text-[#6EE7B7] text-sm mb-4">Untuk perhitungan mutasi valas</p>
+                
+                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+                  {currencies.map((currency) => (
+                    <div key={currency.id} className="flex items-center gap-4 p-2 bg-black/10 rounded-lg">
+                      <span className="mono text-[#D4AF37] font-bold w-16">{currency.code}</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={balanceForm.currency_balances[currency.code] || ''}
+                        onChange={(e) => updateCurrencyBalance(currency.code, e.target.value)}
+                        className="bg-black/20 border-white/10 text-[#FEF3C7] flex-1"
+                        placeholder="0"
+                      />
+                      <span className="text-xs text-gray-400 w-20">{currency.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-4 border-t border-white/10 mt-4">
               <Button type="submit" className="btn-primary flex-1">Simpan Saldo</Button>
               <Button type="button" onClick={() => setShowBalanceDialog(false)} className="btn-secondary flex-1">Batal</Button>
             </div>
