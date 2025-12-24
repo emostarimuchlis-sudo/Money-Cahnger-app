@@ -90,6 +90,11 @@ const Transactions = () => {
     company_phone: '',
     receipt_footer: 'Terima kasih atas kepercayaan Anda'
   });
+  
+  // Signature states
+  const [showSignatureDialog, setShowSignatureDialog] = useState(false);
+  const [customerSignature, setCustomerSignature] = useState(null);
+  const [pendingPrintTransaction, setPendingPrintTransaction] = useState(null);
 
   useEffect(() => {
     fetchInitialData();
