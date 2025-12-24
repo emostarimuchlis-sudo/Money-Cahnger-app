@@ -816,7 +816,9 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     
     await db.transactions.insert_one(transaction_dict)
     
-    entry_type = "debit" if transaction_data.transaction_type == "sell" else "credit"
+    # Sell/Jual = Money receives IDR = DEBIT (cash in)
+    # Buy/Beli = Money pays IDR = CREDIT (cash out)
+    entry_type = "debit" if transaction_data.transaction_type in ["sell", "jual"] else "credit"
     cashbook_entry = CashBookEntry(
         branch_id=customer["branch_id"],
         date=transaction.transaction_date,
