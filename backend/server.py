@@ -1095,7 +1095,7 @@ async def create_cashbook_entry(entry_data: CashBookEntryCreate, current_user: U
     entry = CashBookEntry(**entry_data.model_dump(), date=datetime.now(timezone.utc))
     entry_dict = entry.model_dump()
     entry_dict["created_at"] = entry_dict["created_at"].isoformat()
-    entry_dict["date"] = entry_dict["date"].isoformat()
+    # Keep date as datetime object for proper MongoDB queries (don't convert to ISO string)
     
     await db.cashbook_entries.insert_one(entry_dict)
     return entry
