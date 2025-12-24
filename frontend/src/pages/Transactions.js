@@ -181,7 +181,8 @@ const Transactions = () => {
         toast.success(`${response.data.transactions.length} transaksi berhasil dibuat`);
         
         if (shouldPrint && response.data.transactions.length > 0) {
-          response.data.transactions.forEach(t => printTransaction(t));
+          // Print with signature if available
+          response.data.transactions.forEach(t => printTransaction(t, customerSignature));
         }
       } else {
         // Single transaction
@@ -200,12 +201,14 @@ const Transactions = () => {
         }
         
         if (shouldPrint) {
-          printTransaction(response.data);
+          // Print with signature if available
+          printTransaction(response.data, customerSignature);
         }
       }
       
       setShowDialog(false);
       resetForm();
+      setCustomerSignature(null); // Clear signature after transaction
       fetchTransactions();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Gagal menyimpan transaksi');
