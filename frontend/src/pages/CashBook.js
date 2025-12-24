@@ -395,7 +395,6 @@ const CashBook = () => {
             <thead className="bg-white/5">
               <tr>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tanggal</th>
-                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Referensi</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tipe</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Keterangan</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Debit</th>
@@ -409,18 +408,6 @@ const CashBook = () => {
                   <tr key={entry.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="py-4 px-4 text-[#FEF3C7]">
                       {format(new Date(entry.date), 'dd MMM yyyy', { locale: localeId })}
-                    </td>
-                    <td className="py-4 px-4">
-                      {entry.reference_id && entry.reference_type === 'transaction' ? (
-                        <button 
-                          onClick={() => viewTransactionDetail(entry)}
-                          className="text-[#D4AF37] hover:text-yellow-300 underline text-sm font-mono cursor-pointer"
-                        >
-                          {entry.reference_id.substring(0, 8)}...
-                        </button>
-                      ) : (
-                        <span className="text-gray-500 text-sm">-</span>
-                      )}
                     </td>
                     <td className="py-4 px-4">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -453,7 +440,7 @@ const CashBook = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-12 text-[#6EE7B7]">
+                  <td colSpan="6" className="text-center py-12 text-[#6EE7B7]">
                     Belum ada entri untuk tanggal {format(new Date(periodDate), 'dd MMMM yyyy', { locale: localeId })}
                   </td>
                 </tr>
