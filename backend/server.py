@@ -828,7 +828,7 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
     )
     cashbook_dict = cashbook_entry.model_dump()
     cashbook_dict["created_at"] = cashbook_dict["created_at"].isoformat()
-    cashbook_dict["date"] = cashbook_dict["date"].isoformat()
+    # Keep date as datetime object for proper MongoDB queries
     await db.cashbook_entries.insert_one(cashbook_dict)
     
     return transaction
