@@ -2140,6 +2140,132 @@ async def fix_cashbook_entries(current_user: User = Depends(get_current_user)):
         "fixed_entries": fixed_entries
     }
 
+@api_router.delete("/admin/transactions/by-date/{date}")
+async def delete_transactions_by_date(date: str, current_user: User = Depends(get_current_user)):
+    """
+    Delete all transactions for a specific date (Admin only).
+    Date format: YYYY-MM-DD (e.g., 2025-12-25)
+    Also deletes related cashbook entries.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from datetime import datetime as dt
+    
+    # Parse date
+    try:
+        target_date = dt.strptime(date, "%Y-%m-%d")
+        start_datetime = dt(target_date.year, target_date.month, target_date.day, 0, 0, 0)
+        end_datetime = dt(target_date.year, target_date.month, target_date.day, 23, 59, 59)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Helper function to normalize transaction_date
+    def normalize_date(txn_date):
+        if txn_date is None:
+            return None
+        if isinstance(txn_date, dt):
+            if txn_date.tzinfo is not None:
+                return txn_date.replace(tzinfo=None)
+            return txn_date
+        if isinstance(txn_date, str):
+            try:
+                parsed = dt.fromisoformat(txn_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
+    # Find all transactions on the specified date
+    all_txns = await db.transactions.find({}).to_list(100000)
+    
+    txns_to_delete = []
+    for txn in all_txns:
+        txn_date = normalize_date(txn.get('transaction_date'))
+        if txn_date and start_datetime <= txn_date <= end_datetime:
+            txns_to_delete.append({
+                "id": txn['id'],
+                "transaction_number": txn.get('transaction_number'),
+                "currency_code": txn.get('currency_code'),
+                "amount": txn.get('amount'),
+                "transaction_type": txn.get('transaction_type')
+            })
+    
+    if len(txns_to_delete) == 0:
+        return {
+            "message": f"No transactions found on {date}",
+            "deleted_transactions": 0,
+            "deleted_cashbook_entries": 0,
+            "transactions": []
+        }
+    
+    # Get transaction IDs
+    txn_ids = [t['id'] for t in txns_to_delete]
+    
+    # Delete transactions
+    txn_result = await db.transactions.delete_many({"id": {"$in": txn_ids}})
+    
+    # Delete related cashbook entries
+    cashbook_result = await db.cashbook_entries.delete_many({"reference_id": {"$in": txn_ids}})
+    
+    return {
+        "message": f"Successfully deleted {txn_result.deleted_count} transactions on {date}",
+        "deleted_transactions": txn_result.deleted_count,
+        "deleted_cashbook_entries": cashbook_result.deleted_count,
+        "transactions": txns_to_delete
+    }
+
+@api_router.get("/admin/transactions/by-date/{date}")
+async def get_transactions_by_date(date: str, current_user: User = Depends(get_current_user)):
+    """
+    Get all transactions for a specific date (Admin only).
+    Date format: YYYY-MM-DD (e.g., 2025-12-25)
+    Use this to preview before deleting.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from datetime import datetime as dt
+    
+    # Parse date
+    try:
+        target_date = dt.strptime(date, "%Y-%m-%d")
+        start_datetime = dt(target_date.year, target_date.month, target_date.day, 0, 0, 0)
+        end_datetime = dt(target_date.year, target_date.month, target_date.day, 23, 59, 59)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    # Helper function to normalize transaction_date
+    def normalize_date(txn_date):
+        if txn_date is None:
+            return None
+        if isinstance(txn_date, dt):
+            if txn_date.tzinfo is not None:
+                return txn_date.replace(tzinfo=None)
+            return txn_date
+        if isinstance(txn_date, str):
+            try:
+                parsed = dt.fromisoformat(txn_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
+    # Find all transactions on the specified date
+    all_txns = await db.transactions.find({}, {"_id": 0}).to_list(100000)
+    
+    transactions_on_date = []
+    for txn in all_txns:
+        txn_date = normalize_date(txn.get('transaction_date'))
+        if txn_date and start_datetime <= txn_date <= end_datetime:
+            transactions_on_date.append(txn)
+    
+    return {
+        "date": date,
+        "total_transactions": len(transactions_on_date),
+        "transactions": transactions_on_date
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
