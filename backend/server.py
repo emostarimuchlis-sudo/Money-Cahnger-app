@@ -1075,12 +1075,31 @@ async def calculate_mutasi_valas(
     """
     from datetime import datetime as dt
     
+    # Helper function to normalize transaction_date to datetime for comparison
+    def normalize_transaction_date(txn_date):
+        """Convert transaction_date to datetime object for comparison, handling both string and datetime"""
+        if txn_date is None:
+            return None
+        if isinstance(txn_date, dt):
+            # Already datetime, make it naive for comparison
+            if txn_date.tzinfo is not None:
+                return txn_date.replace(tzinfo=None)
+            return txn_date
+        if isinstance(txn_date, str):
+            # Parse ISO string, removing timezone info for consistent comparison
+            try:
+                parsed = dt.fromisoformat(txn_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
     # If period_date is provided, use it as single day period
     if period_date:
         start_date = period_date
         end_date = period_date
     
-    # Convert date strings to datetime objects for proper comparison
+    # Convert date strings to datetime objects for proper comparison (naive, no timezone)
     start_datetime = None
     end_datetime = None
     if start_date:
@@ -1108,18 +1127,25 @@ async def calculate_mutasi_valas(
             branch_initial_balances = branch.get("currency_balances", {})
             branch_initial_idr = branch.get("currency_balances_idr", {})
     
+    # Fetch ALL transactions and filter in Python to handle mixed date formats (string/datetime)
+    # This is necessary because historical data may have inconsistent transaction_date types
+    all_txn_query = {"is_deleted": {"$ne": True}}
+    if target_branch_id:
+        all_txn_query["branch_id"] = target_branch_id
+    
+    all_transactions = await db.transactions.find(all_txn_query, {"_id": 0}).to_list(10000)
+    
     # Get previous period ending stock (if start_date is provided)
     previous_ending_stocks = {}
     previous_ending_idr = {}
     
     if start_datetime:
-        # Query transactions before this period to calculate previous ending stock
-        prev_query = {"is_deleted": {"$ne": True}}
-        if target_branch_id:
-            prev_query["branch_id"] = target_branch_id
-        prev_query["transaction_date"] = {"$lt": start_datetime}
-        
-        prev_transactions = await db.transactions.find(prev_query, {"_id": 0}).to_list(10000)
+        # Filter transactions before this period using Python comparison
+        prev_transactions = []
+        for t in all_transactions:
+            t_date = normalize_transaction_date(t.get("transaction_date"))
+            if t_date and t_date < start_datetime:
+                prev_transactions.append(t)
         
         for currency in currencies:
             currency_code = currency["code"]
@@ -1146,17 +1172,15 @@ async def calculate_mutasi_valas(
             previous_ending_stocks[currency_code] = prev_ending_valas
             previous_ending_idr[currency_code] = prev_ending_idr
     
-    # Query current period transactions
-    current_query = {"is_deleted": {"$ne": True}}
-    if target_branch_id:
-        current_query["branch_id"] = target_branch_id
+    # Filter current period transactions using Python comparison
+    transactions = []
     if start_datetime and end_datetime:
-        current_query["transaction_date"] = {
-            "$gte": start_datetime, 
-            "$lte": end_datetime
-        }
-    
-    transactions = await db.transactions.find(current_query, {"_id": 0}).to_list(10000)
+        for t in all_transactions:
+            t_date = normalize_transaction_date(t.get("transaction_date"))
+            if t_date and start_datetime <= t_date <= end_datetime:
+                transactions.append(t)
+    else:
+        transactions = all_transactions
     
     # Calculate mutasi per currency
     mutasi_data = []
