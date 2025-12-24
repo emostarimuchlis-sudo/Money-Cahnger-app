@@ -1072,10 +1072,20 @@ async def calculate_mutasi_valas(
     7. Stock Akhir (Rupiah) = Stock Akhir Valas * Average Rate
     8. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
     """
+    from datetime import datetime as dt
+    
     # If period_date is provided, use it as single day period
     if period_date:
         start_date = period_date
         end_date = period_date
+    
+    # Convert date strings to datetime objects for proper comparison
+    start_datetime = None
+    end_datetime = None
+    if start_date:
+        start_datetime = dt.fromisoformat(start_date + "T00:00:00")
+    if end_date:
+        end_datetime = dt.fromisoformat(end_date + "T23:59:59")
     
     # Branch filter
     if current_user.role != UserRole.ADMIN:
@@ -1101,12 +1111,12 @@ async def calculate_mutasi_valas(
     previous_ending_stocks = {}
     previous_ending_idr = {}
     
-    if start_date:
+    if start_datetime:
         # Query transactions before this period to calculate previous ending stock
         prev_query = {"is_deleted": {"$ne": True}}
         if target_branch_id:
             prev_query["branch_id"] = target_branch_id
-        prev_query["transaction_date"] = {"$lt": start_date + "T00:00:00"}
+        prev_query["transaction_date"] = {"$lt": start_datetime}
         
         prev_transactions = await db.transactions.find(prev_query, {"_id": 0}).to_list(10000)
         
@@ -1139,10 +1149,10 @@ async def calculate_mutasi_valas(
     current_query = {"is_deleted": {"$ne": True}}
     if target_branch_id:
         current_query["branch_id"] = target_branch_id
-    if start_date and end_date:
+    if start_datetime and end_datetime:
         current_query["transaction_date"] = {
-            "$gte": start_date + "T00:00:00", 
-            "$lte": end_date + "T23:59:59"
+            "$gte": start_datetime, 
+            "$lte": end_datetime
         }
     
     transactions = await db.transactions.find(current_query, {"_id": 0}).to_list(10000)
