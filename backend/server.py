@@ -1896,6 +1896,8 @@ async def update_branch_balances(branch_id: str, balance_update: BranchBalanceUp
         update_data["opening_balance"] = balance_update.opening_balance
     if balance_update.currency_balances is not None:
         update_data["currency_balances"] = balance_update.currency_balances
+    if balance_update.currency_balances_idr is not None:
+        update_data["currency_balances_idr"] = balance_update.currency_balances_idr
     
     await db.branches.update_one({"id": branch_id}, {"$set": update_data})
     
@@ -1912,7 +1914,8 @@ async def get_branch_balances(branch_id: str, current_user: User = Depends(get_c
         "branch_id": branch_id,
         "branch_name": branch.get("name"),
         "opening_balance": branch.get("opening_balance", 0.0),
-        "currency_balances": branch.get("currency_balances", {})
+        "currency_balances": branch.get("currency_balances", {}),
+        "currency_balances_idr": branch.get("currency_balances_idr", {})
     }
 
 # ============= MULTI-CURRENCY TRANSACTION ENDPOINT =============
