@@ -361,6 +361,7 @@ class MultiTransactionCreate(BaseModel):
 class BranchBalanceUpdate(BaseModel):
     opening_balance: float = 0.0  # IDR
     currency_balances: Optional[dict] = None  # {"USD": 1000, "SGD": 500}
+    currency_balances_idr: Optional[dict] = None  # {"USD": 15000000, "SGD": 5000000}
 
 class DashboardStats(BaseModel):
     total_transactions_today: int
