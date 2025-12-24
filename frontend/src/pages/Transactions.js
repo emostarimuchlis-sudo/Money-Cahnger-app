@@ -1019,6 +1019,37 @@ const Transactions = () => {
               </div>
             </div>
 
+            {/* Signature Section */}
+            {!editingTransaction && (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-[#D4AF37] text-lg flex items-center gap-2">
+                    <PenTool size={18} /> Tanda Tangan Nasabah
+                  </Label>
+                  {customerSignature && (
+                    <Button 
+                      type="button" 
+                      onClick={() => setCustomerSignature(null)} 
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Hapus Tanda Tangan
+                    </Button>
+                  )}
+                </div>
+                {customerSignature ? (
+                  <div className="border-2 border-emerald-500/50 rounded-lg p-4 bg-white/5 text-center">
+                    <img src={customerSignature} alt="Tanda tangan" className="max-h-24 mx-auto" />
+                    <p className="text-emerald-400 text-sm mt-2">✓ Tanda tangan sudah diambil</p>
+                  </div>
+                ) : (
+                  <SignaturePad 
+                    onSave={(sig) => setCustomerSignature(sig)}
+                    onCancel={null}
+                  />
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <Button type="button" onClick={(e) => handleSubmit(e, false)} className="btn-primary flex-1">
                 {editingTransaction ? 'Perbarui' : 'Simpan'}
