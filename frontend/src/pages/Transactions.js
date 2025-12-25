@@ -492,8 +492,7 @@ const Transactions = () => {
   const clearFilters = () => {
     setFilterBranch('');
     setFilterCurrency('');
-    setFilterStartDate('');
-    setFilterEndDate('');
+    // Don't reset periodDate - keep showing today's date
   };
 
   const formatCurrency = (value) => {
