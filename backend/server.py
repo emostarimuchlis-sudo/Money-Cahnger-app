@@ -941,13 +941,26 @@ async def get_transactions(
     else:
         filtered_transactions = all_transactions
     
-    # Sort by created_at descending
-    filtered_transactions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    # Sort by created_at descending - handle mixed types
+    def get_sort_key(x):
+        created = x.get("created_at", "")
+        if isinstance(created, str):
+            try:
+                return dt.fromisoformat(created.replace('Z', '+00:00')).replace(tzinfo=None)
+            except:
+                return dt.min
+        elif isinstance(created, datetime):
+            if created.tzinfo:
+                return created.replace(tzinfo=None)
+            return created
+        return dt.min
+    
+    filtered_transactions.sort(key=get_sort_key, reverse=True)
     
     # Normalize datetime fields for response
     for transaction in filtered_transactions:
         if isinstance(transaction.get("created_at"), str):
-            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"].replace('Z', '+00:00'))
         if isinstance(transaction.get("transaction_date"), str):
             transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"].replace('Z', '+00:00'))
     
