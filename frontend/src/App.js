@@ -10,6 +10,7 @@ import CashBook from './pages/CashBook';
 import MutasiValas from './pages/MutasiValasNew';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import UserManual from './pages/UserManual';
 import Layout from './components/Layout';
 import { RefreshCw } from 'lucide-react';
 
