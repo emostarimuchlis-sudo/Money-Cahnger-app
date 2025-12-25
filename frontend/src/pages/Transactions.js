@@ -113,7 +113,7 @@ const Transactions = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [filterBranch, filterCurrency, filterStartDate, filterEndDate]);
+  }, [periodDate, filterBranch, filterCurrency]);
 
   const fetchInitialData = async () => {
     try {
@@ -137,10 +137,10 @@ const Transactions = () => {
     try {
       let url = '/transactions?';
       const params = [];
+      // Always filter by period date
+      params.push(`period_date=${periodDate}`);
       if (filterBranch && filterBranch !== 'all') params.push(`branch_id=${filterBranch}`);
       if (filterCurrency && filterCurrency !== 'all') params.push(`currency_id=${filterCurrency}`);
-      if (filterStartDate) params.push(`start_date=${filterStartDate}`);
-      if (filterEndDate) params.push(`end_date=${filterEndDate}`);
       url += params.join('&');
       
       const response = await api.get(url);
@@ -148,6 +148,21 @@ const Transactions = () => {
     } catch (error) {
       toast.error('Gagal memuat transaksi');
     }
+  };
+  
+  // Date navigation functions
+  const goToPreviousDay = () => {
+    const newDate = subDays(new Date(periodDate), 1);
+    setPeriodDate(format(newDate, 'yyyy-MM-dd'));
+  };
+  
+  const goToNextDay = () => {
+    const newDate = addDays(new Date(periodDate), 1);
+    setPeriodDate(format(newDate, 'yyyy-MM-dd'));
+  };
+  
+  const goToToday = () => {
+    setPeriodDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
   const handleSubmit = async (e, shouldPrint = false) => {
