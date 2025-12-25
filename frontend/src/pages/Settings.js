@@ -254,6 +254,31 @@ const Settings = () => {
     }
   };
 
+  const handleDownloadManual = async (format) => {
+    try {
+      toast.loading(`Mengunduh file ${format.toUpperCase()}...`);
+      
+      const response = await fetch(`${API_URL}/api/manual/download/${format}`);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Petunjuk_Teknis_MBA_Money_Changer.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      toast.dismiss();
+      toast.success(`File ${format.toUpperCase()} berhasil diunduh`);
+    } catch (error) {
+      toast.dismiss();
+      toast.error(`Gagal mengunduh file ${format.toUpperCase()}`);
+    }
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value || 0);
   };
