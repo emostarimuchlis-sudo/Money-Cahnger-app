@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Users, Building2, Coins, Plus, Edit, Trash2, Settings2, Wallet, Activity } from 'lucide-react';
+import { Users, Building2, Coins, Plus, Edit, Trash2, Settings2, Wallet, Activity, HelpCircle, FileText, FileSpreadsheet, Download, Book } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
@@ -9,6 +9,8 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import ActivityLog from '../components/ActivityLog';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const Settings = () => {
   const [users, setUsers] = useState([]);
