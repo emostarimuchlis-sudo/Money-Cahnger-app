@@ -125,9 +125,9 @@ const Transactions = () => {
       setCustomers(customersRes.data);
       setCurrencies(currenciesRes.data);
       setBranches(branchesRes.data);
-      fetchTransactions();
     } catch (error) {
-      toast.error('Gagal memuat data');
+      console.error('Error fetching initial data:', error);
+      toast.error('Gagal memuat data awal');
     } finally {
       setLoading(false);
     }
@@ -135,18 +135,21 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      let url = '/transactions?';
+      let url = '/transactions';
       const params = [];
-      // Always filter by period date
-      params.push(`period_date=${periodDate}`);
+      // Filter by period date
+      if (periodDate) params.push(`period_date=${periodDate}`);
       if (filterBranch && filterBranch !== 'all') params.push(`branch_id=${filterBranch}`);
       if (filterCurrency && filterCurrency !== 'all') params.push(`currency_id=${filterCurrency}`);
-      url += params.join('&');
+      if (params.length > 0) url += '?' + params.join('&');
       
       const response = await api.get(url);
-      setTransactions(response.data);
+      setTransactions(response.data || []);
     } catch (error) {
+      console.error('Error fetching transactions:', error);
+      setTransactions([]);
       toast.error('Gagal memuat transaksi');
+    }
     }
   };
   
