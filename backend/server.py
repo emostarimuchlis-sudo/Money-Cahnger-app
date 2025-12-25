@@ -2474,6 +2474,67 @@ async def get_cashbook_entries_by_date(date: str, current_user: User = Depends(g
         "entries": entries_on_date
     }
 
+# ============= USER MANUAL ENDPOINTS =============
+
+@api_router.get("/manual/download/{format}")
+async def download_user_manual(format: str):
+    """
+    Download user manual in DOCX or PDF format.
+    format: 'docx' or 'pdf'
+    """
+    from fastapi.responses import FileResponse
+    import os
+    
+    if format.lower() == 'docx':
+        file_path = "/app/backend/static/user_manual.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        filename = "Petunjuk_Teknis_MBA_Money_Changer.docx"
+    elif format.lower() == 'pdf':
+        file_path = "/app/backend/static/user_manual.pdf"
+        media_type = "application/pdf"
+        filename = "Petunjuk_Teknis_MBA_Money_Changer.pdf"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid format. Use 'docx' or 'pdf'")
+    
+    if not os.path.exists(file_path):
+        # Generate if not exists
+        from user_manual_generator import create_user_manual_docx, create_user_manual_pdf
+        os.makedirs("/app/backend/static", exist_ok=True)
+        if format.lower() == 'docx':
+            create_user_manual_docx(file_path)
+        else:
+            create_user_manual_pdf(file_path)
+    
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=filename
+    )
+
+@api_router.post("/manual/regenerate")
+async def regenerate_user_manual(current_user: User = Depends(get_current_user)):
+    """
+    Regenerate user manual files (Admin only).
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from user_manual_generator import create_user_manual_docx, create_user_manual_pdf
+    import os
+    
+    os.makedirs("/app/backend/static", exist_ok=True)
+    
+    docx_path = create_user_manual_docx("/app/backend/static/user_manual.docx")
+    pdf_path = create_user_manual_pdf("/app/backend/static/user_manual.pdf")
+    
+    return {
+        "message": "User manual regenerated successfully",
+        "files": {
+            "docx": docx_path,
+            "pdf": pdf_path
+        }
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
