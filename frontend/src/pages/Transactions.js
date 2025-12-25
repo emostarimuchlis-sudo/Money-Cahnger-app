@@ -635,32 +635,52 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="glass-card rounded-xl p-4 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6EE7B7]" size={20} />
-            <Input
-              data-testid="search-transaction-input"
-              type="text"
-              placeholder="Cari berdasarkan nomor transaksi, kode atau nama nasabah..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
-            />
+      {/* Date Navigation */}
+      <div className="glass-card rounded-xl p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Date Navigator */}
+          <div className="flex items-center gap-4">
+            <Button onClick={goToPreviousDay} className="btn-secondary p-2">
+              <ChevronLeft size={20} />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Calendar className="text-[#D4AF37]" size={20} />
+              <Input
+                type="date"
+                value={periodDate}
+                onChange={(e) => setPeriodDate(e.target.value)}
+                className="bg-black/20 border-white/10 text-[#FEF3C7] w-44"
+              />
+            </div>
+            <Button onClick={goToNextDay} className="btn-secondary p-2">
+              <ChevronRight size={20} />
+            </Button>
+            <Button onClick={goToToday} className="btn-secondary px-4">
+              Hari Ini
+            </Button>
           </div>
+          
+          {/* Period Display */}
+          <div className="text-center lg:text-left">
+            <h2 className="text-xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+              {format(new Date(periodDate), 'EEEE, dd MMMM yyyy', { locale: localeId })}
+            </h2>
+            <p className="text-[#6EE7B7] text-sm">{filteredTransactions.length} transaksi</p>
+          </div>
+          
+          {/* Filter Toggle */}
           <Button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
           >
             <Filter size={18} />
-            Filter
+            Filter Lainnya
           </Button>
         </div>
         
-        {/* Filter Panel */}
+        {/* Additional Filters */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 mt-4 border-t border-white/10">
             {user?.role === 'admin' && (
               <div>
                 <Label className="text-[#FEF3C7] text-sm">Cabang</Label>
@@ -695,24 +715,6 @@ const Transactions = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-[#FEF3C7] text-sm">Tanggal Mulai</Label>
-              <Input
-                type="date"
-                value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
-                className="bg-black/20 border-white/10 text-[#FEF3C7]"
-              />
-            </div>
-            <div>
-              <Label className="text-[#FEF3C7] text-sm">Tanggal Akhir</Label>
-              <Input
-                type="date"
-                value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
-                className="bg-black/20 border-white/10 text-[#FEF3C7]"
-              />
-            </div>
             <div className="flex items-end">
               <Button onClick={clearFilters} className="btn-secondary w-full">
                 Reset Filter
@@ -720,6 +722,21 @@ const Transactions = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Search */}
+      <div className="glass-card rounded-xl p-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6EE7B7]" size={20} />
+          <Input
+            data-testid="search-transaction-input"
+            type="text"
+            placeholder="Cari berdasarkan nomor transaksi, kode atau nama nasabah..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-black/20 border-white/10 text-[#FEF3C7] placeholder:text-[#6EE7B7]/50"
+          />
+        </div>
       </div>
 
       {/* Transactions Table */}
