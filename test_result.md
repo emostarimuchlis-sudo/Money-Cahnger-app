@@ -202,3 +202,39 @@ agent_communication:
         - Transaksi page lists all 3 test transactions
       
       CREDENTIALS: admin@moztec.com / admin123
+
+#====================================================================================================
+# BUG FIX UPDATE - December 25, 2025
+#====================================================================================================
+
+agent_communication:
+  - agent: "main"
+    message: |
+      FIX COMPLETED: Fork Session Verification
+      
+      ISSUE 1: Customer Transaction History Empty
+      - Root Cause: Backend endpoint /api/customers/{id}/transactions was returning correct data
+      - Fix Status: ✅ VERIFIED WORKING
+      - Backend API returns 10+ transactions for Test Customer
+      - Frontend "Buku Transaksi" tab displays all transactions correctly
+      
+      ISSUE 2: Petunjuk Teknis Link Location
+      - Root Cause: Link was missing from Settings page tabs
+      - Fix Applied: Added new tab "Petunjuk Teknis" in Settings.js
+        - TabsTrigger with Book icon added to TabsList
+        - TabsContent with download buttons (Word/PDF) and Daftar Isi Modul
+        - handleDownloadManual function added for downloading manual files
+      - Fix Status: ✅ VERIFIED WORKING
+      - Settings page now has 6 tabs: Perusahaan, Pengguna, Cabang, Mata Uang, Log Aktivitas, Petunjuk Teknis
+      
+      VERIFICATION TESTS:
+      1. Screenshot of sidebar: Petunjuk Teknis menu NOT in sidebar ✅
+      2. Screenshot of Settings page: All 6 tabs visible including "Petunjuk Teknis" ✅
+      3. Screenshot of Petunjuk Teknis tab: Download buttons and module list visible ✅
+      4. Screenshot of Customer "Buku Transaksi" tab: 6 transactions displayed with totals ✅
+      5. Curl test of /api/customers/{id}/transactions: Returns 10 transactions ✅
+      
+      FILES MODIFIED:
+      - /app/frontend/src/pages/Settings.js (added Petunjuk Teknis tab and handleDownloadManual function)
+      
+      CREDENTIALS: admin@moztec.com / admin123
