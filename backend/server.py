@@ -861,42 +861,97 @@ async def create_transaction(transaction_data: TransactionCreate, current_user: 
 async def get_transactions(
     branch_id: Optional[str] = None,
     currency_id: Optional[str] = None,
+    period_date: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    query = {"is_deleted": {"$ne": True}}  # Exclude soft-deleted transactions
+    from datetime import datetime as dt
+    
+    # Helper function to normalize transaction_date for comparison
+    def normalize_date(txn_date):
+        if txn_date is None:
+            return None
+        if isinstance(txn_date, dt):
+            if txn_date.tzinfo is not None:
+                return txn_date.replace(tzinfo=None)
+            return txn_date
+        if isinstance(txn_date, str):
+            try:
+                parsed = dt.fromisoformat(txn_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
     
     # Role-based access control
+    target_branch_id = None
+    target_user_id = None
+    
     if current_user.role == UserRole.ADMIN:
-        # Admin can see all, but can filter by branch
         if branch_id:
-            query["branch_id"] = branch_id
+            target_branch_id = branch_id
     elif current_user.role == UserRole.TELLER:
-        # Teller can only see their own transactions at their branch
-        query["branch_id"] = current_user.branch_id
-        query["user_id"] = current_user.id
+        target_branch_id = current_user.branch_id
+        target_user_id = current_user.id
     else:
-        # Kasir can see all transactions at their branch
-        query["branch_id"] = current_user.branch_id
+        target_branch_id = current_user.branch_id
     
+    # Build base query
+    base_query = {"is_deleted": {"$ne": True}}
+    if target_branch_id:
+        base_query["branch_id"] = target_branch_id
+    if target_user_id:
+        base_query["user_id"] = target_user_id
     if currency_id:
-        query["currency_id"] = currency_id
+        base_query["currency_id"] = currency_id
     
-    if start_date and end_date:
-        query["transaction_date"] = {"$gte": start_date, "$lte": end_date + "T23:59:59Z"}
-    elif start_date:
-        query["transaction_date"] = {"$gte": start_date}
-    elif end_date:
-        query["transaction_date"] = {"$lte": end_date + "T23:59:59Z"}
+    # Fetch all matching transactions
+    all_transactions = await db.transactions.find(base_query, {"_id": 0}).to_list(100000)
     
-    transactions = await db.transactions.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    for transaction in transactions:
+    # Filter by date in Python to handle mixed date formats
+    filtered_transactions = []
+    
+    if period_date:
+        # Single day filter
+        start_datetime = dt.fromisoformat(period_date + "T00:00:00")
+        end_datetime = dt.fromisoformat(period_date + "T23:59:59")
+        
+        for txn in all_transactions:
+            txn_date = normalize_date(txn.get("transaction_date"))
+            if txn_date and start_datetime <= txn_date <= end_datetime:
+                filtered_transactions.append(txn)
+    elif start_date or end_date:
+        # Date range filter
+        start_datetime = dt.fromisoformat(start_date + "T00:00:00") if start_date else None
+        end_datetime = dt.fromisoformat(end_date + "T23:59:59") if end_date else None
+        
+        for txn in all_transactions:
+            txn_date = normalize_date(txn.get("transaction_date"))
+            if txn_date:
+                if start_datetime and end_datetime:
+                    if start_datetime <= txn_date <= end_datetime:
+                        filtered_transactions.append(txn)
+                elif start_datetime:
+                    if txn_date >= start_datetime:
+                        filtered_transactions.append(txn)
+                elif end_datetime:
+                    if txn_date <= end_datetime:
+                        filtered_transactions.append(txn)
+    else:
+        filtered_transactions = all_transactions
+    
+    # Sort by created_at descending
+    filtered_transactions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    
+    # Normalize datetime fields for response
+    for transaction in filtered_transactions:
         if isinstance(transaction.get("created_at"), str):
             transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
         if isinstance(transaction.get("transaction_date"), str):
-            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
-    return transactions
+            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"].replace('Z', '+00:00'))
+    
+    return filtered_transactions
 
 @api_router.get("/transactions/{transaction_id}", response_model=Transaction)
 async def get_transaction(transaction_id: str, current_user: User = Depends(get_current_user)):
