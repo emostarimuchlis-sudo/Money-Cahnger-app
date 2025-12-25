@@ -16,8 +16,7 @@ import {
   Menu,
   X,
   Building2,
-  Coins,
-  HelpCircle
+  Coins
 } from 'lucide-react';
 
 const Layout = () => {
@@ -39,7 +38,6 @@ const Layout = () => {
     { icon: BookOpen, label: t('cashbook'), path: '/cashbook', roles: ['admin', 'teller', 'kasir'] },
     { icon: Coins, label: t('mutasi_valas'), path: '/mutasi-valas', roles: ['admin', 'teller', 'kasir'] },
     { icon: FileText, label: t('reports'), path: '/reports', roles: ['admin', 'teller', 'kasir'] },
-    { icon: HelpCircle, label: 'Petunjuk Teknis', path: '/user-manual', roles: ['admin', 'teller', 'kasir'] },
     { icon: Settings, label: t('settings'), path: '/settings', roles: ['admin'] },
   ];
 
