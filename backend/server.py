@@ -730,6 +730,8 @@ async def delete_customer(customer_id: str, current_user: User = Depends(get_cur
 @api_router.get("/customers/{customer_id}/transactions")
 async def get_customer_transactions(customer_id: str, current_user: User = Depends(get_current_user)):
     """Get all transactions for a specific customer (YTD view)"""
+    from datetime import datetime as dt
+    
     customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -737,20 +739,48 @@ async def get_customer_transactions(customer_id: str, current_user: User = Depen
     if current_user.role != UserRole.ADMIN and customer["branch_id"] != current_user.branch_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Helper function to normalize transaction_date
+    def normalize_date(txn_date):
+        if txn_date is None:
+            return None
+        if isinstance(txn_date, dt):
+            if txn_date.tzinfo is not None:
+                return txn_date.replace(tzinfo=None)
+            return txn_date
+        if isinstance(txn_date, str):
+            try:
+                parsed = dt.fromisoformat(txn_date.replace('Z', '+00:00'))
+                return parsed.replace(tzinfo=None)
+            except:
+                return None
+        return None
+    
     # Get current year start
     current_year = datetime.now(timezone.utc).year
-    year_start = f"{current_year}-01-01"
+    year_start_dt = dt(current_year, 1, 1, 0, 0, 0)
     
-    transactions = await db.transactions.find(
-        {"customer_id": customer_id, "transaction_date": {"$gte": year_start}}, 
+    # Fetch all transactions for this customer (filter in Python to handle mixed date types)
+    all_transactions = await db.transactions.find(
+        {"customer_id": customer_id, "is_deleted": {"$ne": True}}, 
         {"_id": 0}
-    ).sort("transaction_date", -1).to_list(1000)
+    ).to_list(10000)
     
+    # Filter transactions from current year
+    transactions = []
+    for txn in all_transactions:
+        txn_date = normalize_date(txn.get("transaction_date"))
+        if txn_date and txn_date >= year_start_dt:
+            transactions.append(txn)
+    
+    # Sort by transaction_date descending
+    transactions.sort(key=lambda x: normalize_date(x.get("transaction_date")) or dt.min, reverse=True)
+    
+    # Normalize datetime fields for response
     for transaction in transactions:
         if isinstance(transaction.get("created_at"), str):
-            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"])
+            transaction["created_at"] = datetime.fromisoformat(transaction["created_at"].replace('Z', '+00:00'))
         if isinstance(transaction.get("transaction_date"), str):
-            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"])
+            transaction["transaction_date"] = datetime.fromisoformat(transaction["transaction_date"].replace('Z', '+00:00'))
     
     # Calculate YTD summary
     total_buy = sum(t["total_idr"] for t in transactions if t.get("transaction_type") in ["beli", "buy"])
