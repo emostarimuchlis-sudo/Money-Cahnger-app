@@ -296,6 +296,9 @@ const Settings = () => {
           <TabsTrigger value="activity" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
             <Activity size={18} className="mr-2" /> Log Aktivitas
           </TabsTrigger>
+          <TabsTrigger value="manual" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+            <Book size={18} className="mr-2" /> Petunjuk Teknis
+          </TabsTrigger>
         </TabsList>
 
         {/* Company Tab */}
