@@ -150,7 +150,6 @@ const Transactions = () => {
       setTransactions([]);
       toast.error('Gagal memuat transaksi');
     }
-    }
   };
   
   // Date navigation functions
