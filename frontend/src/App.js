@@ -102,6 +102,7 @@ function AppContent() {
           <Route path="cashbook" element={<CashBook />} />
           <Route path="mutasi-valas" element={<MutasiValas />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="user-manual" element={<UserManual />} />
           <Route
             path="settings"
             element={
