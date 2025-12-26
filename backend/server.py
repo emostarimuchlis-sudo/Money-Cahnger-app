@@ -1483,7 +1483,9 @@ async def calculate_mutasi_valas(
             )
     
     # Return data with display rounding for UI
+    # Also clean up negative values for currencies with no activity
     for item in mutasi_data:
+        # Round all values first
         item["beginning_stock_valas"] = round(item["beginning_stock_valas"], 2)
         item["beginning_stock_idr"] = round(item["beginning_stock_idr"], 0)
         item["purchase_valas"] = round(item["purchase_valas"], 2)
@@ -1494,6 +1496,26 @@ async def calculate_mutasi_valas(
         item["ending_stock_idr"] = round(item["ending_stock_idr"], 0)
         item["avg_rate"] = round(item["avg_rate"], 2)
         item["profit_loss"] = round(item["profit_loss"], 0)
+        
+        # DISPLAY FIX: Convert negative stock values to 0 for cleaner reports
+        # This applies when:
+        # 1. Stock is negative (sold without buying first)
+        # 2. No transactions in current period for this currency
+        has_no_current_activity = item["purchase_valas"] == 0 and item["sale_valas"] == 0
+        
+        if item["beginning_stock_valas"] < 0 and has_no_current_activity:
+            item["beginning_stock_valas"] = 0.0
+            item["beginning_stock_idr"] = 0.0
+        
+        if item["ending_stock_valas"] < 0 and has_no_current_activity:
+            item["ending_stock_valas"] = 0.0
+            item["ending_stock_idr"] = 0.0
+        
+        # Also reset avg_rate and profit_loss if all values are now 0
+        if (item["beginning_stock_valas"] == 0 and item["ending_stock_valas"] == 0 and 
+            item["purchase_valas"] == 0 and item["sale_valas"] == 0):
+            item["avg_rate"] = 0.0
+            item["profit_loss"] = 0.0
     
     return mutasi_data
 
