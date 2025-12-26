@@ -485,6 +485,81 @@ const MutasiValasNew = () => {
           </div>
         </div>
       )}
+
+      {/* Recalculate Dialog */}
+      <Dialog open={showRecalculateDialog} onOpenChange={setShowRecalculateDialog}>
+        <DialogContent className="bg-[#064E3B] border-white/10 text-[#FEF3C7] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#D4AF37] flex items-center gap-2">
+              <RefreshCw size={20} /> Perbaiki Data Stock
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <AlertTriangle className="text-amber-400 mt-0.5" size={20} />
+              <div className="text-sm">
+                <p className="font-semibold text-amber-400 mb-1">Perhatian!</p>
+                <p className="text-[#FEF3C7]/80">
+                  Fitur ini akan menghitung ulang semua Stock Awal dan Stock Akhir untuk memastikan konsistensi data (Stock Akhir hari X = Stock Awal hari X+1).
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-[#6EE7B7]">Tanggal Mulai</Label>
+                <Input 
+                  type="date" 
+                  value={recalculateStartDate}
+                  onChange={(e) => setRecalculateStartDate(e.target.value)}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-[#6EE7B7]">Tanggal Akhir</Label>
+                <Input 
+                  type="date" 
+                  value={recalculateEndDate}
+                  onChange={(e) => setRecalculateEndDate(e.target.value)}
+                  className="bg-black/20 border-white/10 text-[#FEF3C7] mt-1"
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-[#6EE7B7]/70">
+              * Pilih rentang tanggal yang mencakup semua periode yang perlu diperbaiki. 
+              Disarankan mulai dari tanggal transaksi pertama.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRecalculateDialog(false)}
+              className="border-white/10 text-[#FEF3C7] hover:bg-white/5"
+              disabled={isRecalculating}
+            >
+              Batal
+            </Button>
+            <Button 
+              onClick={handleRecalculate}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              disabled={isRecalculating}
+            >
+              {isRecalculating ? (
+                <>
+                  <RefreshCw size={16} className="mr-2 animate-spin" /> Memproses...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={16} className="mr-2" /> Perbaiki Sekarang
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
