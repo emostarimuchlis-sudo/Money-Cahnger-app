@@ -1345,22 +1345,14 @@ async def calculate_mutasi_valas(
             if currency_code in snapshot_currencies_found:
                 continue
             
-            # Calculate from previous transactions only (NO initial balance fallback)
+            # Calculate from previous transactions only (NO initial balance - EVER)
+            # Initial balance from Settings is ONLY for display reference, not calculation
             prev_currency_txns = [t for t in prev_transactions if t.get("currency_code") == currency_code]
             
-            # Only use branch initial balance if there are NO previous transactions at all
-            # AND this is literally the first period with any data
-            has_any_prev_txns = len(prev_transactions) > 0
-            has_prev_txns_for_currency = len(prev_currency_txns) > 0
-            
-            if not has_any_prev_txns:
-                # Truly first day - use branch initial balances
-                initial_valas = float(branch_initial_balances.get(currency_code, 0.0))
-                initial_idr = float(branch_initial_idr.get(currency_code, 0.0))
-            else:
-                # Not first day - start from 0, only add transactions
-                initial_valas = 0.0
-                initial_idr = 0.0
+            # ALWAYS start from 0 - Stock Awal is ONLY from previous transactions
+            # This ensures: No transactions = 0, some transactions = calculated value
+            initial_valas = 0.0
+            initial_idr = 0.0
             
             prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
             prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
