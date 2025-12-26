@@ -1309,6 +1309,7 @@ async def calculate_mutasi_valas(
     previous_ending_stocks = {}
     previous_ending_idr = {}
     previous_avg_rates = {}
+    snapshot_currencies_found = set()  # Track which currencies have snapshots
     
     if start_date and target_branch_id:
         # First, try to get snapshot from the previous day
@@ -1327,43 +1328,60 @@ async def calculate_mutasi_valas(
                 previous_ending_stocks[currency_code] = snap["ending_stock_valas"]
                 previous_ending_idr[currency_code] = snap["ending_stock_idr"]
                 previous_avg_rates[currency_code] = snap.get("avg_rate", 0)
-        else:
-            # No snapshot exists - calculate from all previous transactions
-            # This only happens for historical data or first-time setup
-            prev_transactions = []
-            for t in all_transactions:
-                t_date = normalize_transaction_date(t.get("transaction_date"))
-                if t_date and t_date < start_datetime:
-                    prev_transactions.append(t)
+                snapshot_currencies_found.add(currency_code)
+        
+        # For currencies WITHOUT snapshot, calculate from ALL previous transactions
+        # DO NOT use branch_initial_balances as fallback (that's only for true first day)
+        prev_transactions = []
+        for t in all_transactions:
+            t_date = normalize_transaction_date(t.get("transaction_date"))
+            if t_date and t_date < start_datetime:
+                prev_transactions.append(t)
+        
+        for currency in currencies:
+            currency_code = currency["code"]
             
-            for currency in currencies:
-                currency_code = currency["code"]
+            # Skip if already have snapshot for this currency
+            if currency_code in snapshot_currencies_found:
+                continue
+            
+            # Calculate from previous transactions only (NO initial balance fallback)
+            prev_currency_txns = [t for t in prev_transactions if t.get("currency_code") == currency_code]
+            
+            # Only use branch initial balance if there are NO previous transactions at all
+            # AND this is literally the first period with any data
+            has_any_prev_txns = len(prev_transactions) > 0
+            has_prev_txns_for_currency = len(prev_currency_txns) > 0
+            
+            if not has_any_prev_txns:
+                # Truly first day - use branch initial balances
                 initial_valas = float(branch_initial_balances.get(currency_code, 0.0))
                 initial_idr = float(branch_initial_idr.get(currency_code, 0.0))
-                
-                # Calculate from previous transactions
-                prev_currency_txns = [t for t in prev_transactions if t.get("currency_code") == currency_code]
-                
-                prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
-                prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
-                prev_sell_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
-                
-                prev_ending_valas = initial_valas + prev_buy_valas - prev_sell_valas
-                
-                # Calculate previous avg rate
-                total_valas_in = initial_valas + prev_buy_valas
-                total_idr_in = initial_idr + prev_buy_idr
-                if total_valas_in > 0:
-                    prev_avg_rate = total_idr_in / total_valas_in
-                else:
-                    prev_avg_rate = 0
-                
-                # IMPORTANT: Use avg_rate * valas for IDR to maintain consistency
-                prev_ending_idr = prev_ending_valas * prev_avg_rate
-                
-                previous_ending_stocks[currency_code] = prev_ending_valas
-                previous_ending_idr[currency_code] = prev_ending_idr
-                previous_avg_rates[currency_code] = prev_avg_rate
+            else:
+                # Not first day - start from 0, only add transactions
+                initial_valas = 0.0
+                initial_idr = 0.0
+            
+            prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
+            prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
+            prev_sell_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
+            
+            prev_ending_valas = initial_valas + prev_buy_valas - prev_sell_valas
+            
+            # Calculate previous avg rate
+            total_valas_in = initial_valas + prev_buy_valas
+            total_idr_in = initial_idr + prev_buy_idr
+            if total_valas_in > 0:
+                prev_avg_rate = total_idr_in / total_valas_in
+            else:
+                prev_avg_rate = 0
+            
+            # IMPORTANT: Use avg_rate * valas for IDR to maintain consistency
+            prev_ending_idr = prev_ending_valas * prev_avg_rate
+            
+            previous_ending_stocks[currency_code] = prev_ending_valas
+            previous_ending_idr[currency_code] = prev_ending_idr
+            previous_avg_rates[currency_code] = prev_avg_rate
     
     # Filter current period transactions using Python comparison
     transactions = []
@@ -1381,11 +1399,17 @@ async def calculate_mutasi_valas(
     for currency in currencies:
         currency_code = currency["code"]
         
-        # 1. Stock Awal = Stock Akhir periode sebelumnya atau initial balance
+        # 1. Stock Awal = Stock Akhir periode sebelumnya (dari snapshot atau kalkulasi)
+        # NEVER use branch_initial_balances directly here anymore
         if start_date and currency_code in previous_ending_stocks:
             beginning_stock_valas = previous_ending_stocks[currency_code]
             beginning_stock_idr = previous_ending_idr[currency_code]
+        elif start_date:
+            # No previous data for this currency = start from 0
+            beginning_stock_valas = 0.0
+            beginning_stock_idr = 0.0
         else:
+            # No start_date = show all time data, use initial balance
             beginning_stock_valas = float(branch_initial_balances.get(currency_code, 0.0))
             beginning_stock_idr = float(branch_initial_idr.get(currency_code, 0.0))
         
