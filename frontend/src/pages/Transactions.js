@@ -855,7 +855,7 @@ const Transactions = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10" className="text-center py-12 text-[#6EE7B7]">
+                  <td colSpan="11" className="text-center py-12 text-[#6EE7B7]">
                     {searchTerm ? 'Tidak ada transaksi yang ditemukan' : 'Belum ada transaksi'}
                   </td>
                 </tr>
