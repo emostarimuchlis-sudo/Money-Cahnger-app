@@ -22,6 +22,12 @@ const MutasiValasNew = () => {
   
   // Period date for daily view
   const [periodDate, setPeriodDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  
+  // Recalculate dialog state
+  const [showRecalculateDialog, setShowRecalculateDialog] = useState(false);
+  const [recalculateStartDate, setRecalculateStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [recalculateEndDate, setRecalculateEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
     fetchCompanySettings();
