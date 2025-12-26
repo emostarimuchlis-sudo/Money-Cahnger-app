@@ -308,6 +308,20 @@ class MutasiValas(BaseModel):
     profit_loss: float
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Daily Stock Snapshot Model - untuk menjaga konsistensi Stock Awal = Stock Akhir hari sebelumnya
+class DailyStockSnapshot(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    branch_id: str
+    date: str  # Format YYYY-MM-DD
+    currency_code: str
+    ending_stock_valas: float  # Stock akhir valas (exact value)
+    ending_stock_idr: float    # Stock akhir rupiah (exact value)
+    avg_rate: float            # Average rate pada hari tersebut
+    is_locked: bool = False    # Jika True, tidak bisa diubah
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Company Settings Model
 class CompanySettings(BaseModel):
     model_config = ConfigDict(extra="ignore")
