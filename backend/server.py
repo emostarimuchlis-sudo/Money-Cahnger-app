@@ -1570,6 +1570,80 @@ async def get_stock_snapshots(
     snapshots = await db.daily_stock_snapshots.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
     return snapshots
 
+@api_router.delete("/mutasi-valas/snapshots/reset")
+async def reset_stock_snapshots(
+    date: Optional[str] = None,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Reset/delete stock snapshots to force recalculation"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can reset snapshots")
+    
+    query = {}
+    if branch_id:
+        query["branch_id"] = branch_id
+    if date:
+        query["date"] = date
+    
+    result = await db.daily_stock_snapshots.delete_many(query)
+    
+    return {
+        "message": f"Deleted {result.deleted_count} snapshots",
+        "deleted_count": result.deleted_count
+    }
+
+@api_router.post("/mutasi-valas/recalculate-all")
+async def recalculate_all_snapshots(
+    start_date: str,
+    end_date: str,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Recalculate and save snapshots for a date range.
+    This ensures Stock Akhir day N = Stock Awal day N+1 for ALL days.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can recalculate")
+    
+    from datetime import datetime as dt, timedelta
+    
+    target_branch_id = branch_id
+    if not target_branch_id:
+        branches = await db.branches.find({}, {"_id": 0}).to_list(100)
+        if branches:
+            target_branch_id = branches[0]["id"]
+    
+    # Parse dates
+    start = dt.strptime(start_date, "%Y-%m-%d")
+    end = dt.strptime(end_date, "%Y-%m-%d")
+    
+    results = []
+    current = start
+    
+    while current <= end:
+        date_str = current.strftime("%Y-%m-%d")
+        
+        # Calculate mutasi for this day (this will auto-save snapshots)
+        mutasi = await calculate_mutasi_valas(
+            period_date=date_str,
+            branch_id=target_branch_id,
+            current_user=current_user
+        )
+        
+        results.append({
+            "date": date_str,
+            "currencies_processed": len([m for m in mutasi if m["ending_stock_valas"] != 0 or m["transaction_count"] > 0])
+        })
+        
+        current += timedelta(days=1)
+    
+    return {
+        "message": f"Recalculated snapshots from {start_date} to {end_date}",
+        "results": results
+    }
+
 @api_router.get("/mutasi-valas")
 async def get_mutasi_valas(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     query = {}
