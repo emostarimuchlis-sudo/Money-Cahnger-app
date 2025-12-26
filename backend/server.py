@@ -1392,18 +1392,15 @@ async def calculate_mutasi_valas(
         currency_code = currency["code"]
         
         # 1. Stock Awal = Stock Akhir periode sebelumnya (dari snapshot atau kalkulasi)
-        # NEVER use branch_initial_balances directly here anymore
+        # NEVER use branch_initial_balances - always start from 0 or previous data
         if start_date and currency_code in previous_ending_stocks:
             beginning_stock_valas = previous_ending_stocks[currency_code]
             beginning_stock_idr = previous_ending_idr[currency_code]
-        elif start_date:
+        else:
             # No previous data for this currency = start from 0
+            # This applies both when start_date is set and when showing all-time
             beginning_stock_valas = 0.0
             beginning_stock_idr = 0.0
-        else:
-            # No start_date = show all time data, use initial balance
-            beginning_stock_valas = float(branch_initial_balances.get(currency_code, 0.0))
-            beginning_stock_idr = float(branch_initial_idr.get(currency_code, 0.0))
         
         # Filter transactions for this currency in current period
         currency_transactions = [t for t in transactions if t.get("currency_code") == currency_code]
