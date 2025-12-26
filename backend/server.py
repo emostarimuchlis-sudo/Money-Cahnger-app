@@ -1452,11 +1452,14 @@ async def calculate_mutasi_valas(
         mutasi_data.append(mutasi_item)
         
         # Auto-save snapshot for the current period (if period_date is specified)
-        # This ensures Stock Akhir today = Stock Awal tomorrow (EXACT)
+        # This ensures Stock Akhir today = Stock Awal tomorrow
         if period_date and target_branch_id and (
             purchase_valas > 0 or sale_valas > 0 or beginning_stock_valas > 0
         ):
-            # Upsert snapshot with EXACT values (no rounding)
+            # Save snapshot - convert negative values to 0 for clean continuity
+            snapshot_valas = max(0.0, ending_stock_valas)  # Never save negative
+            snapshot_idr = max(0.0, ending_stock_idr)      # Never save negative
+            
             await db.daily_stock_snapshots.update_one(
                 {
                     "branch_id": target_branch_id,
@@ -1468,9 +1471,9 @@ async def calculate_mutasi_valas(
                         "branch_id": target_branch_id,
                         "date": period_date,
                         "currency_code": currency_code,
-                        "ending_stock_valas": ending_stock_valas,  # exact, no rounding
-                        "ending_stock_idr": ending_stock_idr,      # exact, no rounding
-                        "avg_rate": avg_rate,                      # exact, no rounding
+                        "ending_stock_valas": snapshot_valas,
+                        "ending_stock_idr": snapshot_idr,
+                        "avg_rate": avg_rate,
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     },
                     "$setOnInsert": {
