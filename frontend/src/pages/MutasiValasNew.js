@@ -83,6 +83,40 @@ const MutasiValasNew = () => {
     setPeriodDate(format(current, 'yyyy-MM-dd'));
   };
 
+  // Recalculate all snapshots for consistency fix
+  const handleRecalculate = async () => {
+    if (!recalculateStartDate || !recalculateEndDate) {
+      toast.error('Pilih rentang tanggal terlebih dahulu');
+      return;
+    }
+
+    setIsRecalculating(true);
+    const loadingToast = toast.loading('Memperbaiki data stock... Mohon tunggu');
+
+    try {
+      // Step 1: Reset all snapshots
+      const branchParam = selectedBranch ? `branch_id=${selectedBranch}` : '';
+      await api.delete(`/mutasi-valas/snapshots/reset?${branchParam}`);
+      
+      // Step 2: Recalculate all snapshots
+      const response = await api.post(
+        `/mutasi-valas/recalculate-all?start_date=${recalculateStartDate}&end_date=${recalculateEndDate}&${branchParam}`
+      );
+      
+      toast.dismiss(loadingToast);
+      toast.success(`Data berhasil diperbaiki! ${response.data.results?.length || 0} hari diproses`);
+      
+      // Refresh current view
+      fetchMutasi();
+      setShowRecalculateDialog(false);
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error('Gagal memperbaiki data: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
       minimumFractionDigits: 2,
