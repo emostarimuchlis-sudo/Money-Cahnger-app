@@ -1418,24 +1418,133 @@ async def calculate_mutasi_valas(
         # 7. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
         profit_loss = (ending_stock_idr + sale_idr) - (beginning_stock_idr + purchase_idr)
         
-        mutasi_data.append({
+        # Store EXACT values (no rounding for internal storage)
+        mutasi_item = {
             "currency_code": currency_code,
             "currency_name": currency["name"],
             "currency_symbol": currency.get("symbol", ""),
-            "beginning_stock_valas": round(beginning_stock_valas, 2),
-            "beginning_stock_idr": round(beginning_stock_idr, 0),
-            "purchase_valas": round(purchase_valas, 2),
-            "purchase_idr": round(purchase_idr, 0),
-            "sale_valas": round(sale_valas, 2),
-            "sale_idr": round(sale_idr, 0),
-            "ending_stock_valas": round(ending_stock_valas, 2),
-            "ending_stock_idr": round(ending_stock_idr, 0),
-            "avg_rate": round(avg_rate, 2),
-            "profit_loss": round(profit_loss, 0),
+            "beginning_stock_valas": beginning_stock_valas,  # exact value
+            "beginning_stock_idr": beginning_stock_idr,      # exact value
+            "purchase_valas": purchase_valas,
+            "purchase_idr": purchase_idr,
+            "sale_valas": sale_valas,
+            "sale_idr": sale_idr,
+            "ending_stock_valas": ending_stock_valas,        # exact value
+            "ending_stock_idr": ending_stock_idr,            # exact value
+            "avg_rate": avg_rate,                            # exact value
+            "profit_loss": profit_loss,
             "transaction_count": len(currency_transactions)
-        })
+        }
+        
+        mutasi_data.append(mutasi_item)
+        
+        # Auto-save snapshot for the current period (if period_date is specified)
+        # This ensures Stock Akhir today = Stock Awal tomorrow (EXACT)
+        if period_date and target_branch_id and (
+            purchase_valas > 0 or sale_valas > 0 or beginning_stock_valas > 0
+        ):
+            # Upsert snapshot with EXACT values (no rounding)
+            await db.daily_stock_snapshots.update_one(
+                {
+                    "branch_id": target_branch_id,
+                    "date": period_date,
+                    "currency_code": currency_code
+                },
+                {
+                    "$set": {
+                        "branch_id": target_branch_id,
+                        "date": period_date,
+                        "currency_code": currency_code,
+                        "ending_stock_valas": ending_stock_valas,  # exact, no rounding
+                        "ending_stock_idr": ending_stock_idr,      # exact, no rounding
+                        "avg_rate": avg_rate,                      # exact, no rounding
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    },
+                    "$setOnInsert": {
+                        "id": str(uuid.uuid4()),
+                        "is_locked": False,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                },
+                upsert=True
+            )
+    
+    # Return data with display rounding for UI
+    for item in mutasi_data:
+        item["beginning_stock_valas"] = round(item["beginning_stock_valas"], 2)
+        item["beginning_stock_idr"] = round(item["beginning_stock_idr"], 0)
+        item["purchase_valas"] = round(item["purchase_valas"], 2)
+        item["purchase_idr"] = round(item["purchase_idr"], 0)
+        item["sale_valas"] = round(item["sale_valas"], 2)
+        item["sale_idr"] = round(item["sale_idr"], 0)
+        item["ending_stock_valas"] = round(item["ending_stock_valas"], 2)
+        item["ending_stock_idr"] = round(item["ending_stock_idr"], 0)
+        item["avg_rate"] = round(item["avg_rate"], 2)
+        item["profit_loss"] = round(item["profit_loss"], 0)
     
     return mutasi_data
+
+@api_router.post("/mutasi-valas/lock-day")
+async def lock_mutasi_valas_day(
+    period_date: str,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lock a day's stock snapshot - prevents changes and ensures consistency.
+    Call this at end of day to finalize stock values.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can lock daily stock")
+    
+    target_branch_id = branch_id or current_user.branch_id
+    
+    # First calculate and save snapshots for this day
+    mutasi = await calculate_mutasi_valas(
+        period_date=period_date,
+        branch_id=target_branch_id,
+        current_user=current_user
+    )
+    
+    # Lock all snapshots for this day
+    result = await db.daily_stock_snapshots.update_many(
+        {
+            "branch_id": target_branch_id,
+            "date": period_date
+        },
+        {
+            "$set": {
+                "is_locked": True,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {
+        "message": f"Stock untuk tanggal {period_date} berhasil dikunci",
+        "locked_count": result.modified_count,
+        "mutasi_data": mutasi
+    }
+
+@api_router.get("/mutasi-valas/snapshots")
+async def get_stock_snapshots(
+    date: Optional[str] = None,
+    branch_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get saved stock snapshots for verification"""
+    query = {}
+    
+    if current_user.role != UserRole.ADMIN:
+        query["branch_id"] = current_user.branch_id
+    elif branch_id:
+        query["branch_id"] = branch_id
+    
+    if date:
+        query["date"] = date
+    
+    snapshots = await db.daily_stock_snapshots.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    return snapshots
 
 @api_router.get("/mutasi-valas")
 async def get_mutasi_valas(branch_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
