@@ -2783,6 +2783,11 @@ async def startup_db_client():
         await db.currencies.create_index("id", unique=True)
         await db.currencies.create_index("code", unique=True)
         
+        # Daily Stock Snapshots indexes - for exact stock continuity
+        await db.daily_stock_snapshots.create_index("id", unique=True)
+        await db.daily_stock_snapshots.create_index([("branch_id", 1), ("date", 1), ("currency_code", 1)], unique=True)
+        await db.daily_stock_snapshots.create_index("date")
+        
         logger.info("Database indexes created successfully")
     except Exception as e:
         logger.error(f"Error creating indexes: {e}")
