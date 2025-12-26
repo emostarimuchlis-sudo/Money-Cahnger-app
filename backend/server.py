@@ -1305,42 +1305,65 @@ async def calculate_mutasi_valas(
     
     all_transactions = await db.transactions.find(all_txn_query, {"_id": 0}).to_list(10000)
     
-    # Get previous period ending stock (if start_date is provided)
+    # Get previous period ending stock from SNAPSHOT (exact values, no recalculation)
     previous_ending_stocks = {}
     previous_ending_idr = {}
+    previous_avg_rates = {}
     
-    if start_datetime:
-        # Filter transactions before this period using Python comparison
-        prev_transactions = []
-        for t in all_transactions:
-            t_date = normalize_transaction_date(t.get("transaction_date"))
-            if t_date and t_date < start_datetime:
-                prev_transactions.append(t)
+    if start_date and target_branch_id:
+        # First, try to get snapshot from the previous day
+        prev_date_str = get_previous_date(start_date)
         
-        for currency in currencies:
-            currency_code = currency["code"]
-            initial_valas = float(branch_initial_balances.get(currency_code, 0.0))
-            initial_idr = float(branch_initial_idr.get(currency_code, 0.0))
+        # Query snapshots for previous day
+        snapshots = await db.daily_stock_snapshots.find({
+            "branch_id": target_branch_id,
+            "date": prev_date_str
+        }, {"_id": 0}).to_list(1000)
+        
+        if snapshots:
+            # Use EXACT values from snapshot - NO RECALCULATION
+            for snap in snapshots:
+                currency_code = snap["currency_code"]
+                previous_ending_stocks[currency_code] = snap["ending_stock_valas"]
+                previous_ending_idr[currency_code] = snap["ending_stock_idr"]
+                previous_avg_rates[currency_code] = snap.get("avg_rate", 0)
+        else:
+            # No snapshot exists - calculate from all previous transactions
+            # This only happens for historical data or first-time setup
+            prev_transactions = []
+            for t in all_transactions:
+                t_date = normalize_transaction_date(t.get("transaction_date"))
+                if t_date and t_date < start_datetime:
+                    prev_transactions.append(t)
             
-            # Calculate from previous transactions
-            prev_currency_txns = [t for t in prev_transactions if t.get("currency_code") == currency_code]
-            
-            prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
-            prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
-            prev_sell_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
-            
-            prev_ending_valas = initial_valas + prev_buy_valas - prev_sell_valas
-            
-            # Calculate previous avg rate
-            if (initial_valas + prev_buy_valas) > 0:
-                prev_avg_rate = (initial_idr + prev_buy_idr) / (initial_valas + prev_buy_valas)
-            else:
-                prev_avg_rate = 0
-            
-            prev_ending_idr = prev_ending_valas * prev_avg_rate
-            
-            previous_ending_stocks[currency_code] = prev_ending_valas
-            previous_ending_idr[currency_code] = prev_ending_idr
+            for currency in currencies:
+                currency_code = currency["code"]
+                initial_valas = float(branch_initial_balances.get(currency_code, 0.0))
+                initial_idr = float(branch_initial_idr.get(currency_code, 0.0))
+                
+                # Calculate from previous transactions
+                prev_currency_txns = [t for t in prev_transactions if t.get("currency_code") == currency_code]
+                
+                prev_buy_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
+                prev_buy_idr = sum(t["total_idr"] for t in prev_currency_txns if t.get("transaction_type") in ["beli", "buy"])
+                prev_sell_valas = sum(t["amount"] for t in prev_currency_txns if t.get("transaction_type") in ["jual", "sell"])
+                
+                prev_ending_valas = initial_valas + prev_buy_valas - prev_sell_valas
+                
+                # Calculate previous avg rate
+                total_valas_in = initial_valas + prev_buy_valas
+                total_idr_in = initial_idr + prev_buy_idr
+                if total_valas_in > 0:
+                    prev_avg_rate = total_idr_in / total_valas_in
+                else:
+                    prev_avg_rate = 0
+                
+                # IMPORTANT: Use avg_rate * valas for IDR to maintain consistency
+                prev_ending_idr = prev_ending_valas * prev_avg_rate
+                
+                previous_ending_stocks[currency_code] = prev_ending_valas
+                previous_ending_idr[currency_code] = prev_ending_idr
+                previous_avg_rates[currency_code] = prev_avg_rate
     
     # Filter current period transactions using Python comparison
     transactions = []
