@@ -754,6 +754,7 @@ const Transactions = () => {
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Tipe</th>
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Mata Uang</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Jumlah</th>
+                <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Kurs</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Total (IDR)</th>
                 <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold">Aksi</th>
               </tr>
@@ -793,6 +794,9 @@ const Transactions = () => {
                     </td>
                     <td className="py-4 px-4 text-right mono text-[#FEF3C7]">
                       {transaction.amount.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-4 px-4 text-right mono text-[#6EE7B7]">
+                      {transaction.exchange_rate?.toLocaleString('id-ID') || '-'}
                     </td>
                     <td className="py-4 px-4 text-right mono text-[#D4AF37] font-semibold">
                       {formatCurrency(transaction.total_idr)}
