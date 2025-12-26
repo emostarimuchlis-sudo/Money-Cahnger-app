@@ -198,6 +198,14 @@ const MutasiValasNew = () => {
           <p className="text-[#D1FAE5] mt-2">Pencatatan mutasi mata uang asing per hari</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          {user?.role === 'admin' && (
+            <Button 
+              onClick={() => setShowRecalculateDialog(true)} 
+              className="bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2"
+            >
+              <RefreshCw size={18} /> Perbaiki Data
+            </Button>
+          )}
           <Button onClick={handlePrintTable} className="btn-secondary flex items-center gap-2" disabled={mutasi.length === 0}>
             <Printer size={18} /> Cetak
           </Button>
