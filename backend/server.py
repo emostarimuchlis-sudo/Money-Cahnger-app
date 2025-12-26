@@ -1223,12 +1223,13 @@ async def calculate_mutasi_valas(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Calculate mutasi valas from transactions with correct formulas:
-    If period_date is provided, calculates for that specific day.
-    Otherwise uses start_date/end_date range (backward compatible).
+    Calculate mutasi valas from transactions with EXACT stock continuity:
+    Stock Awal hari ini = Stock Akhir hari kemarin (exact, no recalculation)
     
-    1. Stock Awal (Valas) = Stock Akhir periode sebelumnya
-    2. Stock Awal (Rupiah) = Rupiah Stock Akhir periode sebelumnya
+    Uses DailyStockSnapshot collection to ensure perfect continuity.
+    
+    1. Stock Awal (Valas) = Stock Akhir periode sebelumnya (dari snapshot)
+    2. Stock Awal (Rupiah) = Rupiah Stock Akhir periode sebelumnya (dari snapshot)
     3. Pembelian = Akumulasi transaksi beli pada periode
     4. Penjualan = Akumulasi transaksi jual pada periode
     5. Stock Akhir (Valas) = Stock Awal + Pembelian - Penjualan
@@ -1236,7 +1237,7 @@ async def calculate_mutasi_valas(
     7. Stock Akhir (Rupiah) = Stock Akhir Valas * Average Rate
     8. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
     """
-    from datetime import datetime as dt
+    from datetime import datetime as dt, timedelta
     
     # Helper function to normalize transaction_date to datetime for comparison
     def normalize_transaction_date(txn_date):
@@ -1256,6 +1257,12 @@ async def calculate_mutasi_valas(
             except:
                 return None
         return None
+    
+    def get_previous_date(date_str: str) -> str:
+        """Get the previous day's date string"""
+        date_obj = dt.strptime(date_str, "%Y-%m-%d")
+        prev_date = date_obj - timedelta(days=1)
+        return prev_date.strftime("%Y-%m-%d")
     
     # If period_date is provided, use it as single day period
     if period_date:
