@@ -1398,8 +1398,15 @@ async def calculate_mutasi_valas(
             beginning_stock_idr = previous_ending_idr[currency_code]
         else:
             # No previous data for this currency = start from 0
-            # This applies both when start_date is set and when showing all-time
             beginning_stock_valas = 0.0
+            beginning_stock_idr = 0.0
+        
+        # IMPORTANT: Convert negative Stock Awal to 0 BEFORE any calculations
+        # This ensures all subsequent calculations are consistent
+        if beginning_stock_valas < 0:
+            beginning_stock_valas = 0.0
+            beginning_stock_idr = 0.0
+        if beginning_stock_idr < 0:
             beginning_stock_idr = 0.0
         
         # Filter transactions for this currency in current period
@@ -1416,6 +1423,10 @@ async def calculate_mutasi_valas(
         # 4. Stock Akhir (Valas) = Stock Awal + Pembelian - Penjualan
         ending_stock_valas = beginning_stock_valas + purchase_valas - sale_valas
         
+        # Convert negative Stock Akhir to 0 for consistency
+        if ending_stock_valas < 0:
+            ending_stock_valas = 0.0
+        
         # 5. Average Rate = (Stock Awal Rupiah + Rupiah Pembelian) / (Stock Awal Valas + Pembelian Valas)
         total_valas_in = beginning_stock_valas + purchase_valas
         total_idr_in = beginning_stock_idr + purchase_idr
@@ -1428,23 +1439,28 @@ async def calculate_mutasi_valas(
         # 6. Stock Akhir (Rupiah) = Stock Akhir Valas * Average Rate
         ending_stock_idr = ending_stock_valas * avg_rate
         
+        # Convert negative Stock Akhir IDR to 0
+        if ending_stock_idr < 0:
+            ending_stock_idr = 0.0
+        
         # 7. Laba/Rugi = (Rupiah Stock Akhir + Rupiah Penjualan) - (Rupiah Stock Awal + Rupiah Pembelian)
+        # Now calculated with corrected (non-negative) values
         profit_loss = (ending_stock_idr + sale_idr) - (beginning_stock_idr + purchase_idr)
         
-        # Store EXACT values (no rounding for internal storage)
+        # Store values (already corrected for negatives)
         mutasi_item = {
             "currency_code": currency_code,
             "currency_name": currency["name"],
             "currency_symbol": currency.get("symbol", ""),
-            "beginning_stock_valas": beginning_stock_valas,  # exact value
-            "beginning_stock_idr": beginning_stock_idr,      # exact value
+            "beginning_stock_valas": beginning_stock_valas,
+            "beginning_stock_idr": beginning_stock_idr,
             "purchase_valas": purchase_valas,
             "purchase_idr": purchase_idr,
             "sale_valas": sale_valas,
             "sale_idr": sale_idr,
-            "ending_stock_valas": ending_stock_valas,        # exact value
-            "ending_stock_idr": ending_stock_idr,            # exact value
-            "avg_rate": avg_rate,                            # exact value
+            "ending_stock_valas": ending_stock_valas,
+            "ending_stock_idr": ending_stock_idr,
+            "avg_rate": avg_rate,
             "profit_loss": profit_loss,
             "transaction_count": len(currency_transactions)
         }
