@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Plus, TrendingUp, TrendingDown, Filter, Printer, FileSpreadsheet, FileText, Eye, Calendar } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Filter, Printer, FileSpreadsheet, FileText, Eye, Calendar, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
