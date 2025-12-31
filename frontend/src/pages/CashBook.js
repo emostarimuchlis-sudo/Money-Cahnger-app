@@ -715,6 +715,84 @@ const CashBook = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Entry Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#D4AF37]">Edit Entri Kas</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 mt-4">
+            <div>
+              <Label>Tipe Entry</Label>
+              <Select value={editFormData.entry_type} onValueChange={(value) => setEditFormData({...editFormData, entry_type: value})}>
+                <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#064E3B] border-white/10">
+                  <SelectItem value="debit" className="text-[#FEF3C7]">Debit (Pemasukan)</SelectItem>
+                  <SelectItem value="credit" className="text-[#FEF3C7]">Kredit (Pengeluaran)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Jumlah (IDR)</Label>
+              <Input 
+                type="number" 
+                value={editFormData.amount} 
+                onChange={(e) => setEditFormData({...editFormData, amount: e.target.value})} 
+                className="bg-black/20 border-white/10 text-[#FEF3C7]" 
+                required 
+              />
+            </div>
+            <div>
+              <Label>Keterangan</Label>
+              <Input 
+                value={editFormData.description} 
+                onChange={(e) => setEditFormData({...editFormData, description: e.target.value})} 
+                className="bg-black/20 border-white/10 text-[#FEF3C7]" 
+                required 
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" className="btn-primary flex-1">Simpan</Button>
+              <Button type="button" onClick={() => setShowEditDialog(false)} className="btn-secondary flex-1">Batal</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-red-400 flex items-center gap-2">
+              <AlertTriangle size={24} /> Konfirmasi Hapus
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-[#FEF3C7]">Apakah Anda yakin ingin menghapus entri ini?</p>
+            {selectedEntry && (
+              <div className="mt-4 p-4 bg-black/20 rounded-lg">
+                <p className="text-sm text-[#6EE7B7]">Keterangan:</p>
+                <p className="text-[#FEF3C7] font-semibold">{selectedEntry.description}</p>
+                <p className="text-sm text-[#6EE7B7] mt-2">Jumlah:</p>
+                <p className={`font-bold ${selectedEntry.entry_type === 'debit' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatCurrency(selectedEntry.amount)} ({selectedEntry.entry_type === 'debit' ? 'Debit' : 'Kredit'})
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">
+              Batal
+            </Button>
+            <Button onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700 text-white">
+              <Trash2 size={16} className="mr-2" /> Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
