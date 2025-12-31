@@ -1212,6 +1212,66 @@ async def create_cashbook_entry(entry_data: CashBookEntryCreate, current_user: U
     await db.cashbook_entries.insert_one(entry_dict)
     return entry
 
+@api_router.put("/cashbook/{entry_id}")
+async def update_cashbook_entry(
+    entry_id: str, 
+    entry_type: str,
+    amount: float,
+    description: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a manual cashbook entry (admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can edit cashbook entries")
+    
+    # Find entry
+    entry = await db.cashbook_entries.find_one({"id": entry_id}, {"_id": 0})
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    
+    # Only allow editing manual entries (no reference_id)
+    if entry.get("reference_id"):
+        raise HTTPException(status_code=400, detail="Cannot edit transaction-linked entries. Edit the transaction instead.")
+    
+    # Update entry
+    result = await db.cashbook_entries.update_one(
+        {"id": entry_id},
+        {"$set": {
+            "entry_type": entry_type,
+            "amount": amount,
+            "description": description,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Failed to update entry")
+    
+    return {"message": "Entry updated successfully"}
+
+@api_router.delete("/cashbook/{entry_id}")
+async def delete_cashbook_entry(entry_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a manual cashbook entry (admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admin can delete cashbook entries")
+    
+    # Find entry
+    entry = await db.cashbook_entries.find_one({"id": entry_id}, {"_id": 0})
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    
+    # Only allow deleting manual entries (no reference_id)
+    if entry.get("reference_id"):
+        raise HTTPException(status_code=400, detail="Cannot delete transaction-linked entries. Delete the transaction instead.")
+    
+    # Delete entry
+    result = await db.cashbook_entries.delete_one({"id": entry_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=400, detail="Failed to delete entry")
+    
+    return {"message": "Entry deleted successfully"}
+
 # ============= MUTASI VALAS ENDPOINTS =============
 
 @api_router.get("/mutasi-valas/calculate")
