@@ -510,12 +510,15 @@ const CashBook = () => {
                 <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Keterangan</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Debit</th>
                 <th className="text-right py-4 px-4 text-[#D4AF37] font-semibold">Kredit</th>
+                <th className="text-left py-4 px-4 text-[#D4AF37] font-semibold">Sumber</th>
                 <th className="text-center py-4 px-4 text-[#D4AF37] font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {filteredEntries.length > 0 ? (
-                filteredEntries.map((entry) => (
+                filteredEntries.map((entry) => {
+                  const isManual = !entry.reference_id;
+                  return (
                   <tr key={entry.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="py-4 px-4 text-[#FEF3C7]">
                       {format(new Date(entry.date), 'dd MMM yyyy', { locale: localeId })}
@@ -536,22 +539,67 @@ const CashBook = () => {
                     <td className="py-4 px-4 text-right mono text-red-400 font-semibold">
                       {entry.entry_type === 'credit' ? formatCurrency(entry.amount) : '-'}
                     </td>
-                    <td className="py-4 px-4 text-center">
-                      {entry.reference_id && entry.reference_type === 'transaction' && (
+                    <td className="py-4 px-4">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        isManual 
+                          ? 'bg-purple-500/20 text-purple-400' 
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {isManual ? 'Manual' : 'Transaksi'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-center gap-1">
+                        {/* View transaction detail - only for transaction-linked entries */}
+                        {entry.reference_id && entry.reference_type === 'transaction' && (
+                          <Button 
+                            onClick={() => viewTransactionDetail(entry)} 
+                            size="sm" 
+                            className="btn-secondary p-1.5"
+                            title="Lihat Detail Transaksi"
+                          >
+                            <Eye size={14} />
+                          </Button>
+                        )}
+                        
+                        {/* Print entry - available for all */}
                         <Button 
-                          onClick={() => viewTransactionDetail(entry)} 
+                          onClick={() => handlePrintEntry(entry)} 
                           size="sm" 
-                          className="btn-secondary p-1"
+                          className="btn-secondary p-1.5"
+                          title="Cetak Bukti"
                         >
-                          <Eye size={16} />
+                          <Printer size={14} />
                         </Button>
-                      )}
+                        
+                        {/* Edit & Delete - only for admin and manual entries */}
+                        {user?.role === 'admin' && isManual && (
+                          <>
+                            <Button 
+                              onClick={() => handleEditClick(entry)} 
+                              size="sm" 
+                              className="bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 p-1.5"
+                              title="Edit Entri"
+                            >
+                              <Edit size={14} />
+                            </Button>
+                            <Button 
+                              onClick={() => handleDeleteClick(entry)} 
+                              size="sm" 
+                              className="bg-red-600/20 hover:bg-red-600/40 text-red-400 p-1.5"
+                              title="Hapus Entri"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))
+                )})
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-12 text-[#6EE7B7]">
+                  <td colSpan="7" className="text-center py-12 text-[#6EE7B7]">
                     Belum ada entri untuk tanggal {format(new Date(periodDate), 'dd MMMM yyyy', { locale: localeId })}
                   </td>
                 </tr>
