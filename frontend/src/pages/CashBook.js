@@ -384,7 +384,7 @@ const CashBook = () => {
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 pt-4 border-t border-white/10">
             <div>
               <Label className="text-[#FEF3C7] text-sm">Tipe Entry</Label>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -395,6 +395,19 @@ const CashBook = () => {
                   <SelectItem value="all" className="text-[#FEF3C7]">Semua</SelectItem>
                   <SelectItem value="debit" className="text-[#FEF3C7]">Debit</SelectItem>
                   <SelectItem value="credit" className="text-[#FEF3C7]">Kredit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[#FEF3C7] text-sm">Sumber Entri</Label>
+              <Select value={filterEntrySource} onValueChange={setFilterEntrySource}>
+                <SelectTrigger className="bg-black/20 border-white/10 text-[#FEF3C7]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#064E3B] border-white/10">
+                  <SelectItem value="all" className="text-[#FEF3C7]">Semua</SelectItem>
+                  <SelectItem value="manual" className="text-[#FEF3C7]">Manual</SelectItem>
+                  <SelectItem value="transaction" className="text-[#FEF3C7]">Transaksi</SelectItem>
                 </SelectContent>
               </Select>
             </div>
