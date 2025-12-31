@@ -168,14 +168,101 @@ const CashBook = () => {
       if (filterTransactionType === 'penjualan' && !desc.includes('penjualan')) return false;
     }
     
+    // Filter by entry source (manual/transaction)
+    if (filterEntrySource !== 'all') {
+      const isManual = !entry.reference_id;
+      if (filterEntrySource === 'manual' && !isManual) return false;
+      if (filterEntrySource === 'transaction' && isManual) return false;
+    }
+    
     return true;
   });
 
   const clearFilters = () => {
     setFilterType('all');
     setFilterTransactionType('all');
+    setFilterEntrySource('all');
     setFilterStartDate('');
     setFilterEndDate('');
+  };
+
+  // Edit entry handler
+  const handleEditClick = (entry) => {
+    setSelectedEntry(entry);
+    setEditFormData({
+      entry_type: entry.entry_type,
+      amount: entry.amount.toString(),
+      description: entry.description
+    });
+    setShowEditDialog(true);
+  };
+
+  // Submit edit
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/cashbook/${selectedEntry.id}`, null, {
+        params: {
+          entry_type: editFormData.entry_type,
+          amount: parseFloat(editFormData.amount),
+          description: editFormData.description
+        }
+      });
+      toast.success('Entri berhasil diperbarui');
+      setShowEditDialog(false);
+      setSelectedEntry(null);
+      fetchCashbook();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal memperbarui entri');
+    }
+  };
+
+  // Delete entry handler
+  const handleDeleteClick = (entry) => {
+    setSelectedEntry(entry);
+    setShowDeleteConfirm(true);
+  };
+
+  // Confirm delete
+  const handleDeleteConfirm = async () => {
+    try {
+      await api.delete(`/cashbook/${selectedEntry.id}`);
+      toast.success('Entri berhasil dihapus');
+      setShowDeleteConfirm(false);
+      setSelectedEntry(null);
+      fetchCashbook();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal menghapus entri');
+    }
+  };
+
+  // Print single entry
+  const handlePrintEntry = (entry) => {
+    const printContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">${companySettings.company_name || 'MBA Money Changer'}</h2>
+          <p style="margin: 5px 0; font-size: 12px;">${companySettings.company_address || ''}</p>
+          <p style="margin: 5px 0; font-size: 12px;">${companySettings.company_phone || ''}</p>
+        </div>
+        <hr style="border: 1px dashed #000; margin: 10px 0;">
+        <h3 style="text-align: center; margin: 10px 0;">BUKTI KAS ${entry.entry_type === 'debit' ? 'MASUK' : 'KELUAR'}</h3>
+        <hr style="border: 1px dashed #000; margin: 10px 0;">
+        <table style="width: 100%; font-size: 14px;">
+          <tr><td style="padding: 5px 0;">Tanggal</td><td style="text-align: right;">${format(new Date(entry.date), 'dd/MM/yyyy HH:mm', { locale: localeId })}</td></tr>
+          <tr><td style="padding: 5px 0;">Tipe</td><td style="text-align: right; font-weight: bold; color: ${entry.entry_type === 'debit' ? 'green' : 'red'};">${entry.entry_type === 'debit' ? 'DEBIT' : 'KREDIT'}</td></tr>
+          <tr><td style="padding: 5px 0;">Keterangan</td><td style="text-align: right;">${entry.description}</td></tr>
+          <tr><td style="padding: 5px 0; font-weight: bold;">Jumlah</td><td style="text-align: right; font-weight: bold; font-size: 16px;">${formatCurrency(entry.amount)}</td></tr>
+        </table>
+        <hr style="border: 1px dashed #000; margin: 15px 0;">
+        <p style="text-align: center; font-size: 11px; color: #666;">Dicetak: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: localeId })}</p>
+      </div>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<html><head><title>Bukti Kas</title></head><body>${printContent}</body></html>`);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   // Export columns configuration
