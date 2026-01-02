@@ -868,6 +868,65 @@ const Transactions = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Transaction Summary / Totals */}
+        {filteredTransactions.length > 0 && (
+          <div className="mt-4 p-4 bg-white/5 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Total Beli (Buy) */}
+              <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <ArrowDownRight className="text-blue-400" size={20} />
+                  <span className="text-blue-400 font-semibold">Total Pembelian (Beli)</span>
+                </div>
+                <div className="text-sm text-[#FEF3C7]/70 mb-1">
+                  {filteredTransactions.filter(t => t.transaction_type === 'beli' || t.transaction_type === 'buy').length} transaksi
+                </div>
+                <div className="text-2xl font-bold text-blue-400 mono">
+                  {formatCurrency(
+                    filteredTransactions
+                      .filter(t => t.transaction_type === 'beli' || t.transaction_type === 'buy')
+                      .reduce((sum, t) => sum + (t.total_idr || 0), 0)
+                  )}
+                </div>
+              </div>
+              
+              {/* Total Jual (Sell) */}
+              <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <ArrowUpRight className="text-emerald-400" size={20} />
+                  <span className="text-emerald-400 font-semibold">Total Penjualan (Jual)</span>
+                </div>
+                <div className="text-sm text-[#FEF3C7]/70 mb-1">
+                  {filteredTransactions.filter(t => t.transaction_type === 'jual' || t.transaction_type === 'sell').length} transaksi
+                </div>
+                <div className="text-2xl font-bold text-emerald-400 mono">
+                  {formatCurrency(
+                    filteredTransactions
+                      .filter(t => t.transaction_type === 'jual' || t.transaction_type === 'sell')
+                      .reduce((sum, t) => sum + (t.total_idr || 0), 0)
+                  )}
+                </div>
+              </div>
+              
+              {/* Grand Total */}
+              <div className="bg-[#D4AF37]/10 rounded-lg p-4 border border-[#D4AF37]/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Coins className="text-[#D4AF37]" size={20} />
+                  <span className="text-[#D4AF37] font-semibold">Total Keseluruhan</span>
+                </div>
+                <div className="text-sm text-[#FEF3C7]/70 mb-1">
+                  {filteredTransactions.length} transaksi
+                </div>
+                <div className="text-2xl font-bold text-[#D4AF37] mono">
+                  {formatCurrency(
+                    filteredTransactions.reduce((sum, t) => sum + (t.total_idr || 0), 0)
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create/Edit Transaction Dialog */}
