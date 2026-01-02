@@ -772,7 +772,12 @@ const Transactions = () => {
                       ) : null}
                     </td>
                     <td className="py-4 px-4 text-[#FEF3C7] text-sm">
-                      {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: localeId })}
+                      <div>
+                        {format(new Date(transaction.transaction_date), 'dd MMM yyyy', { locale: localeId })}
+                      </div>
+                      <div className="text-xs text-[#6EE7B7]">
+                        {format(new Date(transaction.transaction_date), 'HH:mm', { locale: localeId })}
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <span className="mono text-[#D4AF37] font-semibold">{transaction.customer_code || '-'}</span>
