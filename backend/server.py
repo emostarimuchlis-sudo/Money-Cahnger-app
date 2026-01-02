@@ -2490,9 +2490,15 @@ async def create_multi_transaction(transaction_data: MultiTransactionCreate, cur
     # Generate a single voucher number for all transactions in this batch
     batch_voucher = transaction_data.voucher_number or f"MULTI-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     
-    created_transactions = []
+    # Generate base transaction number for the batch
+    # All items in multi-currency will share the same base number with different suffixes
+    first_item = transaction_data.items[0]
+    base_txn_number = await generate_transaction_number(first_item.transaction_type, customer["branch_id"])
     
-    for item in transaction_data.items:
+    created_transactions = []
+    suffixes = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']  # Support up to 10 currencies
+    
+    for idx, item in enumerate(transaction_data.items):
         # Get currency
         currency = await db.currencies.find_one({"id": item.currency_id}, {"_id": 0})
         if not currency:
@@ -2500,8 +2506,14 @@ async def create_multi_transaction(transaction_data: MultiTransactionCreate, cur
         
         total_idr = item.amount * item.exchange_rate
         
+        # For multi-currency: use base number with suffix (a, b, c, etc.)
+        if len(transaction_data.items) > 1:
+            txn_number = f"{base_txn_number}-{suffixes[idx]}"
+        else:
+            txn_number = base_txn_number
+        
         transaction = Transaction(
-            transaction_number=await generate_transaction_number(item.transaction_type, customer["branch_id"]),
+            transaction_number=txn_number,
             voucher_number=batch_voucher,
             customer_id=transaction_data.customer_id,
             customer_code=customer_code,
