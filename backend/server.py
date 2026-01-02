@@ -438,8 +438,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-async def generate_transaction_number(transaction_type: str, branch_id: str):
-    """Generate transaction number with format: TRX-MBA-J/B-XXXXX-BRANCHCODE-DDMMYY"""
+async def generate_transaction_number(transaction_type: str, branch_id: str, suffix: str = None):
+    """
+    Generate transaction number with format: TRX-MBA-J/B-XXXXX-BRANCHCODE-DDMMYY[-a/b/c]
+    
+    Args:
+        transaction_type: 'jual'/'sell' or 'beli'/'buy'
+        branch_id: Branch ID
+        suffix: Optional suffix for multi-currency (e.g., 'a', 'b', 'c')
+    """
     now = datetime.now(timezone.utc)
     
     # Get transaction type indicator
@@ -453,17 +460,36 @@ async def generate_transaction_number(transaction_type: str, branch_id: str):
     else:
         branch_code = "00"
     
-    # Get sequential number for today
-    today_start = now.strftime('%Y-%m-%d')
-    count = await db.transactions.count_documents({
-        "transaction_date": {"$gte": today_start, "$lt": today_start + "T23:59:59Z"}
-    })
-    seq_number = str(count + 1).zfill(5)
-    
     # Format date as DDMMYY
     date_str = now.strftime('%d%m%y')
     
-    return f"TRX-MBA-{type_indicator}-{seq_number}-{branch_code}-{date_str}"
+    # Get sequential number for today (count existing transactions)
+    # Use date range query that handles both string and datetime formats
+    today_date = now.strftime('%Y-%m-%d')
+    today_start = f"{today_date}T00:00:00"
+    today_end = f"{today_date}T23:59:59"
+    
+    # Count transactions for today (handle both date formats)
+    count = await db.transactions.count_documents({
+        "$or": [
+            {"transaction_date": {"$regex": f"^{today_date}"}},
+            {"transaction_date": {"$gte": today_start, "$lte": today_end}}
+        ]
+    })
+    
+    # For multi-currency, don't increment counter for suffix transactions
+    if suffix:
+        seq_number = str(count).zfill(5)  # Use same number as base
+    else:
+        seq_number = str(count + 1).zfill(5)
+    
+    # Build transaction number
+    txn_number = f"TRX-MBA-{type_indicator}-{seq_number}-{branch_code}-{date_str}"
+    
+    if suffix:
+        txn_number += f"-{suffix}"
+    
+    return txn_number
 
 # Helper function to log user activity
 async def log_user_activity(user_id: str, user_name: str, user_email: str, action: str, details: str = None, ip_address: str = None, user_agent: str = None):
