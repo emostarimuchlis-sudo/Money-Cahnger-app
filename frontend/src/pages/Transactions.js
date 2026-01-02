@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../utils/api';
 import { toast } from 'sonner';
-import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye, Edit, Trash2, Printer, Filter, FileSpreadsheet, FileText, PenTool, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Plus, Search, ArrowUpRight, ArrowDownRight, Eye, Edit, Trash2, Printer, Filter, FileSpreadsheet, FileText, PenTool, ChevronLeft, ChevronRight, Calendar, Coins } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
