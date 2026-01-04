@@ -285,6 +285,46 @@ const CashBook = () => {
     }
   };
 
+  const handleRecalculateCashbook = async () => {
+    const confirmMessage = `⚠️ PERINGATAN PENTING ⚠️
+
+Proses ini akan:
+1. MENGHAPUS semua entry Buku Kas untuk tanggal ${periodDate}
+2. MEMBUAT ULANG dari data transaksi yang sebenarnya
+3. Entry manual (jika ada) TIDAK terpengaruh
+
+Proses ini lebih agresif dari "Perbaiki Sekarang" dan hanya digunakan jika data sudah sangat rusak.
+
+Apakah Anda yakin ingin melanjutkan?`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    setFixingData(true);
+    try {
+      const response = await api.post(`/admin/recalculate-cashbook-from-transactions?date=${periodDate}`);
+      toast.success(`Berhasil! ${response.data.stats.deleted} entry dihapus, ${response.data.stats.recreated} entry dibuat ulang.`);
+      
+      // Refresh cashbook
+      fetchCashbook();
+      
+      // Re-check consistency
+      await handleCheckDataConsistency();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Gagal menghitung ulang data');
+      console.error(error);
+    } finally {
+      setFixingData(false);
+    }
+  };
+      toast.error('Gagal memperbaiki data');
+      console.error(error);
+    } finally {
+      setFixingData(false);
+    }
+  };
+
   // Print single entry
   const handlePrintEntry = (entry) => {
     const printContent = `
