@@ -986,13 +986,22 @@ Apakah Anda yakin ingin melanjutkan?`;
               Tutup
             </Button>
             {dataCheckResult && dataCheckResult.status !== 'healthy' && (
-              <Button 
-                onClick={handleFixDataConsistency} 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={fixingData}
-              >
-                {fixingData ? 'Memperbaiki...' : '🔧 Perbaiki Sekarang'}
-              </Button>
+              <>
+                <Button 
+                  onClick={handleFixDataConsistency} 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={fixingData}
+                >
+                  {fixingData ? 'Memperbaiki...' : '🔧 Perbaiki Sekarang'}
+                </Button>
+                <Button 
+                  onClick={handleRecalculateCashbook} 
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  disabled={fixingData}
+                >
+                  {fixingData ? 'Menghitung Ulang...' : '♻️ Hitung Ulang (Advanced)'}
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
