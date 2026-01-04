@@ -695,6 +695,11 @@ const Settings = () => {
             </div>
           </div>
         </TabsContent>
+
+        {/* Maintenance Tab */}
+        <TabsContent value="maintenance">
+          <DateMigrationTool />
+        </TabsContent>
       </Tabs>
 
       {/* User Dialog */}
