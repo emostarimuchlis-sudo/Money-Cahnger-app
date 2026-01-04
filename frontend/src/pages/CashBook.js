@@ -364,6 +364,17 @@ const CashBook = () => {
           <p className="text-[#D1FAE5] mt-2">Kelola catatan kas harian</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          {/* Admin: Data Check Button */}
+          {user && user.role === 'admin' && (
+            <Button 
+              onClick={handleCheckDataConsistency} 
+              className="btn-accent flex items-center gap-2"
+              disabled={checkingData}
+            >
+              <AlertTriangle size={18} />
+              {checkingData ? 'Memeriksa...' : 'Periksa Data'}
+            </Button>
+          )}
           {/* Export Buttons */}
           <Button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
             <Printer size={18} /> Cetak
