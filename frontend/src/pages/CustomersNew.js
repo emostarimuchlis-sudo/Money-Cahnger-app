@@ -138,15 +138,27 @@ const CustomersNew = () => {
 
   const viewProfile = async (customer) => {
     setSelectedCustomer(customer);
+    setCustomerTransactions([]);
+    setYtdSummary(null);
+    setTransactionsLoaded(false);
+    setShowProfileDialog(true);
+  };
+
+  const loadCustomerTransactions = async (customerId) => {
+    setLoadingTransactions(true);
     try {
-      const response = await api.get(`/customers/${customer.id}/transactions`);
+      const response = await api.get(`/customers/${customerId}/transactions`);
       setCustomerTransactions(response.data.transactions || []);
       setYtdSummary(response.data.ytd_summary || null);
+      setTransactionsLoaded(true);
+      toast.success(`Berhasil memuat ${response.data.transactions?.length || 0} transaksi`);
     } catch (error) {
       setCustomerTransactions([]);
       setYtdSummary(null);
+      toast.error('Gagal memuat transaksi');
+    } finally {
+      setLoadingTransactions(false);
     }
-    setShowProfileDialog(true);
   };
 
   const printKYC = (customer) => {
