@@ -324,6 +324,9 @@ const Settings = () => {
           <TabsTrigger value="manual" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
             <Book size={18} className="mr-2" /> Petunjuk Teknis
           </TabsTrigger>
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black">
+            <Settings2 size={18} className="mr-2" /> Maintenance
+          </TabsTrigger>
         </TabsList>
 
         {/* Company Tab */}
