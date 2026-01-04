@@ -853,6 +853,110 @@ const CashBook = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Data Consistency Check Dialog */}
+      <Dialog open={showDataCheckDialog} onOpenChange={setShowDataCheckDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7] max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#D4AF37] flex items-center gap-2">
+              <AlertTriangle size={24} /> Hasil Pemeriksaan Data
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {checkingData ? (
+              <div className="text-center py-8">
+                <p className="text-[#FEF3C7]">Memeriksa konsistensi data...</p>
+              </div>
+            ) : dataCheckResult ? (
+              <>
+                {/* Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <p className="text-sm text-[#6EE7B7]">Total Transaksi</p>
+                    <p className="text-2xl font-bold text-[#FEF3C7]">{dataCheckResult.summary.total_transactions}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <p className="text-sm text-[#6EE7B7]">Total Buku Kas</p>
+                    <p className="text-2xl font-bold text-[#FEF3C7]">{dataCheckResult.summary.total_cashbook_entries}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <p className="text-sm text-red-300">Ketidaksesuaian</p>
+                    <p className="text-2xl font-bold text-red-400">{dataCheckResult.summary.mismatches_found}</p>
+                  </div>
+                </div>
+
+                {/* Status */}
+                {dataCheckResult.status === 'healthy' ? (
+                  <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-lg p-4">
+                    <p className="text-emerald-300 font-semibold">✓ Data Konsisten!</p>
+                    <p className="text-sm text-emerald-200 mt-1">Tidak ada ketidaksesuaian antara Transaksi dan Buku Kas.</p>
+                  </div>
+                ) : (
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+                    <p className="text-red-300 font-semibold">⚠ Ditemukan Ketidaksesuaian!</p>
+                    <p className="text-sm text-red-200 mt-1">Ada {dataCheckResult.summary.mismatches_found} transaksi yang tidak sinkron dengan Buku Kas.</p>
+                  </div>
+                )}
+
+                {/* Mismatches */}
+                {dataCheckResult.mismatches && dataCheckResult.mismatches.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-[#D4AF37] mb-2">Detail Ketidaksesuaian:</h4>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {dataCheckResult.mismatches.map((mismatch, index) => (
+                        <div key={index} className="bg-black/20 rounded-lg p-3 border border-red-500/30">
+                          <p className="text-sm font-semibold text-[#FEF3C7]">{mismatch.transaction_number}</p>
+                          <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                            <div>
+                              <p className="text-[#6EE7B7]">Transaksi:</p>
+                              <p className="text-[#FEF3C7]">{formatCurrency(mismatch.transaction_amount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[#6EE7B7]">Buku Kas:</p>
+                              <p className="text-red-300">{formatCurrency(mismatch.cashbook_amount)}</p>
+                            </div>
+                          </div>
+                          {mismatch.amount_diff !== 0 && (
+                            <p className="text-xs text-red-300 mt-1">Selisih: {formatCurrency(Math.abs(mismatch.amount_diff))}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Missing Cashbook */}
+                {dataCheckResult.missing_cashbook && dataCheckResult.missing_cashbook.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-[#D4AF37] mb-2">Transaksi Tanpa Entry Buku Kas:</h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {dataCheckResult.missing_cashbook.map((item, index) => (
+                        <div key={index} className="bg-black/20 rounded-lg p-2 border border-yellow-500/30 text-xs">
+                          <p className="text-[#FEF3C7]">{item.transaction_number} - {formatCurrency(item.amount)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button onClick={() => setShowDataCheckDialog(false)} className="btn-secondary">
+              Tutup
+            </Button>
+            {dataCheckResult && dataCheckResult.status !== 'healthy' && (
+              <Button 
+                onClick={handleFixDataConsistency} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={fixingData}
+              >
+                {fixingData ? 'Memperbaiki...' : '🔧 Perbaiki Sekarang'}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
