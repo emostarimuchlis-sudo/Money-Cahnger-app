@@ -2637,6 +2637,110 @@ async def fix_cashbook_entries(current_user: User = Depends(get_current_user)):
         "fixed_entries": fixed_entries
     }
 
+@api_router.post("/migrate/sync-cashbook")
+async def sync_cashbook_with_transactions(
+    date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sync cashbook entries with transactions to fix any discrepancies.
+    This will:
+    1. Delete orphan cashbook entries (no matching transaction)
+    2. Create missing cashbook entries for transactions
+    3. Fix amount mismatches
+    
+    Args:
+        date: Optional date filter (YYYY-MM-DD). If not provided, sync all.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from datetime import datetime as dt
+    
+    # Get all transactions
+    txn_query = {}
+    if date:
+        txn_query["$or"] = [
+            {"transaction_date": {"$regex": f"^{date}"}},
+            {"transaction_date": {"$gte": f"{date}T00:00:00", "$lte": f"{date}T23:59:59"}}
+        ]
+    
+    transactions = await db.transactions.find(txn_query, {"_id": 0}).to_list(100000)
+    txn_map = {t['id']: t for t in transactions}
+    
+    # Get all cashbook entries
+    cb_query = {}
+    if date:
+        cb_query["$or"] = [
+            {"date": {"$regex": f"^{date}"}},
+            {"date": {"$gte": f"{date}T00:00:00", "$lte": f"{date}T23:59:59"}}
+        ]
+    
+    cashbook_entries = await db.cashbook_entries.find(cb_query, {"_id": 0}).to_list(100000)
+    cb_by_ref = {e.get('reference_id'): e for e in cashbook_entries if e.get('reference_id')}
+    
+    stats = {
+        "transactions_checked": len(transactions),
+        "cashbook_entries_checked": len(cashbook_entries),
+        "created": 0,
+        "updated": 0,
+        "deleted_orphans": 0
+    }
+    
+    # 1. Create missing cashbook entries for transactions
+    for txn in transactions:
+        txn_id = txn['id']
+        if txn_id not in cb_by_ref:
+            # Missing cashbook entry - create it
+            entry_type = "debit" if txn.get('transaction_type') in ["jual", "sell"] else "credit"
+            desc_prefix = "Penjualan" if entry_type == "debit" else "Pembelian"
+            
+            new_entry = {
+                "id": str(uuid.uuid4()),
+                "branch_id": txn.get('branch_id'),
+                "date": txn.get('transaction_date'),
+                "entry_type": entry_type,
+                "amount": txn.get('total_idr', 0),
+                "description": f"{desc_prefix} {txn.get('currency_code', '')} - {txn.get('customer_name', '')}",
+                "reference_type": "transaction",
+                "reference_id": txn_id,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.cashbook_entries.insert_one(new_entry)
+            stats["created"] += 1
+        else:
+            # Check if amount matches
+            cb_entry = cb_by_ref[txn_id]
+            if abs(cb_entry.get('amount', 0) - txn.get('total_idr', 0)) > 0.01:
+                # Update amount
+                await db.cashbook_entries.update_one(
+                    {"id": cb_entry['id']},
+                    {"$set": {"amount": txn.get('total_idr', 0)}}
+                )
+                stats["updated"] += 1
+            
+            # Check entry_type
+            correct_type = "debit" if txn.get('transaction_type') in ["jual", "sell"] else "credit"
+            if cb_entry.get('entry_type') != correct_type:
+                await db.cashbook_entries.update_one(
+                    {"id": cb_entry['id']},
+                    {"$set": {"entry_type": correct_type}}
+                )
+                stats["updated"] += 1
+    
+    # 2. Find and report orphan cashbook entries (linked to non-existent transactions)
+    for entry in cashbook_entries:
+        ref_id = entry.get('reference_id')
+        if ref_id and ref_id not in txn_map:
+            # Orphan entry - delete it
+            await db.cashbook_entries.delete_one({"id": entry['id']})
+            stats["deleted_orphans"] += 1
+    
+    return {
+        "message": "Cashbook sync completed",
+        "stats": stats
+    }
+
 @api_router.delete("/admin/transactions/by-date/{date}")
 async def delete_transactions_by_date(date: str, current_user: User = Depends(get_current_user)):
     """
