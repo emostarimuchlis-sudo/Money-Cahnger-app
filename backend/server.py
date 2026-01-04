@@ -2762,6 +2762,117 @@ async def sync_cashbook_with_transactions(
         "stats": stats
     }
 
+@api_router.post("/admin/recalculate-cashbook-from-transactions")
+async def recalculate_cashbook_from_transactions(
+    date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Recalculate and fix cashbook entries by deleting ALL and recreating from actual transactions.
+    This is a more aggressive fix than sync - it will DELETE all cashbook entries for the date
+    and recreate them from scratch based on actual transaction data.
+    
+    Parameters:
+    - date: Specific date to recalculate (YYYY-MM-DD). If None, recalculates ALL dates.
+    
+    DANGER: This will DELETE existing cashbook entries! Use with caution!
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    stats = {
+        "deleted": 0,
+        "recreated": 0,
+        "failed": 0,
+        "dates_processed": []
+    }
+    
+    try:
+        # Build query for transactions
+        txn_query = {"is_deleted": {"$ne": True}}
+        if date:
+            # Parse date and get range
+            try:
+                target_date = datetime.strptime(date, "%Y-%m-%d").date()
+                start_dt = datetime(target_date.year, target_date.month, target_date.day, 0, 0, 0, tzinfo=timezone.utc)
+                end_dt = datetime(target_date.year, target_date.month, target_date.day, 23, 59, 59, tzinfo=timezone.utc)
+                txn_query["transaction_date"] = {"$gte": start_dt, "$lte": end_dt}
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+        # Get all transactions to recreate
+        transactions = await db.transactions.find(txn_query, {"_id": 0}).to_list(100000)
+        
+        if not transactions:
+            return {
+                "message": "No transactions found for the specified criteria",
+                "stats": stats
+            }
+        
+        # Group transactions by date for processing
+        from collections import defaultdict
+        txns_by_date = defaultdict(list)
+        for txn in transactions:
+            txn_date = txn.get('transaction_date')
+            if isinstance(txn_date, datetime):
+                date_str = txn_date.date().isoformat()
+            elif isinstance(txn_date, str):
+                date_str = txn_date.split('T')[0]
+            else:
+                continue
+            txns_by_date[date_str].append(txn)
+        
+        # Process each date
+        for process_date, date_txns in txns_by_date.items():
+            stats["dates_processed"].append(process_date)
+            
+            # Step 1: Delete ALL cashbook entries for transactions on this date
+            txn_ids = [t['id'] for t in date_txns]
+            delete_result = await db.cashbook_entries.delete_many({
+                "reference_type": "transaction",
+                "reference_id": {"$in": txn_ids}
+            })
+            stats["deleted"] += delete_result.deleted_count
+            
+            # Step 2: Recreate cashbook entries from actual transaction data
+            for txn in date_txns:
+                try:
+                    # Recalculate total_idr from transaction
+                    total_idr = txn['amount'] * txn['exchange_rate']
+                    
+                    # Determine entry type
+                    entry_type = "debit" if txn['transaction_type'] in ['sell', 'jual'] else "credit"
+                    
+                    # Create new cashbook entry
+                    new_entry = {
+                        "id": str(uuid.uuid4()),
+                        "branch_id": txn['branch_id'],
+                        "date": txn['transaction_date'],
+                        "entry_type": entry_type,
+                        "amount": total_idr,
+                        "description": f"Transaction {txn['transaction_number']}",
+                        "reference_type": "transaction",
+                        "reference_id": txn['id'],
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    
+                    await db.cashbook_entries.insert_one(new_entry)
+                    stats["recreated"] += 1
+                    
+                except Exception as e:
+                    stats["failed"] += 1
+                    logging.error(f"Failed to recreate cashbook for transaction {txn['id']}: {str(e)}")
+        
+        return {
+            "message": f"Cashbook recalculated successfully for {len(stats['dates_processed'])} date(s)",
+            "stats": stats,
+            "warning": "This operation DELETED and RECREATED cashbook entries. Manual entries (if any) were NOT affected."
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Recalculation failed: {str(e)}")
+
+
 @api_router.get("/admin/check-data-consistency")
 async def check_data_consistency(current_user: User = Depends(get_current_user)):
     """
