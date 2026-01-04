@@ -236,6 +236,55 @@ const CashBook = () => {
     }
   };
 
+  // Check and fix data consistency
+  const [showDataCheckDialog, setShowDataCheckDialog] = useState(false);
+  const [dataCheckResult, setDataCheckResult] = useState(null);
+  const [checkingData, setCheckingData] = useState(false);
+  const [fixingData, setFixingData] = useState(false);
+
+  const handleCheckDataConsistency = async () => {
+    setCheckingData(true);
+    setShowDataCheckDialog(true);
+    try {
+      const response = await api.get('/admin/check-data-consistency');
+      setDataCheckResult(response.data);
+      
+      if (response.data.status === 'healthy') {
+        toast.success('Data konsisten! Tidak ada masalah ditemukan.');
+      } else {
+        toast.warning(`Ditemukan ${response.data.summary.mismatches_found} ketidaksesuaian data`);
+      }
+    } catch (error) {
+      toast.error('Gagal memeriksa konsistensi data');
+      console.error(error);
+    } finally {
+      setCheckingData(false);
+    }
+  };
+
+  const handleFixDataConsistency = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin memperbaiki data? Proses ini akan menyinkronkan Buku Kas dengan Transaksi.')) {
+      return;
+    }
+    
+    setFixingData(true);
+    try {
+      const response = await api.post('/admin/sync-cashbook');
+      toast.success(`Data berhasil diperbaiki! ${response.data.stats.updated} entry diupdate, ${response.data.stats.created} entry dibuat.`);
+      
+      // Re-check consistency
+      await handleCheckDataConsistency();
+      
+      // Refresh cashbook
+      fetchCashbook();
+    } catch (error) {
+      toast.error('Gagal memperbaiki data');
+      console.error(error);
+    } finally {
+      setFixingData(false);
+    }
+  };
+
   // Print single entry
   const handlePrintEntry = (entry) => {
     const printContent = `
