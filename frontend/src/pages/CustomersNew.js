@@ -26,6 +26,8 @@ const CustomersNew = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerTransactions, setCustomerTransactions] = useState([]);
   const [ytdSummary, setYtdSummary] = useState(null);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [customerType, setCustomerType] = useState('perorangan');
   const [filterType, setFilterType] = useState('');
