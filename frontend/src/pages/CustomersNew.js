@@ -592,11 +592,39 @@ const CustomersNew = () => {
 
                 {/* Transaction Book Tab */}
                 <TabsContent value="transaction-book">
-                  <TransactionBook 
-                    customer={selectedCustomer} 
-                    transactions={customerTransactions}
-                    companySettings={companySettings}
-                  />
+                  {!transactionsLoaded ? (
+                    <div className="glass-card rounded-xl p-8 text-center">
+                      <BookOpen className="w-16 h-16 text-[#D4AF37] mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-[#D4AF37] mb-2">Buku Transaksi Nasabah</h3>
+                      <p className="text-[#FEF3C7]/70 mb-6">
+                        Klik tombol di bawah untuk memuat riwayat transaksi nasabah ini
+                      </p>
+                      <Button 
+                        onClick={() => loadCustomerTransactions(selectedCustomer.id)}
+                        disabled={loadingTransactions}
+                        className="btn-primary px-8 py-3"
+                      >
+                        {loadingTransactions ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Memuat Transaksi...
+                          </>
+                        ) : (
+                          <>
+                            <BookOpen size={20} className="mr-2" />
+                            Muat Transaksi
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <TransactionBook 
+                      customer={selectedCustomer} 
+                      transactions={customerTransactions}
+                      companySettings={companySettings}
+                      ytdSummary={ytdSummary}
+                    />
+                  )}
                 </TabsContent>
 
                 {/* KYC Tab */}
