@@ -431,3 +431,78 @@ USER INSTRUCTIONS FOR PRODUCTION:
 5. Review the consistency report
 6. If inconsistencies found, click "Perbaiki Sekarang"
 7. Verify data after fix
+
+DATE MIGRATION FEATURE - 04 Jan 2026
+======================================
+Feature: Admin Date Format Migration Tool
+
+ISSUE ADDRESSED (P2 - Technical Debt):
+Inconsistent date formats in database (string vs datetime) causing recurring bugs in date queries and filters.
+
+NEW BACKEND ENDPOINT:
+POST /api/admin/migrate-date-formats?dry_run={true|false}
+- dry_run=true: Simulation mode (default, safe)
+- dry_run=false: Execute actual migration
+Status: ✅ WORKING
+
+NEW FRONTEND FEATURE (Settings > Maintenance Tab):
+1. "Migrasi Format Tanggal" section
+2. "Periksa Status Data" button (dry-run check)
+3. Results dashboard showing:
+   - Total records checked
+   - Records needing update
+   - Success rate
+   - Breakdown by collection (transactions, cashbook, customers)
+4. "Jalankan Migrasi Sekarang" button (with confirmation dialog)
+
+MIGRATION SCOPE:
+- Transactions collection: transaction_date, created_at fields
+- Cashbook_entries collection: date, created_at fields  
+- Customers collection: created_at field
+- Mutasi_valas collection: date, created_at fields
+- Note: daily_stock_snapshots.date kept as string (by design)
+
+DRY-RUN TEST RESULTS (Preview Environment):
+✅ Total checked: 54 records
+✅ Need update: 36 records (66.67%)
+✅ Failed: 0
+✅ Breakdown:
+   - Transactions: 16/25 need update
+   - Cashbook Entries: 16/25 need update
+   - Customers: 4/4 need update
+   - Mutasi Valas: 0/0 (none exist yet)
+
+SAFETY FEATURES:
+✅ Default mode is dry-run (simulation only)
+✅ Detailed preview of changes before execution
+✅ Warning message about backup requirement
+✅ Confirmation dialog before actual migration
+✅ Only updates records with string dates (non-destructive)
+✅ Preserves original data structure
+
+USER INSTRUCTIONS FOR MIGRATION:
+1. Deploy code to production
+2. Login as admin  
+3. Go to "Pengaturan" (Settings)
+4. Click "Maintenance" tab
+5. Click "Periksa Status Data" (dry-run check)
+6. Review the report:
+   - See how many records need update
+   - Check success rate
+   - Review breakdown by collection
+7. **IMPORTANT**: Backup your database first!
+8. Click "Jalankan Migrasi Sekarang"
+9. Confirm in the dialog
+10. Wait for completion
+11. Verify: Click "Periksa Status Data" again - should show 0 updates needed
+
+FILES MODIFIED:
+- /app/backend/server.py: Added migrate_date_formats endpoint (line ~3192)
+- /app/frontend/src/pages/Settings.js: Added Maintenance tab and DateMigrationTool component
+
+BENEFITS OF MIGRATION:
+✅ Prevents date-related bugs in queries
+✅ Improves database query performance  
+✅ Enables proper date range filtering
+✅ Consistent data type across all collections
+✅ Future-proof for scaling
