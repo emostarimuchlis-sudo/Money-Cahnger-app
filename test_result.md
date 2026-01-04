@@ -506,3 +506,96 @@ BENEFITS OF MIGRATION:
 ✅ Enables proper date range filtering
 ✅ Consistent data type across all collections
 ✅ Future-proof for scaling
+
+BUG FIXES - 05 Jan 2026
+========================
+
+USER REPORTED ISSUES (3):
+Issue 1: Total transaksi di Buku Kas berbeda dengan Daftar Transaksi tanggal 3/1/2026
+Issue 2: Nomor Voucher kosong di daftar transaksi jika tidak diisi
+Issue 3: Transaksi nasabah lambat dimuat di halaman Data Nasabah
+
+FIXES IMPLEMENTED:
+
+1. DATA CONSISTENCY CHECK (Issue 1)
+   Problem: Total Buku Kas (Rp 59.592.588) ≠ Total Transaksi (Rp 58.967.500)
+           Selisih: Rp 625.088
+   
+   Root Cause: Possible duplicate entries or sync issues from previous system
+   
+   Solution Provided:
+   - Endpoint already exists: GET /api/admin/check-data-consistency (created earlier)
+   - Endpoint already exists: POST /api/admin/sync-cashbook (auto-fix)
+   - UI already exists: "Periksa Data" button in Buku Kas page
+   - UI already exists: "Perbaiki Sekarang" button for auto-fix
+   
+   Status: ✅ TOOLS READY FOR USER TO USE IN PRODUCTION
+   
+   User Action Required:
+   1. Deploy to production
+   2. Go to Buku Kas page
+   3. Click "Periksa Data"
+   4. Review discrepancies
+   5. Click "Perbaiki Sekarang" to auto-fix
+   6. Verify: Check again - should show 0 mismatches
+
+2. VOUCHER NUMBER DISPLAY FIX (Issue 2)
+   Problem: Empty voucher number shows as blank/null in transaction list
+   
+   Solution: Display "-" when voucher_number is empty/null
+   
+   File Modified: /app/frontend/src/pages/Transactions.js (line ~776-780)
+   
+   Changes:
+   - Before: Shows null/blank for empty voucher
+   - After: Shows "-" for empty voucher with reduced opacity
+   
+   Status: ✅ FIXED & TESTED
+   
+   Screenshot Verification: ✅ Shows "-" in No. Voucher column
+
+3. CUSTOMER TRANSACTIONS PERFORMANCE (Issue 3)
+   Problem: Loading customer profile auto-fetches all transactions, causing slow page load
+   
+   Solution: Implemented lazy loading with "Muat Transaksi" button
+   
+   Files Modified:
+   - /app/frontend/src/pages/CustomersNew.js
+     - Added: loadingTransactions state
+     - Added: transactionsLoaded state
+     - Added: loadCustomerTransactions() function
+     - Modified: viewProfile() - no longer auto-fetches transactions
+     - Modified: Transaction Book tab - shows load button instead of auto-loading
+   
+   Features:
+   - "Buku Transaksi" tab shows call-to-action with book icon
+   - Button: "Muat Transaksi" (with loading spinner when processing)
+   - Toast notification: "Berhasil memuat {count} transaksi"
+   - Only loads when user explicitly clicks the button
+   
+   Benefits:
+   ✅ Faster customer profile page load (no unnecessary API calls)
+   ✅ Better UX - user controls when to load heavy data
+   ✅ Reduces server load
+   ✅ Clear visual feedback with loading state
+   
+   Status: ✅ FIXED & TESTED
+   
+   Screenshot Verification:
+   ✅ Shows "Muat Transaksi" button before loading
+   ✅ Shows loading spinner during fetch
+   ✅ Shows toast: "Berhasil memuat 2 transaksi"
+   ✅ Displays transaction book after load
+
+TESTING SUMMARY:
+================
+All 3 issues addressed:
+✅ Issue 1: Tools ready for user to check & fix in production
+✅ Issue 2: Voucher display fixed - shows "-" when empty
+✅ Issue 3: Lazy loading implemented - much faster now
+
+Next User Actions:
+1. Deploy to production
+2. Use "Periksa Data" in Buku Kas to find & fix data inconsistencies
+3. Verify voucher display shows "-" for empty values
+4. Test customer page performance - should be much faster
