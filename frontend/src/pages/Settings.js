@@ -867,20 +867,20 @@ const Settings = () => {
                   <ol className="text-[#6EE7B7] text-sm space-y-1 list-decimal list-inside">
                     <li>Buka aplikasi melalui browser</li>
                     <li>Masukkan Email dan Password</li>
-                    <li>Klik tombol "Masuk"</li>
+                    <li>Klik tombol &quot;Masuk&quot;</li>
                   </ol>
                 </div>
                 
                 <div className="border-l-4 border-emerald-500 pl-4">
                   <h3 className="text-[#FEF3C7] font-bold mb-2">Membuat Transaksi</h3>
                   <ol className="text-[#6EE7B7] text-sm space-y-1 list-decimal list-inside">
-                    <li>Buka menu "Transaksi"</li>
-                    <li>Klik "+ Transaksi Baru"</li>
+                    <li>Buka menu &quot;Transaksi&quot;</li>
+                    <li>Klik &quot;+ Transaksi Baru&quot;</li>
                     <li>Pilih nasabah (atau tambah baru)</li>
                     <li>Pilih tipe: Jual atau Beli</li>
                     <li>Masukkan mata uang, jumlah, dan kurs</li>
                     <li>Minta nasabah tanda tangan</li>
-                    <li>Klik "Cetak & Simpan"</li>
+                    <li>Klik &quot;Cetak & Simpan&quot;</li>
                   </ol>
                 </div>
                 
@@ -888,7 +888,7 @@ const Settings = () => {
                   <h3 className="text-[#FEF3C7] font-bold mb-2">Export Data</h3>
                   <ol className="text-[#6EE7B7] text-sm space-y-1 list-decimal list-inside">
                     <li>Buka halaman yang ingin di-export</li>
-                    <li>Klik tombol "Export Excel" atau "Export PDF"</li>
+                    <li>Klik tombol &quot;Export Excel&quot; atau &quot;Export PDF&quot;</li>
                     <li>File akan otomatis terunduh</li>
                   </ol>
                 </div>
