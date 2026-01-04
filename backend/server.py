@@ -1103,6 +1103,27 @@ async def update_transaction(transaction_id: str, transaction_data: TransactionC
     
     await db.transactions.update_one({"id": transaction_id}, {"$set": update_data})
     
+    # Update related cashbook entry if exists
+    # Sell/Jual = Money receives IDR = DEBIT (cash in)
+    # Buy/Beli = Money pays IDR = CREDIT (cash out)
+    entry_type = "debit" if transaction_data.transaction_type in ["sell", "jual"] else "credit"
+    
+    cashbook_entry = await db.cashbook_entries.find_one(
+        {"reference_id": transaction_id, "reference_type": "transaction"},
+        {"_id": 0}
+    )
+    
+    if cashbook_entry:
+        # Update cashbook entry dengan data transaksi yang baru
+        cashbook_update = {
+            "amount": total_idr,
+            "entry_type": entry_type
+        }
+        await db.cashbook_entries.update_one(
+            {"reference_id": transaction_id, "reference_type": "transaction"},
+            {"$set": cashbook_update}
+        )
+    
     updated = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     if isinstance(updated.get("created_at"), str):
         updated["created_at"] = datetime.fromisoformat(updated["created_at"])
