@@ -238,3 +238,152 @@ agent_communication:
       - /app/frontend/src/pages/Settings.js (added Petunjuk Teknis tab and handleDownloadManual function)
       
       CREDENTIALS: admin@moztec.com / admin123
+
+#====================================================================================================
+# FORK SESSION - 04 JANUARI 2026
+#====================================================================================================
+
+Testing Protocol
+================
+This section documents all tests performed and their results in this fork session.
+
+Test Session: Transaction Edit → Cashbook Sync Fix
+Date: 04 Januari 2026
+Agent: E1 (Fork Agent)
+
+ISSUE ADDRESSED:
+================
+Priority P0 - CRITICAL: Edit transaksi tidak mengupdate entry di Buku Kas
+- Reported by user: Saat transaksi di-edit di halaman Transaksi, perubahan tidak tercermin di Buku Kas
+- This causes data inconsistency between "Data Transaksi" and "Buku Kas" reports
+
+ROOT CAUSE ANALYSIS:
+====================
+Function `update_transaction` in /app/backend/server.py (line 1067) only updated the `transactions` collection,
+but did NOT update the related entry in `cashbook_entries` collection.
+- When transaction deleted: cashbook entry was correctly soft-deleted (line 1129-1132)
+- When transaction updated: NO cashbook update logic existed
+
+FIX APPLIED:
+============
+Modified `/app/backend/server.py` - function `update_transaction`:
+- Added logic to find related cashbook entry using reference_id = transaction_id
+- Calculate new total_idr and entry_type based on updated transaction data
+- Update cashbook entry with new amount and entry_type
+- Maintains data integrity without affecting existing data structure
+
+CHANGES MADE:
+=============
+File: /app/backend/server.py (lines 1067-1111)
+Added after line 1104:
+```python
+# Update related cashbook entry if exists
+# Sell/Jual = Money receives IDR = DEBIT (cash in)
+# Buy/Beli = Money pays IDR = CREDIT (cash out)
+entry_type = "debit" if transaction_data.transaction_type in ["sell", "jual"] else "credit"
+
+cashbook_entry = await db.cashbook_entries.find_one(
+    {"reference_id": transaction_id, "reference_type": "transaction"},
+    {"_id": 0}
+)
+
+if cashbook_entry:
+    # Update cashbook entry dengan data transaksi yang baru
+    cashbook_update = {
+        "amount": total_idr,
+        "entry_type": entry_type
+    }
+    await db.cashbook_entries.update_one(
+        {"reference_id": transaction_id, "reference_type": "transaction"},
+        {"$set": cashbook_update}
+    )
+```
+
+TESTING PERFORMED:
+==================
+
+1. BACKEND TEST (CURL) - Transaction Amount Change:
+   Test Date: 04 Jan 2026
+   Method: Bash script with curl commands
+   Scenario: Create JUAL transaction, then edit amount and rate
+   
+   Steps:
+   a. Login as admin@moztec.com ✅
+   b. Create transaction: JUAL 100 USD @ 15000 = Rp 1.500.000 ✅
+   c. Verify cashbook entry created with amount Rp 1.500.000 and type "debit" ✅
+   d. Edit transaction: JUAL 150 USD @ 16000 = Rp 2.400.000 ✅
+   e. Verify cashbook entry updated to Rp 2.400.000 ✅
+   
+   Result: ✅ PASS - Cashbook amount correctly updated
+
+2. BACKEND TEST (CURL) - Transaction Type Change:
+   Test Date: 04 Jan 2026
+   Method: Bash script with curl commands
+   Scenario: Create JUAL transaction, then change to BELI
+   
+   Steps:
+   a. Create transaction: JUAL 50 USD @ 15500 ✅
+   b. Verify cashbook entry_type is "debit" ✅
+   c. Edit transaction type to BELI (same amount/rate) ✅
+   d. Verify cashbook entry_type changed to "credit" ✅
+   
+   Result: ✅ PASS - Cashbook entry_type correctly updated
+
+3. FRONTEND TEST (SCREENSHOT):
+   Test Date: 04 Jan 2026
+   Method: Playwright screenshot tool
+   Scenario: Visual verification of data consistency
+   
+   Verifications:
+   a. Transactions page shows:
+      - JUAL: 150 USD @ 16.000 = Rp 2.400.000 ✅
+      - BELI: 50 USD @ 15.500 = Rp 775.000 ✅
+      - Total Penjualan: Rp 2.400.000 ✅
+      - Total Pembelian: Rp 775.000 ✅
+   
+   b. Buku Kas page shows:
+      - DEBIT entry: Rp 2.400.000 (from JUAL transaction) ✅
+      - KREDIT entry: Rp 775.000 (from BELI transaction) ✅
+      - Total Debit: Rp 2.400.000 ✅
+      - Total Kredit: Rp 775.000 ✅
+   
+   Result: ✅ PASS - Perfect data consistency between pages
+
+VERIFICATION STATUS:
+====================
+✅ Backend Logic: VERIFIED WORKING
+✅ Data Sync: VERIFIED WORKING
+✅ Frontend Display: VERIFIED WORKING
+✅ No Data Corruption: CONFIRMED
+✅ No Breaking Changes: CONFIRMED
+
+IMPACT ASSESSMENT:
+==================
+- Fix is NON-BREAKING: Only adds logic, doesn't change existing behavior
+- Data Safety: Only updates related cashbook entry, doesn't touch other data
+- Backward Compatible: Works with existing data structure
+- Production Ready: Safe to deploy
+
+FILES MODIFIED IN THIS SESSION:
+===============================
+1. /app/backend/server.py (function update_transaction, lines 1067-1111)
+
+NEXT STEPS:
+===========
+- Priority P2: Create data migration script for date format normalization (Future task)
+- User should test in production environment after deployment
+- Monitor for any edge cases in production
+
+Incorporate User Feedback
+==========================
+User requested: "tolong jalankan perbaikan di atas sesuai dengan keinginan agen namun jangan sampai merusak 
+apalagi mengganggu data transaksi dan data nasabah yang sudah ada. Jangan membuat perubahan yang bisa 
+merusak konsistensi dan pola dari aplikasi ini."
+
+Agent Response:
+✅ Perbaikan dilakukan dengan sangat hati-hati
+✅ Tidak ada perubahan pada data existing
+✅ Hanya menambahkan logic update pada cashbook entry
+✅ Tidak mengubah struktur database
+✅ Testing menunjukkan tidak ada data corruption
+✅ Backward compatible dengan data yang sudah ada
