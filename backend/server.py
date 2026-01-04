@@ -438,14 +438,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-async def generate_transaction_number(transaction_type: str, branch_id: str, suffix: str = None):
+async def generate_transaction_number(transaction_type: str, branch_id: str, suffix: str = None, base_seq: int = None):
     """
     Generate transaction number with format: TRX-MBA-J/B-XXXXX-BRANCHCODE-DDMMYY[-a/b/c]
+    
+    Setiap transaksi memiliki nomor urut yang unik per hari per tipe (J atau B):
+    - TRX-MBA-J-00001-HQ-020126 (Jual pertama hari ini)
+    - TRX-MBA-J-00002-HQ-020126 (Jual kedua hari ini)
+    - TRX-MBA-B-00001-HQ-020126 (Beli pertama hari ini)
+    
+    Untuk multi-currency, nomor dasar sama dengan suffix berbeda:
+    - TRX-MBA-J-00003-HQ-020126-a (USD)
+    - TRX-MBA-J-00003-HQ-020126-b (EUR)
     
     Args:
         transaction_type: 'jual'/'sell' or 'beli'/'buy'
         branch_id: Branch ID
         suffix: Optional suffix for multi-currency (e.g., 'a', 'b', 'c')
+        base_seq: For multi-currency, use this as the base sequence number
     """
     now = datetime.now(timezone.utc)
     
@@ -463,24 +473,26 @@ async def generate_transaction_number(transaction_type: str, branch_id: str, suf
     # Format date as DDMMYY
     date_str = now.strftime('%d%m%y')
     
-    # Get sequential number for today (count existing transactions)
-    # Use date range query that handles both string and datetime formats
-    today_date = now.strftime('%Y-%m-%d')
-    today_start = f"{today_date}T00:00:00"
-    today_end = f"{today_date}T23:59:59"
-    
-    # Count transactions for today (handle both date formats)
-    count = await db.transactions.count_documents({
-        "$or": [
-            {"transaction_date": {"$regex": f"^{today_date}"}},
-            {"transaction_date": {"$gte": today_start, "$lte": today_end}}
-        ]
-    })
-    
-    # For multi-currency, don't increment counter for suffix transactions
-    if suffix:
-        seq_number = str(count).zfill(5)  # Use same number as base
+    # Determine sequence number
+    if base_seq is not None:
+        # For multi-currency: use provided base sequence
+        seq_number = str(base_seq).zfill(5)
     else:
+        # Count existing transactions for TODAY and THIS TYPE (J or B)
+        today_date = now.strftime('%Y-%m-%d')
+        
+        # Build regex pattern to match transaction numbers for today and this type
+        # Pattern: TRX-MBA-J-XXXXX-XXX-DDMMYY or TRX-MBA-B-XXXXX-XXX-DDMMYY
+        txn_pattern = f"TRX-MBA-{type_indicator}-"
+        date_pattern = f"-{date_str}"
+        
+        # Count transactions with this type indicator and today's date in the transaction_number
+        count = await db.transactions.count_documents({
+            "transaction_number": {
+                "$regex": f"^{txn_pattern}.*{date_pattern}"
+            }
+        })
+        
         seq_number = str(count + 1).zfill(5)
     
     # Build transaction number
