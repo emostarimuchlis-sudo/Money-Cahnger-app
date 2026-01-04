@@ -318,12 +318,6 @@ Apakah Anda yakin ingin melanjutkan?`;
       setFixingData(false);
     }
   };
-      toast.error('Gagal memperbaiki data');
-      console.error(error);
-    } finally {
-      setFixingData(false);
-    }
-  };
 
   // Print single entry
   const handlePrintEntry = (entry) => {
