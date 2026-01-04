@@ -3189,6 +3189,294 @@ async def regenerate_user_manual(current_user: User = Depends(get_current_user))
         }
     }
 
+@api_router.post("/admin/migrate-date-formats")
+async def migrate_date_formats(dry_run: bool = True, current_user: User = Depends(get_current_user)):
+    """
+    Migrate all date fields from string format to datetime objects.
+    This is a one-time migration to fix data type inconsistencies.
+    
+    Parameters:
+    - dry_run: If True, only simulates the migration and returns what would be changed.
+               If False, executes the actual migration.
+    
+    Safety features:
+    - Default is dry_run=True to prevent accidental execution
+    - Returns detailed report of what will be changed
+    - Only updates records that have string dates
+    - Preserves original data structure
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from datetime import datetime as dt
+    
+    def parse_date_string(date_value):
+        """
+        Parse various date string formats to datetime object.
+        Returns None if parsing fails.
+        """
+        if date_value is None:
+            return None
+        if isinstance(date_value, dt):
+            # Already a datetime, return as-is
+            return date_value
+        if not isinstance(date_value, str):
+            return None
+        
+        # Try various formats
+        formats_to_try = [
+            '%Y-%m-%dT%H:%M:%S.%fZ',
+            '%Y-%m-%dT%H:%M:%S.%f',
+            '%Y-%m-%dT%H:%M:%SZ',
+            '%Y-%m-%dT%H:%M:%S',
+            '%Y-%m-%d %H:%M:%S.%f',
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%d',
+        ]
+        
+        for fmt in formats_to_try:
+            try:
+                return dt.strptime(date_value, fmt)
+            except ValueError:
+                continue
+        
+        # Try isoformat parsing
+        try:
+            return dt.fromisoformat(date_value.replace('Z', '+00:00')).replace(tzinfo=None)
+        except:
+            pass
+        
+        return None
+    
+    stats = {
+        "transactions": {"checked": 0, "updated": 0, "failed": 0},
+        "cashbook_entries": {"checked": 0, "updated": 0, "failed": 0},
+        "mutasi_valas": {"checked": 0, "updated": 0, "failed": 0},
+        "customers": {"checked": 0, "updated": 0, "failed": 0}
+    }
+    
+    changes_preview = []
+    
+    # ========== MIGRATE TRANSACTIONS ==========
+    transactions = await db.transactions.find({}).to_list(100000)
+    stats["transactions"]["checked"] = len(transactions)
+    
+    for txn in transactions:
+        updates = {}
+        record_changes = {
+            "collection": "transactions",
+            "id": txn['id'],
+            "transaction_number": txn.get('transaction_number'),
+            "fields_updated": []
+        }
+        
+        # Check transaction_date
+        if isinstance(txn.get('transaction_date'), str):
+            parsed = parse_date_string(txn['transaction_date'])
+            if parsed:
+                updates['transaction_date'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "transaction_date",
+                    "old_value": txn['transaction_date'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        # Check created_at
+        if isinstance(txn.get('created_at'), str):
+            parsed = parse_date_string(txn['created_at'])
+            if parsed:
+                updates['created_at'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "created_at",
+                    "old_value": txn['created_at'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        if updates:
+            if not dry_run:
+                try:
+                    await db.transactions.update_one({"id": txn['id']}, {"$set": updates})
+                    stats["transactions"]["updated"] += 1
+                except Exception as e:
+                    stats["transactions"]["failed"] += 1
+                    logging.error(f"Failed to update transaction {txn['id']}: {str(e)}")
+            else:
+                stats["transactions"]["updated"] += 1
+                
+            if record_changes["fields_updated"]:
+                changes_preview.append(record_changes)
+    
+    # ========== MIGRATE CASHBOOK ENTRIES ==========
+    cashbook_entries = await db.cashbook_entries.find({}).to_list(100000)
+    stats["cashbook_entries"]["checked"] = len(cashbook_entries)
+    
+    for entry in cashbook_entries:
+        updates = {}
+        record_changes = {
+            "collection": "cashbook_entries",
+            "id": entry['id'],
+            "description": entry.get('description', '')[:50],
+            "fields_updated": []
+        }
+        
+        # Check date
+        if isinstance(entry.get('date'), str):
+            parsed = parse_date_string(entry['date'])
+            if parsed:
+                updates['date'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "date",
+                    "old_value": entry['date'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        # Check created_at
+        if isinstance(entry.get('created_at'), str):
+            parsed = parse_date_string(entry['created_at'])
+            if parsed:
+                updates['created_at'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "created_at",
+                    "old_value": entry['created_at'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        if updates:
+            if not dry_run:
+                try:
+                    await db.cashbook_entries.update_one({"id": entry['id']}, {"$set": updates})
+                    stats["cashbook_entries"]["updated"] += 1
+                except Exception as e:
+                    stats["cashbook_entries"]["failed"] += 1
+                    logging.error(f"Failed to update cashbook entry {entry['id']}: {str(e)}")
+            else:
+                stats["cashbook_entries"]["updated"] += 1
+                
+            if record_changes["fields_updated"]:
+                changes_preview.append(record_changes)
+    
+    # ========== MIGRATE MUTASI VALAS ==========
+    # Note: daily_stock_snapshots.date is intentionally kept as string (YYYY-MM-DD format)
+    mutasi_entries = await db.mutasi_valas.find({}).to_list(100000)
+    stats["mutasi_valas"]["checked"] = len(mutasi_entries)
+    
+    for entry in mutasi_entries:
+        updates = {}
+        record_changes = {
+            "collection": "mutasi_valas",
+            "id": entry['id'],
+            "currency_code": entry.get('currency_code'),
+            "fields_updated": []
+        }
+        
+        # Check date
+        if isinstance(entry.get('date'), str):
+            parsed = parse_date_string(entry['date'])
+            if parsed:
+                updates['date'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "date",
+                    "old_value": entry['date'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        # Check created_at
+        if isinstance(entry.get('created_at'), str):
+            parsed = parse_date_string(entry['created_at'])
+            if parsed:
+                updates['created_at'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "created_at",
+                    "old_value": entry['created_at'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        if updates:
+            if not dry_run:
+                try:
+                    await db.mutasi_valas.update_one({"id": entry['id']}, {"$set": updates})
+                    stats["mutasi_valas"]["updated"] += 1
+                except Exception as e:
+                    stats["mutasi_valas"]["failed"] += 1
+                    logging.error(f"Failed to update mutasi_valas {entry['id']}: {str(e)}")
+            else:
+                stats["mutasi_valas"]["updated"] += 1
+                
+            if record_changes["fields_updated"]:
+                changes_preview.append(record_changes)
+    
+    # ========== MIGRATE CUSTOMERS (birth_date if exists) ==========
+    customers = await db.customers.find({}).to_list(100000)
+    stats["customers"]["checked"] = len(customers)
+    
+    for customer in customers:
+        updates = {}
+        record_changes = {
+            "collection": "customers",
+            "id": customer['id'],
+            "name": customer.get('name') or customer.get('entity_name', ''),
+            "fields_updated": []
+        }
+        
+        # Check created_at
+        if isinstance(customer.get('created_at'), str):
+            parsed = parse_date_string(customer['created_at'])
+            if parsed:
+                updates['created_at'] = parsed
+                record_changes["fields_updated"].append({
+                    "field": "created_at",
+                    "old_value": customer['created_at'],
+                    "new_value": parsed.isoformat(),
+                    "old_type": "string",
+                    "new_type": "datetime"
+                })
+        
+        if updates:
+            if not dry_run:
+                try:
+                    await db.customers.update_one({"id": customer['id']}, {"$set": updates})
+                    stats["customers"]["updated"] += 1
+                except Exception as e:
+                    stats["customers"]["failed"] += 1
+                    logging.error(f"Failed to update customer {customer['id']}: {str(e)}")
+            else:
+                stats["customers"]["updated"] += 1
+                
+            if record_changes["fields_updated"]:
+                changes_preview.append(record_changes)
+    
+    # Prepare response
+    total_checked = sum(s["checked"] for s in stats.values())
+    total_updated = sum(s["updated"] for s in stats.values())
+    total_failed = sum(s["failed"] for s in stats.values())
+    
+    return {
+        "mode": "DRY RUN (Simulasi)" if dry_run else "EXECUTION (Eksekusi Sebenarnya)",
+        "summary": {
+            "total_records_checked": total_checked,
+            "total_records_updated": total_updated,
+            "total_records_failed": total_failed,
+            "success_rate": f"{(total_updated / total_checked * 100) if total_checked > 0 else 0:.2f}%"
+        },
+        "details_by_collection": stats,
+        "changes_preview": changes_preview[:20],  # Show first 20 changes as preview
+        "total_changes": len(changes_preview),
+        "note": "This is a simulation. No actual changes were made." if dry_run else "Migration completed successfully!",
+        "next_step": "Call this endpoint with dry_run=false to execute the migration" if dry_run else "Migration complete. Please verify your data."
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
