@@ -12,6 +12,207 @@ import ActivityLog from '../components/ActivityLog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Date Migration Tool Component
+const DateMigrationTool = () => {
+  const [migrationStatus, setMigrationStatus] = useState(null);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const checkMigration = async () => {
+    setIsChecking(true);
+    try {
+      const response = await api.post('/admin/migrate-date-formats?dry_run=true');
+      setMigrationStatus(response.data);
+      
+      if (response.data.summary.total_records_updated === 0) {
+        toast.success('Semua data sudah dalam format yang benar!');
+      } else {
+        toast.info(`Ditemukan ${response.data.summary.total_records_updated} record yang perlu dimigrasi`);
+      }
+    } catch (error) {
+      toast.error('Gagal memeriksa data: ' + (error.response?.data?.detail || error.message));
+      console.error(error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const executeMigration = async () => {
+    setIsMigrating(true);
+    try {
+      const response = await api.post('/admin/migrate-date-formats?dry_run=false');
+      setMigrationStatus(response.data);
+      toast.success(`Migrasi berhasil! ${response.data.summary.total_records_updated} record telah diperbarui.`);
+      setShowConfirmDialog(false);
+    } catch (error) {
+      toast.error('Gagal melakukan migrasi: ' + (error.response?.data?.detail || error.message));
+      console.error(error);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-card rounded-xl p-6">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="p-3 bg-amber-500/20 rounded-lg">
+            <Settings2 className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Migrasi Format Tanggal
+            </h2>
+            <p className="text-[#FEF3C7]/70 mt-2">
+              Tools untuk memperbaiki inkonsistensi format tanggal di database
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <HelpCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-[#FEF3C7]/90">
+              <p className="font-semibold mb-2">Apa itu Migrasi Format Tanggal?</p>
+              <p className="mb-2">
+                Karena perubahan sistem, beberapa data tanggal di database masih tersimpan sebagai <span className="font-mono bg-black/30 px-1 rounded">string</span> bukan sebagai <span className="font-mono bg-black/30 px-1 rounded">datetime</span>. 
+                Ini bisa menyebabkan bug saat query atau filter berdasarkan tanggal.
+              </p>
+              <p>
+                Tools ini akan mengkonversi semua field tanggal ke format yang benar untuk meningkatkan performa dan mencegah bug di masa depan.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <Button 
+            onClick={checkMigration} 
+            disabled={isChecking}
+            className="btn-secondary w-full md:w-auto px-8 py-3 flex items-center gap-2"
+          >
+            <Activity size={20} />
+            {isChecking ? 'Memeriksa...' : 'Periksa Status Data'}
+          </Button>
+
+          {migrationStatus && (
+            <div className="glass-card rounded-lg p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-[#D4AF37]">Hasil Pemeriksaan</h3>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  migrationStatus.mode.includes('DRY RUN') ? 'bg-blue-500/20 text-blue-300' : 'bg-green-500/20 text-green-300'
+                }`}>
+                  {migrationStatus.mode}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-black/20 rounded-lg p-4">
+                  <p className="text-xs text-[#6EE7B7] mb-1">Total Dicek</p>
+                  <p className="text-2xl font-bold text-[#FEF3C7]">{migrationStatus.summary.total_records_checked}</p>
+                </div>
+                <div className="bg-black/20 rounded-lg p-4">
+                  <p className="text-xs text-[#6EE7B7] mb-1">Perlu Diupdate</p>
+                  <p className="text-2xl font-bold text-amber-400">{migrationStatus.summary.total_records_updated}</p>
+                </div>
+                <div className="bg-black/20 rounded-lg p-4">
+                  <p className="text-xs text-[#6EE7B7] mb-1">Gagal</p>
+                  <p className="text-2xl font-bold text-red-400">{migrationStatus.summary.total_records_failed}</p>
+                </div>
+                <div className="bg-black/20 rounded-lg p-4">
+                  <p className="text-xs text-[#6EE7B7] mb-1">Success Rate</p>
+                  <p className="text-2xl font-bold text-emerald-400">{migrationStatus.summary.success_rate}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-[#D4AF37]">Detail per Collection:</h4>
+                {Object.entries(migrationStatus.details_by_collection).map(([collection, stats]) => (
+                  stats.checked > 0 && (
+                    <div key={collection} className="flex items-center justify-between bg-black/20 rounded p-3">
+                      <div>
+                        <p className="text-[#FEF3C7] font-semibold capitalize">{collection.replace('_', ' ')}</p>
+                        <p className="text-xs text-[#6EE7B7]">{stats.checked} records dicek</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-amber-400 font-bold">{stats.updated} update</p>
+                        {stats.failed > 0 && <p className="text-xs text-red-400">{stats.failed} gagal</p>}
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+
+              {migrationStatus.summary.total_records_updated > 0 && migrationStatus.mode.includes('DRY RUN') && (
+                <div className="pt-4 border-t border-white/10">
+                  <Button 
+                    onClick={() => setShowConfirmDialog(true)} 
+                    className="btn-primary w-full md:w-auto px-8 py-3 flex items-center gap-2"
+                  >
+                    <Download size={20} />
+                    Jalankan Migrasi Sekarang
+                  </Button>
+                  <p className="text-xs text-[#6EE7B7] mt-2">
+                    ⚠️ Ini akan mengubah data di database. Pastikan Anda sudah membackup data.
+                  </p>
+                </div>
+              )}
+
+              {migrationStatus.mode.includes('EKSEKUSI') && (
+                <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-lg p-4">
+                  <p className="text-emerald-300 font-semibold">✓ Migrasi Selesai!</p>
+                  <p className="text-sm text-emerald-200 mt-1">{migrationStatus.note}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Confirm Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="glass-card border border-white/10 text-[#FEF3C7]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-amber-400 flex items-center gap-2">
+              <HelpCircle size={24} /> Konfirmasi Migrasi
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-[#FEF3C7] mb-4">
+              Apakah Anda yakin ingin menjalankan migrasi format tanggal?
+            </p>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded p-3 mb-4">
+              <p className="text-sm text-amber-200">
+                <strong>Akan mengupdate:</strong> {migrationStatus?.summary.total_records_updated} records
+              </p>
+              <p className="text-xs text-amber-300 mt-2">
+                ⚠️ Proses ini akan mengubah data di database. Pastikan Anda sudah backup data terlebih dahulu.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setShowConfirmDialog(false)} 
+                className="btn-secondary flex-1"
+                disabled={isMigrating}
+              >
+                Batal
+              </Button>
+              <Button 
+                onClick={executeMigration} 
+                className="bg-amber-600 hover:bg-amber-700 text-white flex-1"
+                disabled={isMigrating}
+              >
+                {isMigrating ? 'Memproses...' : 'Ya, Jalankan Migrasi'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
 const Settings = () => {
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
