@@ -2762,6 +2762,93 @@ async def sync_cashbook_with_transactions(
         "stats": stats
     }
 
+@api_router.get("/admin/check-data-consistency")
+async def check_data_consistency(current_user: User = Depends(get_current_user)):
+    """
+    Check for data inconsistencies between transactions and cashbook entries.
+    Returns list of mismatches for admin review.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Get all transactions
+    all_transactions = await db.transactions.find(
+        {"is_deleted": {"$ne": True}},
+        {"_id": 0}
+    ).to_list(100000)
+    
+    # Get all cashbook entries
+    all_cashbook = await db.cashbook_entries.find(
+        {"is_deleted": {"$ne": True}, "reference_type": "transaction"},
+        {"_id": 0}
+    ).to_list(100000)
+    
+    # Create maps
+    txn_map = {t['id']: t for t in all_transactions}
+    cb_map = {e['reference_id']: e for e in all_cashbook if e.get('reference_id')}
+    
+    mismatches = []
+    missing_cashbook = []
+    orphan_cashbook = []
+    
+    # Check each transaction
+    for txn in all_transactions:
+        txn_id = txn['id']
+        expected_amount = txn['total_idr']
+        expected_type = 'debit' if txn['transaction_type'] in ['sell', 'jual'] else 'credit'
+        
+        if txn_id in cb_map:
+            cb_entry = cb_map[txn_id]
+            cb_amount = cb_entry['amount']
+            cb_type = cb_entry['entry_type']
+            
+            # Check for mismatches
+            if cb_amount != expected_amount or cb_type != expected_type:
+                mismatches.append({
+                    "transaction_id": txn_id,
+                    "transaction_number": txn['transaction_number'],
+                    "transaction_type": txn['transaction_type'],
+                    "transaction_amount": expected_amount,
+                    "cashbook_amount": cb_amount,
+                    "expected_entry_type": expected_type,
+                    "cashbook_entry_type": cb_type,
+                    "amount_diff": expected_amount - cb_amount,
+                    "type_mismatch": cb_type != expected_type
+                })
+        else:
+            missing_cashbook.append({
+                "transaction_id": txn_id,
+                "transaction_number": txn['transaction_number'],
+                "transaction_type": txn['transaction_type'],
+                "amount": expected_amount
+            })
+    
+    # Check for orphan cashbook entries
+    for cb_entry in all_cashbook:
+        ref_id = cb_entry.get('reference_id')
+        if ref_id and ref_id not in txn_map:
+            orphan_cashbook.append({
+                "cashbook_id": cb_entry['id'],
+                "reference_id": ref_id,
+                "amount": cb_entry['amount'],
+                "entry_type": cb_entry['entry_type'],
+                "description": cb_entry['description']
+            })
+    
+    return {
+        "summary": {
+            "total_transactions": len(all_transactions),
+            "total_cashbook_entries": len(all_cashbook),
+            "mismatches_found": len(mismatches),
+            "missing_cashbook_entries": len(missing_cashbook),
+            "orphan_cashbook_entries": len(orphan_cashbook)
+        },
+        "mismatches": mismatches,
+        "missing_cashbook": missing_cashbook,
+        "orphan_cashbook": orphan_cashbook,
+        "status": "healthy" if len(mismatches) == 0 and len(missing_cashbook) == 0 else "inconsistent"
+    }
+
 @api_router.delete("/admin/transactions/by-date/{date}")
 async def delete_transactions_by_date(date: str, current_user: User = Depends(get_current_user)):
     """
