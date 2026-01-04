@@ -12,6 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useAuth } from '../context/AuthContext';
 import SignaturePad from '../components/SignaturePad';
 
+// Convert UTC to WITA (Indonesia Central Time, UTC+8)
+const toWITA = (dateInput) => {
+  const date = new Date(dateInput);
+  // Add 8 hours to convert from UTC to WITA
+  return new Date(date.getTime() + (8 * 60 * 60 * 1000));
+};
+
 // Inline export functions
 const formatCurrencyExport = (value) => {
   return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(value || 0);
