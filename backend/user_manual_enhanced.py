@@ -42,8 +42,8 @@ def add_warning_box(doc, text):
     runner = p.add_run(text)
     runner.font.color.rgb = RGBColor(254, 243, 199)
 
-def add_step_with_screenshot(doc, step_number, title, description, visual_note=""):
-    """Add a detailed step with visual description"""
+def add_step_with_screenshot(doc, step_number, title, description, visual_note="", screenshot_file=None):
+    """Add a detailed step with visual description and optional screenshot"""
     # Step title
     p = doc.add_paragraph()
     runner = p.add_run(f"Langkah {step_number}: {title}")
@@ -53,6 +53,29 @@ def add_step_with_screenshot(doc, step_number, title, description, visual_note="
     
     # Description
     doc.add_paragraph(description)
+    
+    # Add screenshot if file exists
+    if screenshot_file and os.path.exists(screenshot_file):
+        try:
+            # Add centered paragraph for image
+            p_img = doc.add_paragraph()
+            p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add image with reasonable width (5.5 inches for good visibility)
+            run = p_img.add_run()
+            run.add_picture(screenshot_file, width=Inches(5.5))
+            
+            # Add caption
+            caption = doc.add_paragraph()
+            caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            runner = caption.add_run(f"Gambar {step_number}: {title}")
+            runner.italic = True
+            runner.font.size = Pt(9)
+            runner.font.color.rgb = RGBColor(110, 231, 183)
+            
+            doc.add_paragraph()  # Spacing after image
+        except Exception as e:
+            print(f"Warning: Could not add image {screenshot_file}: {str(e)}")
     
     # Visual note (what user will see on screen)
     if visual_note:
