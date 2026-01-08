@@ -620,14 +620,16 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 2,
         "Pilih Tanggal dan Cabang",
         "Gunakan navigasi tanggal dan dropdown cabang untuk filter data yang ingin dilihat.",
-        "Data mutasi otomatis dihitung dari transaksi. Stock Akhir hari ini = Stock Awal hari besok (dijaga otomatis oleh sistem snapshot)."
+        "Data mutasi otomatis dihitung dari transaksi. Stock Akhir hari ini = Stock Awal hari besok (dijaga otomatis oleh sistem snapshot).",
+        os.path.join(screenshots_base, "39_mutasi_valas_navigation.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Export Data Mutasi",
         "Klik tombol 'Excel' atau 'PDF' untuk export data mutasi.",
-        "File export berisi detail lengkap mutasi per mata uang untuk periode yang dipilih."
+        "File export berisi detail lengkap mutasi per mata uang untuk periode yang dipilih.",
+        os.path.join(screenshots_base, "38_mutasi_valas_table.jpeg")
     )
     
     add_note_box(doc, "Jika ada ketidaksesuaian stock (Stock Akhir hari X ≠ Stock Awal hari X+1), gunakan tombol 'Perbaiki Data' yang tersedia untuk Admin.")
