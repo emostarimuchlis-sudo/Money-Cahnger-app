@@ -300,7 +300,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 3,
         "Pilih atau Tambah Nasabah",
         "Di bagian atas form, ada dropdown 'Pilih Nasabah'. Klik untuk membuka daftar nasabah, atau ketik untuk mencari.",
-        "Dropdown akan menampilkan kode nasabah (contoh: MBA92B520D) dan nama. Jika nasabah baru, klik tombol '+ Nasabah Baru' di bawah dropdown untuk membuka form pendaftaran nasabah."
+        "Dropdown akan menampilkan kode nasabah (contoh: MBA92B520D) dan nama. Jika nasabah baru, klik tombol '+ Nasabah Baru' di bawah dropdown untuk membuka form pendaftaran nasabah.",
+        os.path.join(screenshots_base, "08_transaction_customer_select.jpeg")
     )
     
     add_note_box(doc, "Sistem akan otomatis generate kode nasabah format MBA + 8 angka random untuk nasabah baru.")
@@ -309,49 +310,56 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 4,
         "Pilih Tipe Transaksi",
         "Pilih tipe transaksi: 'Jual' (Anda menjual valas ke nasabah) atau 'Beli' (Anda membeli valas dari nasabah).",
-        "Ada 2 tombol toggle: 'Jual' berwarna hijau dengan icon panah atas, 'Beli' berwarna biru dengan icon panah bawah. Tombol yang dipilih akan highlight."
+        "Ada 2 tombol toggle: 'Jual' berwarna hijau dengan icon panah atas, 'Beli' berwarna biru dengan icon panah bawah. Tombol yang dipilih akan highlight.",
+        os.path.join(screenshots_base, "09_transaction_type_jual.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 5,
         "Pilih Mata Uang",
         "Klik dropdown 'Mata Uang' dan pilih mata uang yang akan ditransaksikan (USD, EUR, GBP, JPY, dll).",
-        "Dropdown menampilkan kode mata uang (USD, EUR) dengan nama lengkap (US Dollar, Euro). Cari dengan mengetik kode atau nama."
+        "Dropdown menampilkan kode mata uang (USD, EUR) dengan nama lengkap (US Dollar, Euro). Cari dengan mengetik kode atau nama.",
+        os.path.join(screenshots_base, "11_transaction_currency_select.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 6,
         "Masukkan Jumlah",
         "Ketik jumlah valas yang akan ditransaksikan di field 'Jumlah'.",
-        "Field jumlah hanya menerima angka. Sistem akan auto-format dengan separator ribuan saat Anda mengetik."
+        "Field jumlah hanya menerima angka. Sistem akan auto-format dengan separator ribuan saat Anda mengetik.",
+        os.path.join(screenshots_base, "12_transaction_filled.png")
     )
     
     add_step_with_screenshot(
         doc, 7,
         "Masukkan Kurs (Exchange Rate)",
         "Ketik kurs yang berlaku di field 'Kurs'. Kurs adalah nilai tukar 1 unit valas dalam Rupiah.",
-        "Field kurs auto-format dengan separator ribuan. Contoh: untuk USD 15.500 berarti 1 USD = Rp 15.500"
+        "Field kurs auto-format dengan separator ribuan. Contoh: untuk USD 15.500 berarti 1 USD = Rp 15.500",
+        os.path.join(screenshots_base, "12_transaction_filled.png")
     )
     
     add_step_with_screenshot(
         doc, 8,
         "Cek Total IDR",
         "Sistem akan otomatis menghitung Total IDR = Jumlah × Kurs.",
-        "Total IDR ditampilkan di bawah field kurs dengan format Rupiah lengkap. Contoh: Rp 1.550.000. Total ini otomatis update saat Anda ubah jumlah atau kurs."
+        "Total IDR ditampilkan di bawah field kurs dengan format Rupiah lengkap. Contoh: Rp 1.550.000. Total ini otomatis update saat Anda ubah jumlah atau kurs.",
+        os.path.join(screenshots_base, "12_transaction_filled.png")
     )
     
     add_step_with_screenshot(
         doc, 9,
         "Isi Informasi Tambahan (Opsional)",
         "Isi field opsional: No. Voucher, Delivery Channel, Payment Method, Notes, Transaction Purpose.",
-        "Field ini tidak wajib diisi. No. Voucher akan tampil sebagai '-' di daftar transaksi jika dikosongkan."
+        "Field ini tidak wajib diisi. No. Voucher akan tampil sebagai '-' di daftar transaksi jika dikosongkan.",
+        os.path.join(screenshots_base, "12_transaction_filled.png")
     )
     
     add_step_with_screenshot(
         doc, 10,
         "Minta Tanda Tangan Nasabah",
         "Gulir ke bawah dan minta nasabah untuk tanda tangan di area Signature Pad (kotak putih).",
-        "Area signature pad adalah kotak putih kosong. Nasabah bisa tanda tangan dengan mouse, touchpad, atau touchscreen. Ada tombol 'Clear' untuk menghapus jika salah."
+        "Area signature pad adalah kotak putih kosong. Nasabah bisa tanda tangan dengan mouse, touchpad, atau touchscreen. Ada tombol 'Clear' untuk menghapus jika salah.",
+        os.path.join(screenshots_base, "13_transaction_signature.png")
     )
     
     add_warning_box(doc, "Transaksi HARUS ada tanda tangan nasabah sesuai regulasi Bank Indonesia!")
