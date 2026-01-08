@@ -491,7 +491,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Halaman Buku Kas",
         "Klik menu 'Buku Kas' di sidebar.",
-        "Halaman Buku Kas menampilkan 4 kartu summary di atas: Saldo Awal, Total Debit, Total Kredit, Saldo Akhir. Di bawahnya ada tabel entry kas dengan kolom: Tanggal, Tipe, Keterangan, Debit, Kredit, Sumber, Aksi."
+        "Halaman Buku Kas menampilkan 4 kartu summary di atas: Saldo Awal, Total Debit, Total Kredit, Saldo Akhir. Di bawahnya ada tabel entry kas dengan kolom: Tanggal, Tipe, Keterangan, Debit, Kredit, Sumber, Aksi.",
+        os.path.join(screenshots_base, "08_cashbook.png")
     )
     
     add_step_with_screenshot(
