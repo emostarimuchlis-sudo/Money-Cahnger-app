@@ -571,7 +571,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Halaman Mutasi Valas",
         "Klik menu 'Mutasi Valas' di sidebar.",
-        "Halaman menampilkan tabel mutasi per mata uang dengan kolom: Tanggal, Mata Uang, Stock Awal, Pembelian, Penjualan, Stock Akhir, Avg Rate, Profit/Loss."
+        "Halaman menampilkan tabel mutasi per mata uang dengan kolom: Tanggal, Mata Uang, Stock Awal, Pembelian, Penjualan, Stock Akhir, Avg Rate, Profit/Loss.",
+        os.path.join(screenshots_base, "09_mutasi_valas.png")
     )
     
     add_step_with_screenshot(
