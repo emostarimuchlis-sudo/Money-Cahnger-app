@@ -3284,13 +3284,13 @@ async def regenerate_user_manual(current_user: User = Depends(get_current_user))
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    from user_manual_generator import create_user_manual_docx, create_user_manual_pdf
+    from user_manual_enhanced import create_enhanced_user_manual_docx, create_enhanced_user_manual_pdf
     import os
     
     os.makedirs("/app/backend/static", exist_ok=True)
     
-    docx_path = create_user_manual_docx("/app/backend/static/user_manual.docx")
-    pdf_path = create_user_manual_pdf("/app/backend/static/user_manual.pdf")
+    docx_path = create_enhanced_user_manual_docx("/app/backend/static/user_manual.docx")
+    pdf_path = create_enhanced_user_manual_pdf("/app/backend/static/user_manual.pdf")
     
     return {
         "message": "User manual regenerated successfully",
