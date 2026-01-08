@@ -368,7 +368,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 11,
         "Simpan Transaksi",
         "Klik tombol 'Cetak & Simpan' untuk menyimpan dan langsung mencetak nota transaksi.",
-        "Dialog akan tertutup dan nota transaksi akan terbuka di tab baru untuk dicetak. Transaksi otomatis tersimpan dan muncul di daftar transaksi."
+        "Dialog akan tertutup dan nota transaksi akan terbuka di tab baru untuk dicetak. Transaksi otomatis tersimpan dan muncul di daftar transaksi.",
+        os.path.join(screenshots_base, "13_transaction_signature.png")
     )
     
     doc.add_page_break()
