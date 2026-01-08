@@ -653,6 +653,20 @@ def create_enhanced_user_manual_docx(output_path: str):
     doc.add_heading('9. PENGATURAN (ADMIN ONLY)', level=1)
     
     doc.add_paragraph("Halaman Pengaturan hanya dapat diakses oleh Admin. Berisi 7 tab:")
+    doc.add_paragraph()
+    
+    # Add screenshot untuk Settings page overview
+    if os.path.exists(os.path.join(screenshots_base, "11_settings.png")):
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.add_run().add_picture(os.path.join(screenshots_base, "11_settings.png"), width=Inches(5.5))
+        caption = doc.add_paragraph()
+        caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        runner = caption.add_run("Gambar: Halaman Pengaturan - Tab Perusahaan")
+        runner.italic = True
+        runner.font.size = Pt(9)
+        runner.font.color.rgb = RGBColor(110, 231, 183)
+        doc.add_paragraph()
     
     doc.add_heading('9.1 Tab Perusahaan', level=2)
     doc.add_paragraph("Update profil perusahaan: nama, alamat, telepon, email, website, nomor izin BI, NPWP, IDPJK.")
