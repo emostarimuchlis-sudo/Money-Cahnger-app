@@ -92,8 +92,11 @@ def add_step_with_screenshot(doc, step_number, title, description, visual_note="
     doc.add_paragraph()  # Spacing
 
 def create_enhanced_user_manual_docx(output_path: str):
-    """Create enhanced user manual with detailed step-by-step instructions"""
+    """Create enhanced user manual with detailed step-by-step instructions and screenshots"""
     doc = Document()
+    
+    # Screenshot base path
+    screenshots_base = os.path.join(os.path.dirname(__file__), "static", "screenshots")
     
     # Set default font
     style = doc.styles['Normal']
