@@ -486,14 +486,16 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 2,
         "Lihat Member Card",
         "Tab V-Card Member menampilkan kartu member nasabah dengan QR code.",
-        "Kartu member menampilkan: kode nasabah, nama, nomor identitas, alamat, dan QR code untuk scan. Ada tombol 'Print Member Card' untuk mencetak."
+        "Kartu member menampilkan: kode nasabah, nama, nomor identitas, alamat, dan QR code untuk scan. Ada tombol 'Print Member Card' untuk mencetak.",
+        os.path.join(screenshots_base, "26_customer_profile_vcard.png")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Lihat Buku Transaksi",
         "Klik tab 'Buku Transaksi', lalu klik tombol 'Muat Transaksi' untuk melihat riwayat transaksi nasabah.",
-        "Tombol 'Muat Transaksi' akan loading 2-3 detik, lalu muncul tabel transaksi lengkap dengan total pembelian, penjualan, dan grand total. Ada tombol 'Cetak Buku Transaksi' untuk print."
+        "Tombol 'Muat Transaksi' akan loading 2-3 detik, lalu muncul tabel transaksi lengkap dengan total pembelian, penjualan, dan grand total. Ada tombol 'Cetak Buku Transaksi' untuk print.",
+        os.path.join(screenshots_base, "27_customer_profile_transactions_before.png")
     )
     
     add_note_box(doc, "Fitur lazy loading untuk Buku Transaksi membuat halaman profil nasabah load lebih cepat (3-5x). Data transaksi hanya dimuat saat Anda klik tombol 'Muat Transaksi'.")
@@ -502,7 +504,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 4,
         "Lihat Data KYC",
         "Tab 'KYC' menampilkan data lengkap nasabah untuk keperluan audit dan compliance.",
-        "KYC tab berisi semua data nasabah yang terstruktur: identitas, alamat, pekerjaan, sumber dana, dll. Ada tombol 'Print KYC' untuk cetak form KYC sesuai format BI."
+        "KYC tab berisi semua data nasabah yang terstruktur: identitas, alamat, pekerjaan, sumber dana, dll. Ada tombol 'Print KYC' untuk cetak form KYC sesuai format BI.",
+        os.path.join(screenshots_base, "29_customer_profile_kyc.png")
     )
     
     doc.add_page_break()
