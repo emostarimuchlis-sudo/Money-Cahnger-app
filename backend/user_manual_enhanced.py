@@ -410,7 +410,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Halaman Data Nasabah",
         "Klik menu 'Data Nasabah' di sidebar kiri.",
-        "Halaman Data Nasabah menampilkan tabel nasabah dengan kolom: Kode, Jenis, Nama, JK, No. Identitas, Telepon, Pekerjaan, Alamat, dan Aksi."
+        "Halaman Data Nasabah menampilkan tabel nasabah dengan kolom: Kode, Jenis, Nama, JK, No. Identitas, Telepon, Pekerjaan, Alamat, dan Aksi.",
+        os.path.join(screenshots_base, "06_customers.png")
     )
     
     add_step_with_screenshot(
