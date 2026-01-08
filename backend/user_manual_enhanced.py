@@ -532,14 +532,16 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 2,
         "Navigasi Tanggal",
         "Gunakan tombol panah kiri/kanan atau klik icon kalender untuk memilih tanggal.",
-        "Ada 3 tombol navigasi: '← Sebelumnya', date picker (dengan icon kalender), '→ Berikutnya', dan tombol 'Hari Ini' untuk kembali ke tanggal sekarang."
+        "Ada 3 tombol navigasi: '← Sebelumnya', date picker (dengan icon kalender), '→ Berikutnya', dan tombol 'Hari Ini' untuk kembali ke tanggal sekarang.",
+        os.path.join(screenshots_base, "31_cashbook_navigation.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Filter Data (Opsional)",
         "Klik tombol 'Filter' untuk filter berdasarkan tipe entry, sumber, atau range tanggal.",
-        "Panel filter akan muncul dengan dropdown: Tipe Entry (Semua/Debit/Kredit), Tipe Transaksi (Pembelian/Penjualan), Sumber (Semua/Manual/Transaksi), dan range tanggal."
+        "Panel filter akan muncul dengan dropdown: Tipe Entry (Semua/Debit/Kredit), Tipe Transaksi (Pembelian/Penjualan), Sumber (Semua/Manual/Transaksi), dan range tanggal.",
+        os.path.join(screenshots_base, "33_cashbook_filter_panel.jpeg")
     )
     
     doc.add_heading('6.2 Menambah Entry Manual', level=2)
