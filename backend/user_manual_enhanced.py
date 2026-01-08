@@ -550,21 +550,24 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Klik Tambah Entri",
         "Klik tombol '+ Tambah Entri' berwarna kuning.",
-        "Dialog form entry manual akan muncul dengan field: Cabang, Tipe (Debit/Kredit), Jumlah, dan Keterangan."
+        "Dialog form entry manual akan muncul dengan field: Cabang, Tipe (Debit/Kredit), Jumlah, dan Keterangan.",
+        os.path.join(screenshots_base, "34_cashbook_add_entry.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 2,
         "Isi Detail Entry",
         "Pilih cabang, pilih tipe (Debit untuk kas masuk, Kredit untuk kas keluar), masukkan jumlah dan keterangan.",
-        "Keterangan bisa diisi bebas, contoh: 'Biaya operasional', 'Kas awal hari', 'Setoran bank', dll."
+        "Keterangan bisa diisi bebas, contoh: 'Biaya operasional', 'Kas awal hari', 'Setoran bank', dll.",
+        os.path.join(screenshots_base, "34_cashbook_add_entry.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Simpan Entry Manual",
         "Klik tombol 'Simpan'.",
-        "Entry manual akan muncul di tabel dengan label 'Manual' di kolom Sumber. Entry manual hanya bisa di-edit/delete oleh Admin."
+        "Entry manual akan muncul di tabel dengan label 'Manual' di kolom Sumber. Entry manual hanya bisa di-edit/delete oleh Admin.",
+        os.path.join(screenshots_base, "30_cashbook_overview.jpeg")
     )
     
     doc.add_heading('6.3 Tools Diagnostik Buku Kas (Admin Only)', level=2)
