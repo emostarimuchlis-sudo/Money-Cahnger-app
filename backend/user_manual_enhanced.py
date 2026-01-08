@@ -444,28 +444,32 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 2,
         "Klik Tambah Nasabah",
         "Klik tombol '+ Tambah Nasabah' berwarna kuning di pojok kanan atas.",
-        "Dialog form nasabah akan muncul. Ada 2 tab di atas: 'Perorangan' dan 'Badan Usaha'. Pilih sesuai jenis nasabah."
+        "Dialog form nasabah akan muncul. Ada 2 tab di atas: 'Perorangan' dan 'Badan Usaha'. Pilih sesuai jenis nasabah.",
+        os.path.join(screenshots_base, "22_customer_form_perorangan.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Isi Data Nasabah Perorangan",
         "Untuk nasabah perorangan, isi: Nama, Gender, Jenis Identitas (KTP/SIM/Passport), No. Identitas, Tempat & Tanggal Lahir, Alamat, Telepon, Pekerjaan, Sumber Dana.",
-        "Form memiliki 2 kolom. Field bertanda * (bintang merah) adalah wajib diisi. Field lain opsional tapi sebaiknya dilengkapi untuk KYC."
+        "Form memiliki 2 kolom. Field bertanda * (bintang merah) adalah wajib diisi. Field lain opsional tapi sebaiknya dilengkapi untuk KYC.",
+        os.path.join(screenshots_base, "22_customer_form_perorangan.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 4,
         "Isi Data Nasabah Badan Usaha",
         "Untuk badan usaha, klik tab 'Badan Usaha' dan isi: Jenis Badan Usaha, Nama, No. Izin, NPWP, Alamat, PIC (Person in Charge) detail.",
-        "Tab Badan Usaha memiliki field berbeda: entity_type, license_number, NPWP, dll. Semua sesuai requirement regulasi BI untuk badan usaha."
+        "Tab Badan Usaha memiliki field berbeda: entity_type, license_number, NPWP, dll. Semua sesuai requirement regulasi BI untuk badan usaha.",
+        os.path.join(screenshots_base, "23_customer_form_badan_usaha.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 5,
         "Simpan Data Nasabah",
         "Setelah semua data terisi, klik tombol 'Simpan'.",
-        "Notifikasi 'Nasabah berhasil ditambahkan' akan muncul. Dialog tertutup dan nasabah baru muncul di tabel dengan kode MBA yang auto-generated."
+        "Notifikasi 'Nasabah berhasil ditambahkan' akan muncul. Dialog tertutup dan nasabah baru muncul di tabel dengan kode MBA yang auto-generated.",
+        os.path.join(screenshots_base, "20_customers_list.jpeg")
     )
     
     doc.add_heading('5.2 Melihat Profil Nasabah', level=2)
