@@ -675,21 +675,24 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Tab SIPESAT",
         "Klik tab 'SIPESAT' di halaman Laporan.",
-        "Form SIPESAT memiliki field lengkap sesuai requirement BI: ID Pengguna Jasa Keuangan, periode, dll."
+        "Form SIPESAT memiliki field lengkap sesuai requirement BI: ID Pengguna Jasa Keuangan, periode, dll.",
+        os.path.join(screenshots_base, "43_reports_sipesat_tab.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 2,
         "Isi Detail SIPESAT",
         "Isi ID PJK, periode laporan, dan informasi yang diminta.",
-        "Pastikan ID PJK sudah terdaftar di Pengaturan > Perusahaan > IDPJK."
+        "Pastikan ID PJK sudah terdaftar di Pengaturan > Perusahaan > IDPJK.",
+        os.path.join(screenshots_base, "44_reports_sipesat_form.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Generate File SIPESAT",
         "Klik 'Generate SIPESAT' untuk membuat file sesuai format BI.",
-        "File akan ter-download dalam format yang diminta BI (.txt atau .csv). Upload file ini ke portal SIPESAT BI."
+        "File akan ter-download dalam format yang diminta BI (.txt atau .csv). Upload file ini ke portal SIPESAT BI.",
+        os.path.join(screenshots_base, "44_reports_sipesat_form.jpeg")
     )
     
     doc.add_page_break()
