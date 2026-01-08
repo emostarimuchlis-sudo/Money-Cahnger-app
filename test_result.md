@@ -599,3 +599,58 @@ Next User Actions:
 2. Use "Periksa Data" in Buku Kas to find & fix data inconsistencies
 3. Verify voucher display shows "-" for empty values
 4. Test customer page performance - should be much faster
+
+#====================================================================================================
+# USER MANUAL SCREENSHOTS - 08 Jan 2026
+#====================================================================================================
+
+Test Session: User Manual Screenshot Capture
+Date: 08 Jan 2026
+Agent: E2 (Testing Agent)
+
+TASK COMPLETED:
+===============
+Captured 12 high-quality screenshots for User Manual documentation
+
+SCREENSHOTS CAPTURED:
+=====================
+All screenshots saved to: /app/backend/static/screenshots/
+
+✅ 01_login.png (821 KB) - Login page with MOZTEC logo, empty email and password fields
+✅ 02_login_filled.png (823 KB) - Login form filled with credentials (password as dots)
+✅ 03_dashboard.png (480 KB) - Dashboard with cards (Transaksi Hari Ini, Pendapatan, Total Nasabah, Cabang Aktif)
+✅ 04_transactions.png (265 KB) - Transactions page with table and export buttons
+✅ 05_transaction_form.png (137 KB) - Transaction form dialog (full page capture including signature pad)
+✅ 06_customers.png (301 KB) - Customer list page with table
+✅ 07_customer_profile.png (266 KB) - Customer profile dialog with tabs (V-Card Member, Buku Transaksi, KYC)
+✅ 08_cashbook.png (289 KB) - Cash Book page with summary cards and entries table
+✅ 09_mutasi_valas.png (485 KB) - Mutasi Valas page with currency mutation table (full page)
+✅ 10_reports.png (295 KB) - Reports page with Laporan Transaksi and SIPESAT tabs
+✅ 11_settings.png (236 KB) - Settings page showing Perusahaan tab
+✅ 12_settings_maintenance.png (287 KB) - Settings Maintenance tab with Date Migration tool
+
+TECHNICAL DETAILS:
+==================
+- Viewport: 1440x900 (as specified)
+- Format: PNG (lossless quality)
+- Total size: 4.6 MB (12 files)
+- All files > 50KB (validated)
+- Credentials used: admin@moztec.com / admin123
+
+VERIFICATION STATUS:
+====================
+✅ All 12 screenshots captured successfully
+✅ All files saved to correct location: /app/backend/static/screenshots/
+✅ All file sizes validated (> 50KB each)
+✅ All pages navigated correctly
+✅ All UI elements visible and properly rendered
+
+NOTES:
+======
+- Screenshot 05 (transaction form) captured with full_page=True to include signature pad
+- Screenshot 09 (mutasi valas) captured with full_page=True to show complete table
+- Customer profile screenshot captured successfully (customer data exists in system)
+- All navigation and page transitions worked smoothly
+- No errors encountered during capture process
+
+STATUS: ✅ COMPLETE - Ready for User Manual documentation
