@@ -192,35 +192,31 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Aplikasi di Browser",
         "Buka browser (Chrome, Firefox, Edge, atau Safari) dan masukkan URL aplikasi yang diberikan oleh administrator.",
-        "Anda akan melihat halaman login dengan logo MOZTEC di tengah layar. Ada form dengan 2 field: Email dan Password, serta tombol kuning 'Masuk' di bawahnya."
+        "Anda akan melihat halaman login dengan logo MOZTEC di tengah layar. Ada form dengan 2 field: Email dan Password, serta tombol kuning 'Masuk' di bawahnya.",
+        os.path.join(screenshots_base, "01_login.png")
     )
     
     add_step_with_screenshot(
         doc, 2,
-        "Masukkan Email",
-        "Klik pada field 'Email' dan ketik alamat email yang telah terdaftar di sistem.",
-        "Field Email akan aktif (border berwarna) saat diklik. Ketik email dengan format yang benar (contoh: user@company.com)"
+        "Masukkan Email dan Password",
+        "Klik pada field 'Email' dan ketik alamat email yang telah terdaftar. Kemudian klik field 'Password' dan ketik password Anda.",
+        "Field Email akan aktif (border berwarna) saat diklik. Password akan muncul sebagai titik-titik. Ada ikon mata di sebelah kanan untuk show/hide password.",
+        os.path.join(screenshots_base, "02_login_filled.png")
     )
     
     add_step_with_screenshot(
         doc, 3,
-        "Masukkan Password",
-        "Klik pada field 'Password' dan ketik password Anda. Password akan muncul sebagai titik-titik untuk keamanan.",
-        "Ada ikon mata di sebelah kanan field Password. Klik untuk show/hide password jika perlu memeriksa."
-    )
-    
-    add_step_with_screenshot(
-        doc, 4,
         "Klik Tombol Masuk",
         "Setelah email dan password terisi, klik tombol kuning 'Masuk' untuk login.",
         "Tombol 'Masuk' berwarna kuning emas dan berada di bawah form. Jika berhasil, akan muncul notifikasi hijau 'Login berhasil!' di pojok kanan atas."
     )
     
     add_step_with_screenshot(
-        doc, 5,
+        doc, 4,
         "Masuk ke Dashboard",
         "Setelah login berhasil, Anda akan otomatis diarahkan ke halaman Dashboard.",
-        "Dashboard menampilkan ringkasan hari ini: Transaksi, Pendapatan, Total Nasabah, Cabang Aktif, dan grafik transaksi terbaru."
+        "Dashboard menampilkan ringkasan hari ini: Transaksi, Pendapatan, Total Nasabah, Cabang Aktif, dan transaksi terbaru.",
+        os.path.join(screenshots_base, "03_dashboard.png")
     )
     
     add_note_box(doc, "Email dan password default untuk admin adalah admin@moztec.com / admin123. Segera ubah password setelah login pertama kali!")
