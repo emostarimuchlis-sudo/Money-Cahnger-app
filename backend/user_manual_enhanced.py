@@ -387,35 +387,40 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Aktifkan Mode Multi-Currency",
         "Di form transaksi, centang checkbox 'Multi-Currency Transaction' di bagian atas.",
-        "Setelah dicentang, form akan berubah. Field mata uang, jumlah, dan kurs sekarang dalam bentuk tabel dengan beberapa baris."
+        "Setelah dicentang, form akan berubah. Field mata uang, jumlah, dan kurs sekarang dalam bentuk tabel dengan beberapa baris.",
+        os.path.join(screenshots_base, "15_transaction_multi_currency.png")
     )
     
     add_step_with_screenshot(
         doc, 2,
         "Tambah Baris Mata Uang",
         "Klik tombol '+ Tambah Mata Uang' untuk menambah baris mata uang baru.",
-        "Setiap baris memiliki: dropdown Tipe (Jual/Beli), dropdown Mata Uang, field Jumlah, field Kurs. Anda bisa tambah unlimited baris."
+        "Setiap baris memiliki: dropdown Tipe (Jual/Beli), dropdown Mata Uang, field Jumlah, field Kurs. Anda bisa tambah unlimited baris.",
+        os.path.join(screenshots_base, "16_transaction_multi_add_currency.png")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Isi Detail Setiap Mata Uang",
         "Untuk setiap baris, pilih tipe, mata uang, masukkan jumlah dan kurs.",
-        "Setiap baris bisa punya tipe berbeda (misal baris 1 JUAL USD, baris 2 BELI EUR). Total per baris dihitung otomatis."
+        "Setiap baris bisa punya tipe berbeda (misal baris 1 JUAL USD, baris 2 BELI EUR). Total per baris dihitung otomatis.",
+        os.path.join(screenshots_base, "16_transaction_multi_add_currency.png")
     )
     
     add_step_with_screenshot(
         doc, 4,
         "Lihat Grand Total",
         "Sistem menghitung Grand Total dari semua baris mata uang.",
-        "Grand Total ditampilkan dengan format besar dan bold di bawah tabel. Ini adalah total keseluruhan transaksi dalam Rupiah."
+        "Grand Total ditampilkan dengan format besar dan bold di bawah tabel. Ini adalah total keseluruhan transaksi dalam Rupiah.",
+        os.path.join(screenshots_base, "16_transaction_multi_add_currency.png")
     )
     
     add_step_with_screenshot(
         doc, 5,
         "Simpan Multi-Currency Transaction",
         "Isi No. Voucher yang SAMA untuk semua mata uang (penting!), minta tanda tangan, dan klik 'Simpan'.",
-        "Sistem akan membuat beberapa transaksi dengan nomor transaksi berbeda tapi voucher sama. Nomor transaksi akan ada suffix -a, -b, -c untuk membedakan."
+        "Sistem akan membuat beberapa transaksi dengan nomor transaksi berbeda tapi voucher sama. Nomor transaksi akan ada suffix -a, -b, -c untuk membedakan.",
+        os.path.join(screenshots_base, "16_transaction_multi_add_currency.png")
     )
     
     add_warning_box(doc, "PENTING: Untuk multi-currency, pastikan No. Voucher DIISI dan SAMA untuk semua mata uang agar bisa ditrack sebagai 1 transaksi!")
