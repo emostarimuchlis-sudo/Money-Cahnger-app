@@ -694,6 +694,21 @@ def create_enhanced_user_manual_docx(output_path: str):
         "• Jalankan Migrasi - execute migrasi sebenarnya (backup database dulu!)"
     )
     
+    # Add screenshot untuk Maintenance tab
+    if os.path.exists(os.path.join(screenshots_base, "12_settings_maintenance.png")):
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.add_run().add_picture(os.path.join(screenshots_base, "12_settings_maintenance.png"), width=Inches(5.5))
+        caption = doc.add_paragraph()
+        caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        runner = caption.add_run("Gambar: Tab Maintenance dengan Tools Migrasi Format Tanggal")
+        runner.italic = True
+        runner.font.size = Pt(9)
+        runner.font.color.rgb = RGBColor(110, 231, 183)
+        doc.add_paragraph()
+    
+    add_warning_box(doc, "Tools Maintenance hanya tersedia untuk Admin. Selalu backup database sebelum menjalankan migrasi data!")
+    
     doc.add_page_break()
     
     # ========== CHAPTER 10: EXPORT DATA ==========
