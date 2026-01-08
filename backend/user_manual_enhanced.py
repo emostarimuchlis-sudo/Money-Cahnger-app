@@ -1,6 +1,6 @@
 """
 Enhanced User Manual Generator with Detailed Step-by-Step Instructions
-Including visual descriptions and annotations for each step
+Including ACTUAL screenshots for every step
 """
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -15,6 +15,18 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from datetime import datetime
 import os
+
+def get_screenshot_path(base_dir, filename):
+    """Get screenshot path, prefer .jpeg over .png"""
+    jpeg_path = os.path.join(base_dir, filename.replace('.png', '.jpeg'))
+    png_path = os.path.join(base_dir, filename)
+    
+    if os.path.exists(jpeg_path):
+        return jpeg_path
+    elif os.path.exists(png_path):
+        return png_path
+    else:
+        return None
 
 def add_note_box(doc, text, title="Catatan"):
     """Add a styled note box to document"""
