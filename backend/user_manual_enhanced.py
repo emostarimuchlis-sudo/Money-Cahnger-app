@@ -653,14 +653,16 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 2,
         "Pilih Periode Laporan",
         "Isi Tanggal Mulai dan Tanggal Akhir, lalu pilih Cabang (atau pilih 'Semua Cabang').",
-        "Date picker memudahkan pemilihan tanggal. Pilih periode sesuai kebutuhan (harian, mingguan, bulanan, atau custom range)."
+        "Date picker memudahkan pemilihan tanggal. Pilih periode sesuai kebutuhan (harian, mingguan, bulanan, atau custom range).",
+        os.path.join(screenshots_base, "42_reports_form_filled.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Generate dan Download Laporan",
         "Klik tombol 'Buat Laporan'. System akan generate laporan dan langsung download.",
-        "Laporan berisi ringkasan dan detail transaksi periode yang dipilih. Format Excel untuk analisa lebih lanjut."
+        "Laporan berisi ringkasan dan detail transaksi periode yang dipilih. Format Excel untuk analisa lebih lanjut.",
+        os.path.join(screenshots_base, "41_reports_transaksi_tab.jpeg")
     )
     
     doc.add_heading('8.2 Laporan SIPESAT', level=2)
