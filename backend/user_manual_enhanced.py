@@ -602,7 +602,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Halaman Laporan",
         "Klik menu 'Laporan' di sidebar.",
-        "Ada 2 tab: 'Laporan Transaksi' dan 'SIPESAT'. Default terbuka di tab Laporan Transaksi."
+        "Ada 2 tab: 'Laporan Transaksi' dan 'SIPESAT'. Default terbuka di tab Laporan Transaksi.",
+        os.path.join(screenshots_base, "10_reports.png")
     )
     
     add_step_with_screenshot(
