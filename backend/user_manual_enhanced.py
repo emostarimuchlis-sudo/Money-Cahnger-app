@@ -448,7 +448,8 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Klik Icon Mata (View)",
         "Dari daftar nasabah, klik icon mata di kolom Aksi untuk melihat profil lengkap nasabah.",
-        "Dialog profil nasabah akan muncul dengan 3 tab: V-Card Member, Buku Transaksi, dan KYC."
+        "Dialog profil nasabah akan muncul dengan 3 tab: V-Card Member, Buku Transaksi, dan KYC.",
+        os.path.join(screenshots_base, "07_customer_profile.png")
     )
     
     add_step_with_screenshot(
