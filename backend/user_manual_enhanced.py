@@ -285,7 +285,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Buka Halaman Transaksi",
         "Klik menu 'Transaksi' di sidebar kiri.",
         "Halaman transaksi akan terbuka menampilkan daftar transaksi hari ini. Di bagian atas ada tombol navigasi tanggal dan tombol '+Transaksi Baru' berwarna kuning di pojok kanan.",
-        os.path.join(screenshots_base, "04_transactions.png")
+        os.path.join(screenshots_base, "05_transactions_list.jpeg")
     )
     
     add_step_with_screenshot(
@@ -293,7 +293,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Klik Tombol Transaksi Baru",
         "Klik tombol kuning '+ Transaksi Baru' di pojok kanan atas.",
         "Dialog form transaksi akan muncul di tengah layar. Form ini memiliki background gelap dengan border emas. Judul 'Transaksi Baru' terlihat di bagian atas dialog.",
-        os.path.join(screenshots_base, "05_transaction_form.png")
+        os.path.join(screenshots_base, "07_transaction_form_empty.jpeg")
     )
     
     add_step_with_screenshot(
@@ -423,7 +423,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Buka Halaman Data Nasabah",
         "Klik menu 'Data Nasabah' di sidebar kiri.",
         "Halaman Data Nasabah menampilkan tabel nasabah dengan kolom: Kode, Jenis, Nama, JK, No. Identitas, Telepon, Pekerjaan, Alamat, dan Aksi.",
-        os.path.join(screenshots_base, "06_customers.png")
+        os.path.join(screenshots_base, "20_customers_list.jpeg")
     )
     
     add_step_with_screenshot(
@@ -461,7 +461,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Klik Icon Mata (View)",
         "Dari daftar nasabah, klik icon mata di kolom Aksi untuk melihat profil lengkap nasabah.",
         "Dialog profil nasabah akan muncul dengan 3 tab: V-Card Member, Buku Transaksi, dan KYC.",
-        os.path.join(screenshots_base, "07_customer_profile.png")
+        os.path.join(screenshots_base, "26_customer_profile_vcard.png")
     )
     
     add_step_with_screenshot(
@@ -504,7 +504,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Buka Halaman Buku Kas",
         "Klik menu 'Buku Kas' di sidebar.",
         "Halaman Buku Kas menampilkan 4 kartu summary di atas: Saldo Awal, Total Debit, Total Kredit, Saldo Akhir. Di bawahnya ada tabel entry kas dengan kolom: Tanggal, Tipe, Keterangan, Debit, Kredit, Sumber, Aksi.",
-        os.path.join(screenshots_base, "08_cashbook.png")
+        os.path.join(screenshots_base, "30_cashbook_overview.jpeg")
     )
     
     add_step_with_screenshot(
@@ -584,7 +584,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Buka Halaman Mutasi Valas",
         "Klik menu 'Mutasi Valas' di sidebar.",
         "Halaman menampilkan tabel mutasi per mata uang dengan kolom: Tanggal, Mata Uang, Stock Awal, Pembelian, Penjualan, Stock Akhir, Avg Rate, Profit/Loss.",
-        os.path.join(screenshots_base, "09_mutasi_valas.png")
+        os.path.join(screenshots_base, "38_mutasi_valas_table.jpeg")
     )
     
     add_step_with_screenshot(
@@ -615,7 +615,7 @@ def create_enhanced_user_manual_docx(output_path: str):
         "Buka Halaman Laporan",
         "Klik menu 'Laporan' di sidebar.",
         "Ada 2 tab: 'Laporan Transaksi' dan 'SIPESAT'. Default terbuka di tab Laporan Transaksi.",
-        os.path.join(screenshots_base, "10_reports.png")
+        os.path.join(screenshots_base, "41_reports_transaksi_tab.jpeg")
     )
     
     add_step_with_screenshot(
@@ -668,10 +668,10 @@ def create_enhanced_user_manual_docx(output_path: str):
     doc.add_paragraph()
     
     # Add screenshot untuk Settings page overview
-    if os.path.exists(os.path.join(screenshots_base, "11_settings.png")):
+    if os.path.exists(os.path.join(screenshots_base, "45_settings_company_tab.jpeg")):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.add_run().add_picture(os.path.join(screenshots_base, "11_settings.png"), width=Inches(5.5))
+        p.add_run().add_picture(os.path.join(screenshots_base, "45_settings_company_tab.jpeg"), width=Inches(5.5))
         caption = doc.add_paragraph()
         caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
         runner = caption.add_run("Gambar: Halaman Pengaturan - Tab Perusahaan")
@@ -707,10 +707,10 @@ def create_enhanced_user_manual_docx(output_path: str):
     )
     
     # Add screenshot untuk Maintenance tab
-    if os.path.exists(os.path.join(screenshots_base, "12_settings_maintenance.png")):
+    if os.path.exists(os.path.join(screenshots_base, "51_settings_maintenance_tab.jpeg")):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.add_run().add_picture(os.path.join(screenshots_base, "12_settings_maintenance.png"), width=Inches(5.5))
+        p.add_run().add_picture(os.path.join(screenshots_base, "51_settings_maintenance_tab.jpeg"), width=Inches(5.5))
         caption = doc.add_paragraph()
         caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
         runner = caption.add_run("Gambar: Tab Maintenance dengan Tools Migrasi Format Tanggal")
