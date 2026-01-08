@@ -272,14 +272,16 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Buka Halaman Transaksi",
         "Klik menu 'Transaksi' di sidebar kiri.",
-        "Halaman transaksi akan terbuka menampilkan daftar transaksi hari ini. Di bagian atas ada tombol navigasi tanggal dan tombol '+Transaksi Baru' berwarna kuning di pojok kanan."
+        "Halaman transaksi akan terbuka menampilkan daftar transaksi hari ini. Di bagian atas ada tombol navigasi tanggal dan tombol '+Transaksi Baru' berwarna kuning di pojok kanan.",
+        os.path.join(screenshots_base, "04_transactions.png")
     )
     
     add_step_with_screenshot(
         doc, 2,
         "Klik Tombol Transaksi Baru",
         "Klik tombol kuning '+ Transaksi Baru' di pojok kanan atas.",
-        "Dialog form transaksi akan muncul di tengah layar. Form ini memiliki background gelap dengan border emas. Judul 'Transaksi Baru' terlihat di bagian atas dialog."
+        "Dialog form transaksi akan muncul di tengah layar. Form ini memiliki background gelap dengan border emas. Judul 'Transaksi Baru' terlihat di bagian atas dialog.",
+        os.path.join(screenshots_base, "05_transaction_form.png")
     )
     
     add_step_with_screenshot(
