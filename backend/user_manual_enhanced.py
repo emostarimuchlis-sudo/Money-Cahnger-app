@@ -576,21 +576,24 @@ def create_enhanced_user_manual_docx(output_path: str):
         doc, 1,
         "Klik Tombol Periksa Data",
         "Di halaman Buku Kas, klik tombol kuning 'Periksa Data' (ada icon peringatan).",
-        "Dialog 'Hasil Pemeriksaan Data' akan muncul menampilkan statistik: Total Transaksi, Total Buku Kas, dan Ketidaksesuaian (jika ada)."
+        "Dialog 'Hasil Pemeriksaan Data' akan muncul menampilkan statistik: Total Transaksi, Total Buku Kas, dan Ketidaksesuaian (jika ada).",
+        os.path.join(screenshots_base, "36_cashbook_check_result.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 2,
         "Review Hasil Pemeriksaan",
         "Jika ada ketidaksesuaian, akan ditampilkan detail: nomor transaksi, nilai di Transaksi vs Buku Kas, dan selisihnya.",
-        "Status 'Data Konsisten!' berarti tidak ada masalah. Status '⚠ Ditemukan Ketidaksesuaian!' berarti ada transaksi yang tidak sinkron."
+        "Status 'Data Konsisten!' berarti tidak ada masalah. Status '⚠ Ditemukan Ketidaksesuaian!' berarti ada transaksi yang tidak sinkron.",
+        os.path.join(screenshots_base, "36_cashbook_check_result.jpeg")
     )
     
     add_step_with_screenshot(
         doc, 3,
         "Perbaiki Data (Jika Ada Masalah)",
         "Jika ditemukan ketidaksesuaian, ada 2 opsi: '🔧 Perbaiki Sekarang' (soft fix) atau '♻️ Hitung Ulang (Advanced)' (hard fix/recreate).",
-        "'Perbaiki Sekarang' akan update nilai yang salah. 'Hitung Ulang' akan delete dan recreate semua entry dari data transaksi asli (lebih aman untuk data yang sangat rusak)."
+        "'Perbaiki Sekarang' akan update nilai yang salah. 'Hitung Ulang' akan delete dan recreate semua entry dari data transaksi asli (lebih aman untuk data yang sangat rusak).",
+        os.path.join(screenshots_base, "36_cashbook_check_result.jpeg")
     )
     
     add_warning_box(doc, "Hitung Ulang (Advanced) akan menghapus dan membuat ulang entry buku kas. Gunakan hanya jika data sudah sangat rusak dan 'Perbaiki Sekarang' tidak cukup.")
